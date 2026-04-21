@@ -1,0 +1,13 @@
+{
+  "enabled": true,
+  "phone": "",
+  "apiUrl": "http://localhost:8081",
+  "apiKey": "petcare-secret-key",
+  "instance": "petcare",
+  "status": "CONNECTED",
+  "qrCode": "",
+  "pairedNumber": "",
+  "pairedName": "Mártin",
+  "lastConnectionAt": "2026-04-19T23:22:16.623Z",
+  "errorMessage": ""
+}

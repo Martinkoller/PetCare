@@ -1,0 +1,613 @@
+import { useEffect, useMemo, useState } from 'react'
+import {
+  addDays,
+  addMonths,
+  addWeeks,
+  endOfWeek,
+  format,
+  startOfWeek,
+  subDays,
+  subMonths,
+  subWeeks,
+} from 'date-fns'
+import { ptBR } from 'date-fns/locale'
+import { cn } from '@/lib/utils'
+
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Checkbox } from '@/components/ui/checkbox'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
+
+import {
+  ChevronLeft,
+  ChevronRight,
+  Filter,
+  Plus,
+  Users,
+} from 'lucide-react'
+
+import { DayView } from './components/DayView'
+import { WeekView } from './components/WeekView'
+import { MonthView } from './components/MonthView'
+import { BoardingDayView } from './components/BoardingDayView'
+import { BoardingWeekView } from './components/BoardingWeekView'
+import { BoardingMonthView } from './components/BoardingMonthView'
+import { ScheduleDialog } from './components/ScheduleDialog'
+
+import { useAppointmentStore } from '@/stores/AppointmentStore'
+import { usePetStore } from '@/stores/PetContext'
+import { useClientStore } from '@/stores/ClientContext'
+import { useConfigStore } from '@/stores/ConfigStore'
+
+import { Appointment } from '@/lib/types'
+
+type CalendarMode = 'day' | 'week' | 'month'
+type ServiceTab = 'work' | 'boarding'
+
+const workLegend = [
+  { color: 'bg-slate-500', label: 'Agendado' },
+  { color: 'bg-blue-500', label: 'Confirmado' },
+  { color: 'bg-amber-500', label: 'Em Atendimento' },
+  { color: 'bg-green-500', label: 'Finalizado' },
+  { color: 'bg-red-500', label: 'Cancelado' },
+]
+
+const boardingLegend = [
+  { color: 'bg-orange-500', label: 'Reservado' },
+  { color: 'bg-emerald-500', label: 'Confirmado' },
+  { color: 'bg-blue-500', label: 'Hospedado' },
+  { color: 'bg-slate-500', label: 'Encerrado' },
+  { color: 'bg-red-500', label: 'Cancelado' },
+]
+
+const workStatusOptions = [
+  { value: 'scheduled', label: 'Agendado' },
+  { value: 'confirmed', label: 'Confirmado' },
+  { value: 'in_progress', label: 'Em Atendimento' },
+  { value: 'completed', label: 'Finalizado' },
+  { value: 'cancelled', label: 'Cancelado' },
+]
+
+const boardingStatusOptions = [
+  { value: 'scheduled', label: 'Reservado' },
+  { value: 'confirmed', label: 'Confirmado' },
+  { value: 'checked_in', label: 'Hospedado' },
+  { value: 'in_progress', label: 'Hospedado' },
+  { value: 'checked_out', label: 'Encerrado' },
+  { value: 'completed', label: 'Encerrado' },
+  { value: 'cancelled', label: 'Cancelado' },
+]
+
+const viewButtonClass = (active: boolean) =>
+  cn(
+    'h-10 px-4 rounded-xl border text-sm font-medium transition-all',
+    active
+      ? 'bg-orange-500 text-white border-orange-500 shadow-sm hover:bg-orange-600'
+      : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+  )
+
+export default function SchedulePage() {
+  const { appointments, updateAppointment, refreshAppointments, deleteAppointment } = useAppointmentStore()
+  const { pets } = usePetStore()
+  const { clients } = useClientStore()
+  const { businessHours, profiles } = useConfigStore()
+
+  const [currentDate, setCurrentDate] = useState(new Date())
+  const [mode, setMode] = useState<CalendarMode>('week')
+  const [serviceTab, setServiceTab] = useState<ServiceTab>('work')
+
+  const [activeProfiles, setActiveProfiles] = useState<string[]>([])
+  const [activeStatuses, setActiveStatuses] = useState<string[]>([])
+
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null)
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null)
+
+  useEffect(() => {
+    refreshAppointments()
+  }, [refreshAppointments])
+
+  const statusOptions =
+    serviceTab === 'boarding' ? boardingStatusOptions : workStatusOptions
+
+  const legendItems =
+    serviceTab === 'boarding' ? boardingLegend : workLegend
+
+  const filteredEvents = useMemo(() => {
+    return appointments.filter((evt) => {
+      const isBoarding = evt.serviceType === 'boarding'
+
+      if (serviceTab === 'boarding' && !isBoarding) return false
+      if (serviceTab === 'work' && isBoarding) return false
+
+      if (activeProfiles.length > 0) {
+        const profId = evt.professionalId || 'unassigned'
+        if (!activeProfiles.includes(profId)) return false
+      }
+
+      if (activeStatuses.length > 0) {
+        if (!activeStatuses.includes(evt.status)) return false
+      }
+
+      return true
+    })
+  }, [appointments, serviceTab, activeProfiles, activeStatuses])
+
+  const headerLabel = useMemo(() => {
+    const prefix = serviceTab === 'work' ? 'Agenda de Trabalho' : 'Hospedagem'
+
+    if (mode === 'day') {
+      return `${prefix} • ${format(currentDate, "EEEE, dd 'de' MMMM 'de' yyyy", {
+        locale: ptBR,
+      })}`
+    }
+
+    if (mode === 'week') {
+      const start = startOfWeek(currentDate, { weekStartsOn: 0 })
+      const end = endOfWeek(currentDate, { weekStartsOn: 0 })
+
+      return `${prefix} • ${format(start, 'dd/MM', { locale: ptBR })} a ${format(
+        end,
+        'dd/MM/yyyy',
+        { locale: ptBR },
+      )}`
+    }
+
+    return `${prefix} • ${format(currentDate, "MMMM 'de' yyyy", {
+      locale: ptBR,
+    })}`
+  }, [currentDate, mode, serviceTab])
+
+  const handlePrev = () => {
+    if (mode === 'day') setCurrentDate((prev) => subDays(prev, 1))
+    else if (mode === 'week') setCurrentDate((prev) => subWeeks(prev, 1))
+    else setCurrentDate((prev) => subMonths(prev, 1))
+  }
+
+  const handleNext = () => {
+    if (mode === 'day') setCurrentDate((prev) => addDays(prev, 1))
+    else if (mode === 'week') setCurrentDate((prev) => addWeeks(prev, 1))
+    else setCurrentDate((prev) => addMonths(prev, 1))
+  }
+
+  const handleToday = () => {
+    setCurrentDate(new Date())
+  }
+
+  const handleTimeClick = (date: Date) => {
+    setSelectedAppointment(null)
+    setSelectedDate(date)
+    setDialogOpen(true)
+  }
+
+  const handleNewAppointment = () => {
+    setSelectedAppointment(null)
+    setSelectedDate(new Date())
+    setDialogOpen(true)
+  }
+
+  const handleEventClick = (event: Appointment) => {
+    setSelectedAppointment(event)
+    setSelectedDate(null)
+    setDialogOpen(true)
+  }
+
+  const handleEventDrop = async (event: Appointment, newDate: Date) => {
+    await updateAppointment({
+      ...event,
+      date: newDate.toISOString(),
+    })
+  }
+
+  const handleCancelAppointment = async (event: Appointment) => {
+    await updateAppointment({
+      ...event,
+      status: 'cancelled',
+    })
+  }
+
+  const handleDeleteAppointment = async (event: Appointment) => {
+    await deleteAppointment(event.id)
+  }
+
+  const toggleProfile = (profileId: string) => {
+    setActiveProfiles((prev) =>
+      prev.includes(profileId)
+        ? prev.filter((id) => id !== profileId)
+        : [...prev, profileId],
+    )
+  }
+
+  const toggleStatus = (status: string) => {
+    setActiveStatuses((prev) =>
+      prev.includes(status)
+        ? prev.filter((id) => id !== status)
+        : [...prev, status],
+    )
+  }
+
+  const clearFilters = () => {
+    setActiveProfiles([])
+    setActiveStatuses([])
+  }
+
+  const renderCurrentView = () => {
+    if (serviceTab === 'boarding') {
+      if (mode === 'day') {
+        return (
+          <BoardingDayView
+            currentDate={currentDate}
+            events={filteredEvents}
+            pets={pets}
+            clients={clients}
+            onEventClick={handleEventClick}
+            onCancelAppointment={handleCancelAppointment}
+            onDeleteAppointment={handleDeleteAppointment}
+          />
+        )
+      }
+
+      if (mode === 'week') {
+        return (
+          <BoardingWeekView
+            currentDate={currentDate}
+            events={filteredEvents}
+            pets={pets}
+            clients={clients}
+            onEventClick={handleEventClick}
+            onCancelAppointment={handleCancelAppointment}
+            onDeleteAppointment={handleDeleteAppointment}
+          />
+        )
+      }
+
+      return (
+        <BoardingMonthView
+          currentDate={currentDate}
+          events={filteredEvents}
+          pets={pets}
+          clients={clients}
+          onEventClick={handleEventClick}
+          onCancelAppointment={handleCancelAppointment}
+          onDeleteAppointment={handleDeleteAppointment}
+        />
+      )
+    }
+
+    if (mode === 'day') {
+      return (
+        <DayView
+          currentDate={currentDate}
+          events={filteredEvents}
+          pets={pets}
+          clients={clients}
+          profiles={profiles}
+          onEventClick={handleEventClick}
+          onCancelAppointment={handleCancelAppointment}
+          onDeleteAppointment={handleDeleteAppointment}
+          onTimeClick={handleTimeClick}
+          onEventDrop={handleEventDrop}
+          startHour={7}
+          endHour={19}
+          businessHours={businessHours}
+          activeProfiles={activeProfiles}
+        />
+      )
+    }
+
+    if (mode === 'week') {
+      return (
+        <WeekView
+          currentDate={currentDate}
+          events={filteredEvents}
+          pets={pets}
+          clients={clients}
+          profiles={profiles}
+          onEventClick={handleEventClick}
+          onCancelAppointment={handleCancelAppointment}
+          onDeleteAppointment={handleDeleteAppointment}
+          onTimeClick={handleTimeClick}
+          onEventDrop={handleEventDrop}
+          mode={mode}
+          startHour={7}
+          endHour={19}
+          businessHours={businessHours}
+          activeProfiles={activeProfiles}
+        />
+      )
+    }
+
+    return (
+      <MonthView
+        currentDate={currentDate}
+        events={filteredEvents}
+        pets={pets}
+        clients={clients}
+        profiles={profiles}
+        onEventClick={handleEventClick}
+        onCancelAppointment={handleCancelAppointment}
+        onDeleteAppointment={handleDeleteAppointment}
+        onTimeClick={handleTimeClick}
+        onEventDrop={handleEventDrop}
+        activeProfiles={activeProfiles}
+      />
+    )
+  }
+
+  return (
+    <div className="flex h-full flex-col gap-4 p-4 md:p-6">
+      {/* Header */}
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="min-w-0">
+          <h1 className="text-3xl font-bold tracking-tight">Agenda</h1>
+          <p className="text-sm text-muted-foreground capitalize">{headerLabel}</p>
+        </div>
+
+        <Button
+          className="h-11 px-5 rounded-xl bg-orange-500 hover:bg-orange-600"
+          onClick={handleNewAppointment}
+        >
+          <Plus className="mr-2 h-4 w-4" />
+          Novo Agendamento
+        </Button>
+      </div>
+
+      {/* Painel superior */}
+      <div className="rounded-2xl border bg-background p-3 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          {/* Bloco esquerdo */}
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex items-center gap-1 rounded-xl border bg-white p-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 rounded-lg"
+                onClick={handlePrev}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+
+              <Button
+                variant="ghost"
+                className="h-8 px-3 rounded-lg font-medium"
+                onClick={handleToday}
+              >
+                Hoje
+              </Button>
+
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 rounded-lg"
+                onClick={handleNext}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+
+            <div className="flex items-center gap-1 rounded-xl border bg-white p-1">
+              <Button
+                className={viewButtonClass(mode === 'day')}
+                onClick={() => setMode('day')}
+              >
+                Dia
+              </Button>
+              <Button
+                className={viewButtonClass(mode === 'week')}
+                onClick={() => setMode('week')}
+              >
+                Semana
+              </Button>
+              <Button
+                className={viewButtonClass(mode === 'month')}
+                onClick={() => setMode('month')}
+              >
+                Mês
+              </Button>
+            </div>
+          </div>
+
+          {/* Bloco direito */}
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex items-center gap-1 rounded-xl border bg-white p-1">
+              <Button
+                className={viewButtonClass(serviceTab === 'work')}
+                onClick={() => {
+                  setServiceTab('work')
+                  setActiveStatuses([])
+                }}
+              >
+                Agenda de Trabalho
+              </Button>
+              <Button
+                className={viewButtonClass(serviceTab === 'boarding')}
+                onClick={() => {
+                  setServiceTab('boarding')
+                  setActiveStatuses([])
+                }}
+              >
+                Hospedagem
+              </Button>
+            </div>
+
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="h-10 rounded-xl">
+                  <Users className="mr-2 h-4 w-4" />
+                  Profissionais
+                  {activeProfiles.length > 0 && (
+                    <Badge className="ml-2 h-5 px-1.5 text-[10px] bg-orange-500 hover:bg-orange-500">
+                      {activeProfiles.length}
+                    </Badge>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-80">
+                <div className="space-y-3">
+                  <div className="text-sm font-semibold">Filtrar por profissionais</div>
+
+                  <div className="space-y-2 max-h-72 overflow-auto pr-1">
+                    <label className="flex items-center gap-3 rounded-lg border p-2 cursor-pointer hover:bg-muted/40">
+                      <Checkbox
+                        checked={activeProfiles.includes('unassigned')}
+                        onCheckedChange={() => toggleProfile('unassigned')}
+                      />
+                      <div className="min-w-0">
+                        <div className="text-sm font-medium truncate">Sem responsável</div>
+                      </div>
+                    </label>
+
+                    {profiles?.map((profile) => (
+                      <label
+                        key={profile.id}
+                        className="flex items-center gap-3 rounded-lg border p-2 cursor-pointer hover:bg-muted/40"
+                      >
+                        <Checkbox
+                          checked={activeProfiles.includes(profile.id)}
+                          onCheckedChange={() => toggleProfile(profile.id)}
+                        />
+                        <div className="min-w-0">
+                          <div className="text-sm font-medium truncate">{profile.name}</div>
+                          {profile.role && (
+                            <div className="text-xs text-muted-foreground truncate">
+                              {profile.role}
+                            </div>
+                          )}
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              </PopoverContent>
+            </Popover>
+
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="h-10 rounded-xl">
+                  <Filter className="mr-2 h-4 w-4" />
+                  Status
+                  {activeStatuses.length > 0 && (
+                    <Badge className="ml-2 h-5 px-1.5 text-[10px] bg-orange-500 hover:bg-orange-500">
+                      {activeStatuses.length}
+                    </Badge>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-72">
+                <div className="space-y-3">
+                  <div className="text-sm font-semibold">Filtrar por status</div>
+
+                  <div className="space-y-2">
+                    {statusOptions.map((status) => (
+                      <label
+                        key={`${status.value}-${status.label}`}
+                        className="flex items-center gap-3 rounded-lg border p-2 cursor-pointer hover:bg-muted/40"
+                      >
+                        <Checkbox
+                          checked={activeStatuses.includes(status.value)}
+                          onCheckedChange={() => toggleStatus(status.value)}
+                        />
+                        <div className="text-sm font-medium">{status.label}</div>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              </PopoverContent>
+            </Popover>
+
+            {(activeProfiles.length > 0 || activeStatuses.length > 0) && (
+              <Button
+                variant="ghost"
+                className="h-10 rounded-xl"
+                onClick={clearFilters}
+              >
+                Limpar filtros
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {/* Legenda */}
+        <div className="mt-3 flex flex-wrap gap-4 border-t pt-3">
+          {legendItems.map((item) => (
+            <div
+              key={item.label}
+              className="flex items-center gap-2 text-sm text-muted-foreground"
+            >
+              <span className={cn('h-3 w-3 rounded-full', item.color)} />
+              <span>{item.label}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Chips filtros ativos */}
+        {(activeProfiles.length > 0 || activeStatuses.length > 0) && (
+          <div className="mt-3 flex flex-wrap gap-2 border-t pt-3">
+            {activeProfiles.map((profileId) => {
+              if (profileId === 'unassigned') {
+                return (
+                  <Badge
+                    key={profileId}
+                    variant="secondary"
+                    className="rounded-full px-3 py-1 bg-orange-50 text-orange-700 border border-orange-200"
+                  >
+                    Prof.: Sem responsável
+                  </Badge>
+                )
+              }
+
+              const profile = profiles?.find((p) => p.id === profileId)
+
+              return (
+                <Badge
+                  key={profileId}
+                  variant="secondary"
+                  className="rounded-full px-3 py-1 bg-orange-50 text-orange-700 border border-orange-200"
+                >
+                  Prof.: {profile?.name || 'Sem nome'}
+                </Badge>
+              )
+            })}
+
+            {activeStatuses.map((statusId) => {
+              const status = statusOptions.find((s) => s.value === statusId)
+
+              return (
+                <Badge
+                  key={statusId}
+                  variant="secondary"
+                  className="rounded-full px-3 py-1 bg-blue-50 text-blue-700 border border-blue-200"
+                >
+                  Status: {status?.label || statusId}
+                </Badge>
+              )
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Conteúdo */}
+      <div className="flex-1 min-h-0">
+        {renderCurrentView()}
+      </div>
+
+      <ScheduleDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        appointment={selectedAppointment ?? undefined}
+        initialDate={selectedDate ?? undefined}
+        defaultServiceType={serviceTab === 'boarding' ? 'boarding' : 'grooming'}
+        onSave={async () => {
+          await refreshAppointments()
+          setDialogOpen(false)
+          setSelectedAppointment(null)
+          setSelectedDate(null)
+        }}
+      />
+    </div>
+  )
+}

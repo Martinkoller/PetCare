@@ -1,0 +1,159 @@
+[
+  {
+    "id": "agendamento_solicitacao",
+    "type": "agendamento_solicitacao",
+    "module": "agendamento",
+    "trigger": "solicitacao",
+    "title": "Solicitação de Agendamento",
+    "content": "Olá {{client_name}}! 🐾💛\nRecebemos a solicitação de agendamento de {{service_type}} para {{pet_name}} no dia {{date}} às {{time}}. ✨\n\nNossa equipe já vai analisar sua solicitação e em breve confirmaremos tudo para você\n\nSerá um prazer receber {{pet_name}} para mais um momento de cuidado, carinho e bem-estar! 😍\n\nQualquer dúvida, estamos à disposição.",
+    "active": true,
+    "sendMode": "auto",
+    "sendDelay": 0
+  },
+  {
+    "id": "agendamento_confirmacao",
+    "type": "agendamento_confirmacao",
+    "module": "agendamento",
+    "trigger": "confirmacao",
+    "title": "Confirmação de Agendamento",
+    "content": "Olá {{client_name}}! 🐾💛\nSeu agendamento de {{service_type}} para {{pet_name}} está confirmado para {{date}} às {{time}}! ✨\n\nAgora é só aguardar esse momento especial\nEm breve, {{pet_name}} vai receber todo o carinho, cuidado e aquele toque especial que faz a diferença! 😍\n\nEstamos ansiosos para receber vocês!",
+    "active": true,
+    "sendMode": "auto",
+    "sendDelay": 0
+  },
+  {
+    "id": "agendamento_cancelamento",
+    "type": "agendamento_cancelamento",
+    "module": "agendamento",
+    "trigger": "cancelamento",
+    "title": "Cancelamento de Agendamento",
+    "content": "Olá {{client_name}}! 🐾💛\nO agendamento de {{service_type}} para {{pet_name}}, previsto para {{date}} às {{time}}, foi cancelado.\n\nEstamos à disposição para reagendarmos um novo horário e receber {{pet_name}} com todo carinho, cuidado e atenção. ✨\n\nFale com a nossa equipe.",
+    "active": true,
+    "sendMode": "auto",
+    "sendDelay": 0
+  },
+  {
+    "id": "agendamento_lembrete",
+    "type": "agendamento_lembrete",
+    "module": "agendamento",
+    "trigger": "lembrete",
+    "title": "Lembrete de Agendamento",
+    "content": "Olá {{client_name}}! 🐾💛\nLembramos que {{pet_name}} tem agendamento de {{service_type}}, dia {{date}} às {{time}}. ✨\n\nEstamos ansiosos para receber vocês!",
+    "active": true,
+    "sendMode": "auto",
+    "sendDelay": 0,
+    "minutesBefore": 15
+  },
+  {
+    "id": "consulta_lembrete",
+    "type": "consulta_lembrete",
+    "module": "consulta",
+    "trigger": "lembrete",
+    "title": "Lembrete de Consulta",
+    "content": "Olá {{client_name}}! 🐾💛\nLembramos que {{pet_name}} tem consulta amanhã, dia {{date}} às {{time}}. ✨\n\nEstamos ansiosos para receber vocês!",
+    "active": false,
+    "sendMode": "auto",
+    "sendDelay": 0,
+    "minutesBefore": 1440
+  },
+  {
+    "id": "consulta_finalizacao",
+    "type": "consulta_finalizacao",
+    "module": "consulta",
+    "trigger": "finalizacao",
+    "title": "Consulta Finalizada",
+    "content": "Olá {{client_name}}! 🐾✨\nA consulta de {{pet_name}} foi concluída. 💛\n\nFoi um prazer cuidar dele(a) neste momento e estar ao lado de vocês \nSe tiver qualquer dúvida sobre as orientações ou próximos cuidados, conte com a nossa equipe.",
+    "active": false,
+    "sendMode": "auto",
+    "sendDelay": 1
+  },
+  {
+    "id": "banho_tosa_checkin",
+    "type": "banho_tosa_checkin",
+    "module": "banho_tosa",
+    "trigger": "checkin",
+    "title": "Início do Serviço — Banho e Tosa",
+    "content": "Olá {{client_name}}! 🐾✨\n{{pet_name}} já deu entrada para o banho e tosa! 🛁✂️\n\nNosso time já vai começar a produção desse look especial 💛\nDaqui a pouco você vai ver {{pet_name}} ainda mais lindo(a), cheiroso(a) e cheio(a) de charme! 😍\n\nAssim que estiver pronto(a), te avisamos!",
+    "active": true,
+    "sendMode": "auto",
+    "sendDelay": 0
+  },
+  {
+    "id": "banho_tosa_pronto",
+    "type": "banho_tosa_pronto",
+    "module": "banho_tosa",
+    "trigger": "pronto",
+    "title": "Pet Pronto — Banho e Tosa",
+    "content": "Olá {{client_name}}! 🐾✨\n{{pet_name}} já está prontinho(a)! 😍\n\nFicou lindo(a), cheiroso(a) e cheio(a) de charme 💛\nPor aqui, cada detalhe é feito com carinho para que {{pet_name}} esteja sempre bem cuidado(a).\n\nJá pode vir buscar!\nE pode ficar tranquilo(a): até a sua chegada, {{pet_name}} seguirá confortável, seguro(a) e bem cuidado(a) por nossa equipe. 💛",
+    "active": true,
+    "sendMode": "auto",
+    "sendDelay": 0
+  },
+  {
+    "id": "banho_tosa_entrega",
+    "type": "banho_tosa_entrega",
+    "module": "banho_tosa",
+    "trigger": "entrega",
+    "title": "Entrega — Banho e Tosa",
+    "content": "Olá {{client_name}}! 🐾💛\n{{pet_name}} foi entregue com sucesso! ✨\n\nFoi um prazer cuidar dele(a) e fazer parte desse momento especial 🦋\nEsperamos que vocês tenham amado o resultado tanto quanto nós! 😍\n\nSempre que {{pet_name}} precisar de carinho, cuidado e aquele toque especial, estaremos por aqui para receber vocês novamente.\nAté a próxima! 🛁✂️",
+    "active": true,
+    "sendMode": "auto",
+    "sendDelay": 2
+  },
+  {
+    "id": "hospedagem_checkin",
+    "type": "hospedagem_checkin",
+    "module": "hospedagem",
+    "trigger": "checkin",
+    "title": "Check-in Hospedagem",
+    "content": "Olá {{client_name}}! 🐾💛\n{{pet_name}} já está oficialmente hospedado(a) com a gente! ✨\n\nA hospedagem está confirmada até {{checkout_date}}, e nossa equipe já está cuidando de tudo para que ele(a) tenha uma estadia tranquila, confortável e cheia de atenção \n\nQualquer novidade, entraremos em contato.",
+    "active": false,
+    "sendMode": "auto",
+    "sendDelay": 0
+  },
+  {
+    "id": "hospedagem_checkout",
+    "type": "hospedagem_checkout",
+    "module": "hospedagem",
+    "trigger": "checkout",
+    "title": "Check-out Hospedagem",
+    "content": "Olá {{client_name}}! 🐾💛\nA hospedagem de {{pet_name}} foi encerrada! ✨\n\nFoi um prazer cuidar dele(a) com toda atenção e carinho que merece \nSempre que precisarem de um lugar seguro, acolhedor e cheio de cuidado, estaremos prontos para receber {{pet_name}} novamente. 😍\n\nEsperamos vê-los em breve!",
+    "active": false,
+    "sendMode": "auto",
+    "sendDelay": 1
+  },
+  {
+    "id": "hospedagem_entrega",
+    "type": "hospedagem_entrega",
+    "module": "hospedagem",
+    "trigger": "entrega",
+    "title": "Entrega — Hospedagem",
+    "content": "Olá {{client_name}}! 🐾💛\n{{pet_name}} foi entregue com sucesso! ✨\n\nFoi um prazer hospedá-lo(a) com todo carinho e atenção que merece 😍\nSempre que precisarem, estaremos prontos para receber {{pet_name}} novamente.\nAté a próxima!",
+    "active": false,
+    "sendMode": "auto",
+    "sendDelay": 0
+  },
+  {
+    "id": "geral_personalizado",
+    "type": "geral_personalizado",
+    "module": "geral",
+    "trigger": "personalizado",
+    "title": "Mensagem Geral",
+    "content": "Olá {{client_name}}! Entramos em contato referente ao(à) {{pet_name}}. Por favor, entre em contato conosco.",
+    "active": false,
+    "sendMode": "auto",
+    "sendDelay": 0
+  },
+  {
+    "id": "agendamento_confirmacao_pendente",
+    "type": "agendamento_confirmacao_pendente",
+    "module": "agendamento",
+    "trigger": "confirmacao_pendente",
+    "title": "Pedido de Confirmação (Interativo)",
+    "content": "Olá {{client_name}}! 🐾\nDeseja confirmar o agendamento de {{service_type}} para {{pet_name}} no dia {{date}} às {{time}}?\n\nResponda:\n*1* - Para confirmar ✅\n*2* - Para remarcar 🔄\n*3* - Para cancelar ❌",
+    "active": true,
+    "sendMode": "auto",
+    "sendDelay": 0,
+    "minutesBefore": 25
+  }
+]
