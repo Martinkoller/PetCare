@@ -77,6 +77,12 @@ export default function HospitalizationDashboard() {
                       {stay.status === 'treatment' ? 'Em Terapia' : 'Admitido'}
                     </Badge>
                   </div>
+                  {stay.appointmentId && (
+                    <div className="mt-2 flex items-center gap-1.5 text-[10px] text-slate-500 font-medium bg-slate-50 w-fit px-2 py-0.5 rounded-full border border-slate-200">
+                      <Clock className="h-3 w-3" />
+                      ORIGEM: AGENDA
+                    </div>
+                  )}
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="bg-red-50/30 p-3 rounded-lg border border-red-100 text-sm">

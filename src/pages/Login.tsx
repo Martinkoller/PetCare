@@ -83,7 +83,7 @@ export default function Login() {
             </div>
           </div>
           <div>
-            <CardTitle className="text-2xl font-bold">ZWeb · PetCare</CardTitle>
+            <CardTitle className="text-2xl font-bold"> · PetCare</CardTitle>
             <CardDescription className="mt-1">
               Faça login para acessar o sistema
             </CardDescription>

@@ -2,8 +2,11 @@ import api from '@/lib/api'
 import { Appointment } from '@/lib/types'
 
 export const appointmentService = {
-  async getAppointments() {
-    const response = await api.get<Appointment[]>('/appointments')
+  async getAppointments(start?: string, end?: string) {
+    const params = new URLSearchParams();
+    if (start) params.append('start', start);
+    if (end) params.append('end', end);
+    const response = await api.get<Appointment[]>(`/appointments?${params.toString()}`)
     return response.data
   },
 

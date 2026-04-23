@@ -117,7 +117,7 @@ export default function Layout() {
                 <Scissors className="h-5 w-5" />
               </div>
               <div className="grid flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden">
-                <span className="truncate font-semibold">ZWeb - PetCare</span>
+                <span className="truncate font-semibold"> PetCare</span>
                 <span className="truncate text-xs text-muted-foreground">
                   Sistema Clinico
                 </span>

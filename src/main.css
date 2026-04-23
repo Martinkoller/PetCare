@@ -72,4 +72,10 @@
   .text-balance {
     text-wrap: balance;
   }
+
+  /* Force Toast text to black as per user request */
+  [data-sonner-toaster] [data-title],
+  [data-sonner-toaster] [data-description] {
+    color: black !important;
+  }
 }

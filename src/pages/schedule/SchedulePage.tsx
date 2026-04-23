@@ -36,7 +36,7 @@ import { MonthView } from './components/MonthView'
 import { BoardingDayView } from './components/BoardingDayView'
 import { BoardingWeekView } from './components/BoardingWeekView'
 import { BoardingMonthView } from './components/BoardingMonthView'
-import { ScheduleDialog } from './components/ScheduleDialog'
+import { UnifiedAtendimentoDialog } from '@/components/shared/UnifiedAtendimentoDialog'
 
 import { useAppointmentStore } from '@/stores/AppointmentStore'
 import { usePetStore } from '@/stores/PetContext'
@@ -91,7 +91,7 @@ const viewButtonClass = (active: boolean) =>
   )
 
 export default function SchedulePage() {
-  const { appointments, updateAppointment, refreshAppointments, deleteAppointment } = useAppointmentStore()
+  const { appointments, updateAppointment, addAppointment, refreshAppointments, deleteAppointment, updateAppointmentStatus } = useAppointmentStore()
   const { pets } = usePetStore()
   const { clients } = useClientStore()
   const { businessHours, profiles } = useConfigStore()
@@ -106,10 +106,26 @@ export default function SchedulePage() {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null)
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
+  const [isReadOnly, setIsReadOnly] = useState(false)
 
   useEffect(() => {
-    refreshAppointments()
-  }, [refreshAppointments])
+    let start, end;
+    if (mode === 'day') {
+      start = format(currentDate, 'yyyy-MM-ddT00:00:00');
+      end = format(currentDate, 'yyyy-MM-ddT23:59:59');
+    } else if (mode === 'week') {
+      const s = startOfWeek(currentDate, { weekStartsOn: 0 });
+      const e = endOfWeek(currentDate, { weekStartsOn: 0 });
+      start = format(s, 'yyyy-MM-ddT00:00:00');
+      end = format(e, 'yyyy-MM-ddT23:59:59');
+    } else {
+      const s = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+      const e = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+      start = format(s, 'yyyy-MM-ddT00:00:00');
+      end = format(e, 'yyyy-MM-ddT23:59:59');
+    }
+    refreshAppointments(start, end)
+  }, [refreshAppointments, currentDate, mode])
 
   const statusOptions =
     serviceTab === 'boarding' ? boardingStatusOptions : workStatusOptions
@@ -181,22 +197,32 @@ export default function SchedulePage() {
   const handleTimeClick = (date: Date) => {
     setSelectedAppointment(null)
     setSelectedDate(date)
+    setIsReadOnly(false)
     setDialogOpen(true)
   }
 
   const handleNewAppointment = () => {
     setSelectedAppointment(null)
     setSelectedDate(new Date())
+    setIsReadOnly(false)
     setDialogOpen(true)
   }
 
   const handleEventClick = (event: Appointment) => {
+    const isCompleted = event.status === 'completed' || event.status === 'checked_out'
+    
     setSelectedAppointment(event)
     setSelectedDate(null)
+    setIsReadOnly(isCompleted)
     setDialogOpen(true)
   }
 
   const handleEventDrop = async (event: Appointment, newDate: Date) => {
+    if (event.status === 'completed') {
+      if (!window.confirm('Este agendamento está FINALIZADO. Deseja alterar o horário?')) {
+        return
+      }
+    }
     await updateAppointment({
       ...event,
       date: newDate.toISOString(),
@@ -247,6 +273,7 @@ export default function SchedulePage() {
             onEventClick={handleEventClick}
             onCancelAppointment={handleCancelAppointment}
             onDeleteAppointment={handleDeleteAppointment}
+            onUpdateStatus={(id, status) => updateAppointmentStatus(id, status)}
           />
         )
       }
@@ -261,6 +288,7 @@ export default function SchedulePage() {
             onEventClick={handleEventClick}
             onCancelAppointment={handleCancelAppointment}
             onDeleteAppointment={handleDeleteAppointment}
+            onUpdateStatus={(id, status) => updateAppointmentStatus(id, status)}
           />
         )
       }
@@ -274,6 +302,7 @@ export default function SchedulePage() {
           onEventClick={handleEventClick}
           onCancelAppointment={handleCancelAppointment}
           onDeleteAppointment={handleDeleteAppointment}
+          onUpdateStatus={(id, status) => updateAppointmentStatus(id, status)}
         />
       )
     }
@@ -291,6 +320,7 @@ export default function SchedulePage() {
           onDeleteAppointment={handleDeleteAppointment}
           onTimeClick={handleTimeClick}
           onEventDrop={handleEventDrop}
+          onUpdateStatus={(id, status) => updateAppointmentStatus(id, status)}
           startHour={7}
           endHour={19}
           businessHours={businessHours}
@@ -312,6 +342,7 @@ export default function SchedulePage() {
           onDeleteAppointment={handleDeleteAppointment}
           onTimeClick={handleTimeClick}
           onEventDrop={handleEventDrop}
+          onUpdateStatus={(id, status) => updateAppointmentStatus(id, status)}
           mode={mode}
           startHour={7}
           endHour={19}
@@ -333,6 +364,7 @@ export default function SchedulePage() {
         onDeleteAppointment={handleDeleteAppointment}
         onTimeClick={handleTimeClick}
         onEventDrop={handleEventDrop}
+        onUpdateStatus={(id, status) => updateAppointmentStatus(id, status)}
         activeProfiles={activeProfiles}
       />
     )
@@ -595,14 +627,12 @@ export default function SchedulePage() {
         {renderCurrentView()}
       </div>
 
-      <ScheduleDialog
+      <UnifiedAtendimentoDialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}
-        appointment={selectedAppointment ?? undefined}
-        initialDate={selectedDate ?? undefined}
-        defaultServiceType={serviceTab === 'boarding' ? 'boarding' : 'grooming'}
-        onSave={async () => {
-          await refreshAppointments()
+        appointment={selectedAppointment ? selectedAppointment : (selectedDate ? { date: selectedDate.toISOString() } : undefined)}
+        readOnly={isReadOnly}
+        onSave={() => {
           setDialogOpen(false)
           setSelectedAppointment(null)
           setSelectedDate(null)

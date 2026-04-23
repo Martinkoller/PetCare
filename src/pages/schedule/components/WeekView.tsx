@@ -18,12 +18,16 @@ import {
     BusinessHours,
 } from '@/lib/types'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import {
     ContextMenu,
     ContextMenuContent,
     ContextMenuItem,
     ContextMenuSeparator,
     ContextMenuTrigger,
+    ContextMenuSub,
+    ContextMenuSubTrigger,
+    ContextMenuSubContent,
 } from '@/components/ui/context-menu'
 import {
     Dialog,
@@ -33,7 +37,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog'
-import { Pencil, XCircle, Trash2 } from 'lucide-react'
+import { Pencil, XCircle, Trash2, Plus } from 'lucide-react'
 
 interface WeekViewProps {
     currentDate: Date
@@ -44,6 +48,7 @@ interface WeekViewProps {
     onEventClick: (event: Appointment) => void
     onCancelAppointment: (event: Appointment) => void
     onDeleteAppointment: (event: Appointment) => void
+    onUpdateStatus?: (id: string, status: Appointment['status']) => void
     onTimeClick: (date: Date) => void
     onEventDrop: (event: Appointment, newDate: Date) => void
     mode?: 'day' | 'week' | 'month'
@@ -52,6 +57,16 @@ interface WeekViewProps {
     businessHours?: BusinessHours
     activeProfiles?: string[]
 }
+
+const statusLabels: Record<string, string> = {
+    scheduled: 'Agendado',
+    confirmed: 'Confirmado',
+    in_progress: 'Em Atendimento',
+    completed: 'Finalizado',
+    cancelled: 'Cancelado',
+    checked_in: 'Hospedado',
+    checked_out: 'Encerrado',
+};
 
 const HOUR_HEIGHT = 44
 const MAX_VISIBLE_COLUMNS = 3
@@ -102,6 +117,15 @@ function safeTimeToMin(value: unknown): number | null {
     }
 
     return null
+}
+
+function getServiceLabel(type: string) {
+    switch (type) {
+        case 'grooming': return 'Banho e Tosa'
+        case 'consultation': return 'Consulta'
+        case 'hospitalization': return 'Internação'
+        default: return 'Hospedagem'
+    }
 }
 
 function resolveBusinessBlock(businessHours: any, day: Date): DayBusinessBlock {
@@ -297,6 +321,8 @@ export function WeekView({
     profiles = [],
     onEventClick,
     onCancelAppointment,
+    onDeleteAppointment,
+    onUpdateStatus,
     onTimeClick,
     onEventDrop,
     mode = 'week',
@@ -428,8 +454,13 @@ export function WeekView({
         overflowHint?: number,
     ) => {
         const pet = pets.find((p) => String(p.id) === String(evt.petId))
+        const professional = profiles.find((p) => String(p.id) === String(evt.professionalId))
+        const client = pet ? clients.find((c) => String(c.id) === String((pet as any).clientId)) : undefined
+        const serviceLabel = getServiceLabel(evt.serviceType)
         const timeLabel = format(new Date(evt.date), 'HH:mm')
         const hasOverflow = typeof overflowHint === 'number' && overflowHint > 0
+
+        const substatus = evt.clinicalStatus || evt.groomingStatus;
 
         return (
             <ContextMenu key={evt.id}>
@@ -442,27 +473,36 @@ export function WeekView({
                             evt.status === 'in_progress' && 'bg-amber-50 border-amber-200 text-amber-900',
                             evt.status === 'completed' && 'bg-green-50 border-green-200 text-green-900',
                             evt.status === 'cancelled' && 'bg-red-50 border-red-200 text-red-900',
+                            evt.serviceType === 'hospitalization' && 'border-l-red-500 border-l-4',
                         )}
                         style={style}
                         onClick={() => onEventClick(evt)}
                         draggable
                         onDragStart={(e) => e.dataTransfer.setData('text/plain', evt.id)}
-                        title={[timeLabel, pet ? `Pet: ${pet.name}` : '']
+                        title={[
+                            `${timeLabel} - ${serviceLabel}`,
+                            pet ? `Pet: ${pet.name}` : '',
+                            client ? `Tutor: ${client.name}` : '',
+                            professional ? `${professional.name}` : 'Sem responsável',
+                            `${statusLabels[evt.status] || evt.status}`,
+                        ]
                             .filter(Boolean)
                             .join('\n')}
                     >
-                        <div className="h-full flex flex-col justify-center px-2 py-1.5 border-l-4 border-l-current">
-                            <div className="truncate text-[11px] font-bold leading-none">
-                                {timeLabel}
+                        <div className="h-full flex flex-col justify-center px-2 py-0.5 relative">
+                            <div className="flex items-center gap-1.5 truncate leading-none">
+                                <span className="text-[10px] font-bold text-slate-700 shrink-0">{timeLabel}</span>
+                                <span className="text-[11px] font-bold text-slate-900 truncate">{pet?.name || 'Pet'}</span>
+                                {evt.serviceType === 'hospitalization' && (
+                                    <span className="text-red-600 text-[8px] font-extrabold shrink-0">INT</span>
+                                )}
                             </div>
 
-                            <div className="truncate text-[11px] font-medium mt-1 leading-none">
-                                {pet?.name || 'Pet'}
-                            </div>
+
 
                             {hasOverflow ? (
-                                <div className="mt-1 text-[9px] font-medium opacity-80">
-                                    +{overflowHint} no mesmo horário
+                                <div className="mt-1 text-[8px] font-medium opacity-80 bg-white/40 rounded px-1 w-fit">
+                                    +{overflowHint}
                                 </div>
                             ) : null}
                         </div>
@@ -475,25 +515,45 @@ export function WeekView({
                         Editar
                     </ContextMenuItem>
 
-                    <ContextMenuSeparator />
+                    <ContextMenuSub>
+                        <ContextMenuSubTrigger disabled={evt.status === 'completed'}>
+                            <span className="flex items-center">
+                                <Plus className="mr-2 h-4 w-4" />
+                                Ações
+                            </span>
+                        </ContextMenuSubTrigger>
+                        <ContextMenuSubContent className="w-56">
+                            {evt.status === 'scheduled' && (
+                                <ContextMenuItem onClick={() => onUpdateStatus?.(evt.id, 'confirmed')}>
+                                    <Badge className="mr-2 h-2 w-2 rounded-full bg-blue-500 p-0" />
+                                    Confirmar Atendimento
+                                </ContextMenuItem>
+                            )}
+                            
+                            {evt.status !== 'cancelled' && evt.status !== 'completed' && (
+                                <>
+                                    {evt.status === 'scheduled' && <ContextMenuSeparator />}
+                                    <ContextMenuItem
+                                        className="text-destructive focus:text-destructive"
+                                        onClick={() => setConfirmCancel(evt)}
+                                    >
+                                        <XCircle className="mr-2 h-4 w-4" />
+                                        Cancelar Agendamento
+                                    </ContextMenuItem>
+                                </>
+                            )}
 
-                    {evt.status === 'cancelled' ? (
-                        <ContextMenuItem
-                            className="text-destructive focus:text-destructive"
-                            onClick={() => setConfirmDelete(evt)}
-                        >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Excluir Agendamento
-                        </ContextMenuItem>
-                    ) : (
-                        <ContextMenuItem
-                            className="text-destructive focus:text-destructive"
-                            onClick={() => setConfirmCancel(evt)}
-                        >
-                            <XCircle className="mr-2 h-4 w-4" />
-                            Cancelar Agendamento
-                        </ContextMenuItem>
-                    )}
+                            {evt.status === 'cancelled' && (
+                                <ContextMenuItem
+                                    className="text-destructive focus:text-destructive"
+                                    onClick={() => setConfirmDelete(evt)}
+                                >
+                                    <Trash2 className="mr-2 h-4 w-4" />
+                                    Excluir Agendamento
+                                </ContextMenuItem>
+                            )}
+                        </ContextMenuSubContent>
+                    </ContextMenuSub>
                 </ContextMenuContent>
             </ContextMenu>
         )

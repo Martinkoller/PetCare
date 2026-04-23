@@ -35,7 +35,7 @@ import {
 import { format } from 'date-fns'
 import { ConsultationModal } from './ConsultationModal'
 import { PatientHistorySheet } from './PatientHistorySheet'
-import { ScheduleDialog } from '../schedule/components/ScheduleDialog'
+import { UnifiedAtendimentoDialog } from '@/components/shared/UnifiedAtendimentoDialog'
 import { useProfessionals } from '@/hooks/useProfessionals'
 import { useAuthStore } from '@/stores/useAuthStore'
 import { cn } from '@/lib/utils'
@@ -862,13 +862,16 @@ export default function ClinicPage() {
         pet={historyPet}
       />
 
-      <ScheduleDialog
+      <UnifiedAtendimentoDialog
         open={isNewConsultationOpen}
         onOpenChange={(open) => {
           setIsNewConsultationOpen(open)
           if (!open) setEditingAppointment(null)
         }}
-        onSave={handleSaveAppointment}
+        onSave={() => {
+          setIsNewConsultationOpen(false)
+          setEditingAppointment(null)
+        }}
         appointment={editingAppointment || { serviceType: 'consultation' }}
       />
 

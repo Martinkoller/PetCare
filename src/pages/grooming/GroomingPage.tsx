@@ -10,7 +10,7 @@ import { Plus, Columns, CalendarClock, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { format, isSameDay, parseISO, startOfDay } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { AppointmentDialog } from './GroomingDialogs'
+import { UnifiedAtendimentoDialog } from '@/components/shared/UnifiedAtendimentoDialog'
 import { GroomingKanbanCard } from './GroomingKanbanCard'
 import { AgendamentoDiaCard } from './AgendamentoDiaCard'
 import { ChecklistReviewDialog } from './ChecklistReviewDialog'
@@ -49,6 +49,7 @@ export default function GroomingPage() {
   // Dialog state
   const [isCreating, setIsCreating] = useState(false)
   const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null)
+  const [viewMode, setViewMode] = useState(false)
 
   // Drag-and-drop state
   const [activeDragColumn, setActiveDragColumn] = useState<string | null>(null)
@@ -113,7 +114,8 @@ export default function GroomingPage() {
       if (!isPending) return false
       
       if (!a.date) return false
-      return isSameDay(parseISO(a.date), selectedDate)
+      const aptDateKey = a.date.split('T')[0]
+      return aptDateKey === filterDate
     }).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
   }, [appointments, filterDate])
 
@@ -124,7 +126,8 @@ export default function GroomingPage() {
       if (a.status === 'cancelled') return false
       // No Kanban só entra quem já deu entrada (tem groomingStatus)
       if (!a.groomingStatus) return false
-      return isSameDay(parseISO(a.date), selectedDate)
+      const aptDateKey = a.date.split('T')[0]
+      return aptDateKey === filterDate
     })
   }, [appointments, filterDate])
 
@@ -514,7 +517,7 @@ export default function GroomingPage() {
                     : new Date(filterDate + 'T00:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
                 </span>
               </div>
-              <Badge variant="secondary" className="bg-white/60 ml-2 shrink-0">
+              <Badge variant="secondary" className="bg-white/60 ml-2 shrink-0 text-slate-900">
                 {todayScheduled.length}
               </Badge>
             </div>
@@ -534,7 +537,8 @@ export default function GroomingPage() {
                     client={client}
                     professional={professional}
                     onCheckin={() => handleCheckin(apt)}
-                    onEdit={(e) => { e.stopPropagation(); setEditingAppointment(apt) }}
+                    onEdit={() => { setEditingAppointment(apt); setViewMode(false) }}
+                    onView={() => { setEditingAppointment(apt); setViewMode(true) }}
                   />
                 )
               })}
@@ -569,7 +573,7 @@ export default function GroomingPage() {
                   )}
                 >
                   <span className="truncate">{stage.title}</span>
-                  <Badge variant="secondary" className="bg-white/50 ml-2">
+                  <Badge variant="secondary" className="bg-white/50 ml-2 text-slate-900">
                     {stageApts.length}
                   </Badge>
                 </div>
@@ -601,11 +605,12 @@ export default function GroomingPage() {
                         isDeliveryAvailable={isDeliveryAvailable}
                         isNextStageAvailable={isNextAvailable}
                         now={now}
-                        onOpen={() => setEditingAppointment(apt)}
+                        onOpen={() => { setEditingAppointment(apt); setViewMode(false) }}
+                        onView={() => { setEditingAppointment(apt); setViewMode(true) }}
                         onNextStage={(e) => handleNextStage(e, apt)}
                         onDeliver={(e) => { e.stopPropagation(); moveToStage(apt, deliveryStageId!) }}
                         onWhatsApp={(e) => handleWhatsApp(e, apt)}
-                        onEdit={(e) => { e.stopPropagation(); setEditingAppointment(apt) }}
+                        onEdit={() => { setEditingAppointment(apt); setViewMode(false) }}
                         onDragStart={(e) => handleDragStart(e, apt)}
                       />
                     )
@@ -625,19 +630,21 @@ export default function GroomingPage() {
       </ScrollArea>
 
       {/* Appointment dialog (create / edit / read-only) */}
-      <AppointmentDialog
+      <UnifiedAtendimentoDialog
         open={isCreating || !!editingAppointment}
         onOpenChange={(open) => {
           if (!open) {
             setIsCreating(false)
             setEditingAppointment(null)
+            setViewMode(false)
           }
         }}
-        onSave={handleSaveAppointment}
-        appointment={editingAppointment ?? undefined}
-        pets={pets}
-        stages={groomingStages}
-        readOnly={!!editingAppointment && (editingAppointment.groomingStatus === finalStageId || editingAppointment.groomingStatus === deliveryStageId)}
+        onSave={() => {
+          setIsCreating(false)
+          setEditingAppointment(null)
+        }}
+        appointment={editingAppointment ?? (isCreating ? { serviceType: 'grooming' } : undefined)}
+        readOnly={viewMode || (!!editingAppointment && (editingAppointment.groomingStatus === finalStageId || editingAppointment.groomingStatus === deliveryStageId))}
       />
 
       <ChecklistReviewDialog

@@ -129,6 +129,8 @@ model Appointment {
   updatedAt     DateTime @updatedAt
 
   pet Pet @relation(fields: [petId], references: [id], onDelete: Cascade)
+  boardingStay BoardingStay?
+  hospitalizationStay HospitalizationStay?
 
   @@map("appointments")
 }
@@ -228,6 +230,7 @@ model BoardingStay {
   id             String   @id @default(uuid())
   petId          String
   appointmentId  String?  @unique
+  appointment    Appointment? @relation(fields: [appointmentId], references: [id])
   checkIn        DateTime
   checkOut       DateTime
   actualCheckIn  DateTime?
@@ -350,6 +353,7 @@ model NotificationLog {
 model HospitalizationStay {
   id             String   @id @default(uuid())
   petId          String
+  appointmentId  String?  @unique
   veterinarianId String?
   reasonForAdmission String?
   status         String   @default("admitted") // 'admitted', 'treatment', 'discharged', 'deceased'
@@ -363,6 +367,7 @@ model HospitalizationStay {
   updatedAt      DateTime @updatedAt
   
   pet            Pet      @relation(fields: [petId], references: [id], onDelete: Cascade)
+  appointment    Appointment? @relation(fields: [appointmentId], references: [id])
   logs           HospitalizationLog[]
 
   @@map("hospitalization_stays")

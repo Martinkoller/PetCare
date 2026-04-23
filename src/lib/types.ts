@@ -187,7 +187,7 @@ export interface Pet {
   documents?: PetDocument[]
 }
 
-export type ServiceType = 'consultation' | 'grooming' | 'boarding'
+export type ServiceType = 'consultation' | 'grooming' | 'boarding' | 'hospitalization' | 'vaccination'
 
 export type GroomingStatus = string
 export type ClinicalStatus = 'waiting' | 'triage' | 'consultation' | 'completed'
@@ -235,7 +235,13 @@ export interface Appointment {
   currentStageStartedAt?: string
   priority?: 'normal' | 'urgent' | 'preferential'
   appointmentType?: 'scheduled' | 'walkin'
+  clinicalMode?: 'routine' | 'return' | 'urgency'
+  anamnesis?: string
   tutorNotified?: boolean
+  hospitalizationStay?: HospitalizationStay
+  boardingStay?: BoardingStay
+  boardingMode?: 'daily' | 'half_day' | 'overnight' | 'day_care'
+  criticismLevel?: 'low' | 'moderate' | 'high' | 'icu'
 }
 
 export interface Kennel {
@@ -301,6 +307,8 @@ export interface HospitalizationStay {
   checkOut?: string
   kennelNumber: string
   pet?: Pet
+  appointmentId?: string
+  appointment?: Appointment
   logs?: HospitalizationLog[]
 }
 

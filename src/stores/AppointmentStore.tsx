@@ -30,7 +30,7 @@ import { toast } from 'sonner'
 interface AppointmentContextType {
   appointments: Appointment[]
   setAppointments: React.Dispatch<React.SetStateAction<Appointment[]>>
-  refreshAppointments: () => Promise<void>
+  refreshAppointments: (start?: string, end?: string) => Promise<void>
   addAppointment: (apt: Appointment) => Promise<void>
   updateAppointment: (updatedApt: Appointment) => Promise<void>
   deleteAppointment: (id: string) => Promise<void>
@@ -65,13 +65,12 @@ export function AppointmentProvider({ children }: { children: ReactNode }) {
   const { pets, setPets } = usePetStore()
   const { clients } = useClientStore()
 
-  const loadAppointmentData = useCallback(async () => {
+  const loadAppointmentData = useCallback(async (start?: string, end?: string) => {
     try {
       const [appointmentsData, servicesData] = await Promise.all([
-        appointmentService.getAppointments(),
+        appointmentService.getAppointments(start, end),
         serviceCatalogService.getServices(),
       ])
-
       setAppointments(appointmentsData)
       setServices(servicesData)
     } catch (error) {
@@ -79,6 +78,10 @@ export function AppointmentProvider({ children }: { children: ReactNode }) {
       toast.error('Erro ao carregar agenda e servicos.')
     }
   }, [])
+
+  const refreshAppointments = useCallback(async (start?: string, end?: string) => {
+    await loadAppointmentData(start, end);
+  }, [loadAppointmentData]);
 
   useEffect(() => {
     loadAppointmentData()
@@ -143,11 +146,33 @@ export function AppointmentProvider({ children }: { children: ReactNode }) {
     async (updatedApt: Appointment) => {
       try {
         const result = await appointmentService.updateAppointment(updatedApt)
+        const pet = getPet(updatedApt.petId)
+        
+        // Find the old appointment to see if status changed
+        const oldApt = appointments.find(a => a.id === result.id)
+        if (oldApt && oldApt.status !== result.status) {
+          const statusLabels: Record<string, string> = {
+            scheduled: 'Agendado',
+            confirmed: 'Confirmado',
+            in_progress: 'Em Atendimento',
+            completed: 'Finalizado',
+            cancelled: 'Cancelado',
+            checked_in: 'Hospedado',
+            checked_out: 'Encerrado'
+          };
+          const newLabel = statusLabels[result.status] || result.status;
+          toast.success(`Status alterado para: ${newLabel}`, {
+            duration: 5000,
+            description: `Agendamento de ${pet?.name || 'Pet'} atualizado.`,
+            className: 'text-black font-semibold',
+            descriptionClassName: 'text-black opacity-100',
+          });
+        }
+
         setAppointments((prev) =>
           prev.map((a) => (a.id === result.id ? result : a)),
         )
 
-        const pet = getPet(updatedApt.petId)
         const client = pet ? getClient(pet.clientId) : undefined
         const aptWithDetails = {
           ...result,
@@ -186,7 +211,7 @@ export function AppointmentProvider({ children }: { children: ReactNode }) {
         toast.error('Erro ao atualizar agendamento')
       }
     },
-    [getClient, getPet],
+    [getClient, getPet, appointments],
   )
 
   const deleteAppointment = useCallback(

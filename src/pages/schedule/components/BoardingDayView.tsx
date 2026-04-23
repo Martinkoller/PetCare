@@ -17,6 +17,9 @@ import {
   ContextMenuItem,
   ContextMenuSeparator,
   ContextMenuTrigger,
+  ContextMenuSub,
+  ContextMenuSubTrigger,
+  ContextMenuSubContent,
 } from '@/components/ui/context-menu'
 import {
   Dialog,
@@ -26,7 +29,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { Pencil, XCircle, Trash2 } from 'lucide-react'
+import { Pencil, XCircle, Trash2, Plus } from 'lucide-react'
 
 interface BoardingDayViewProps {
   currentDate: Date
@@ -36,6 +39,7 @@ interface BoardingDayViewProps {
   onEventClick: (event: Appointment) => void
   onCancelAppointment: (event: Appointment) => void
   onDeleteAppointment: (event: Appointment) => void
+  onUpdateStatus?: (id: string, status: Appointment['status']) => void
 }
 
 function getBoardingStatusMeta(status?: string) {
@@ -109,6 +113,7 @@ function BoardingCard({
   onEventClick,
   onCancel,
   onDelete,
+  onUpdateStatus,
 }: {
   evt: Appointment
   pets: Pet[]
@@ -116,6 +121,7 @@ function BoardingCard({
   onEventClick: (event: Appointment) => void
   onCancel: (event: Appointment) => void
   onDelete: (event: Appointment) => void
+  onUpdateStatus?: (id: string, status: Appointment['status']) => void
 }) {
   const [confirmCancel, setConfirmCancel] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
@@ -202,22 +208,44 @@ function BoardingCard({
           <ContextMenuItem onClick={() => onEventClick(evt)}>
             <Pencil className="mr-2 h-4 w-4" /> Editar
           </ContextMenuItem>
-          <ContextMenuSeparator />
-          {evt.status === 'cancelled' ? (
-            <ContextMenuItem
-              className="text-destructive focus:text-destructive"
-              onClick={() => setConfirmDelete(true)}
-            >
-              <Trash2 className="mr-2 h-4 w-4" /> Excluir Agendamento
-            </ContextMenuItem>
-          ) : (
-            <ContextMenuItem
-              className="text-destructive focus:text-destructive"
-              onClick={() => setConfirmCancel(true)}
-            >
-              <XCircle className="mr-2 h-4 w-4" /> Cancelar Hospedagem
-            </ContextMenuItem>
-          )}
+
+          <ContextMenuSub>
+            <ContextMenuSubTrigger disabled={evt.status === 'checked_out'}>
+              <span className="flex items-center">
+                <Plus className="mr-2 h-4 w-4" />
+                Ações
+              </span>
+            </ContextMenuSubTrigger>
+            <ContextMenuSubContent className="w-56">
+              {evt.status === 'scheduled' && (
+                <ContextMenuItem onClick={() => onUpdateStatus?.(evt.id, 'confirmed')}>
+                  <Badge className="mr-2 h-2 w-2 rounded-full bg-emerald-500 p-0" />
+                  Confirmar Reserva
+                </ContextMenuItem>
+              )}
+
+              {evt.status !== 'cancelled' && evt.status !== 'checked_out' && (
+                <>
+                  {evt.status === 'scheduled' && <ContextMenuSeparator />}
+                  <ContextMenuItem
+                    className="text-destructive focus:text-destructive"
+                    onClick={() => setConfirmCancel(true)}
+                  >
+                    <XCircle className="mr-2 h-4 w-4" /> Cancelar Hospedagem
+                  </ContextMenuItem>
+                </>
+              )}
+
+              {evt.status === 'cancelled' && (
+                <ContextMenuItem
+                  className="text-destructive focus:text-destructive"
+                  onClick={() => setConfirmDelete(true)}
+                >
+                  <Trash2 className="mr-2 h-4 w-4" /> Excluir Agendamento
+                </ContextMenuItem>
+              )}
+            </ContextMenuSubContent>
+          </ContextMenuSub>
         </ContextMenuContent>
       </ContextMenu>
 
@@ -295,6 +323,7 @@ function BoardingSection({
   onEventClick: (event: Appointment) => void
   onCancelAppointment: (event: Appointment) => void
   onDeleteAppointment: (event: Appointment) => void
+  onUpdateStatus?: (id: string, status: Appointment['status']) => void
   emptyText: string
 }) {
   return (
@@ -320,6 +349,7 @@ function BoardingSection({
                 onEventClick={onEventClick}
                 onCancel={onCancelAppointment}
                 onDelete={onDeleteAppointment}
+                onUpdateStatus={onUpdateStatus}
               />
             ))}
           </div>
@@ -337,6 +367,7 @@ export function BoardingDayView({
   onEventClick,
   onCancelAppointment,
   onDeleteAppointment,
+  onUpdateStatus,
 }: BoardingDayViewProps) {
   const dayStart = startOfDay(currentDate)
   const dayEnd = endOfDay(currentDate)
@@ -428,6 +459,7 @@ export function BoardingDayView({
           onEventClick={onEventClick}
           onCancelAppointment={onCancelAppointment}
           onDeleteAppointment={onDeleteAppointment}
+          onUpdateStatus={onUpdateStatus}
           emptyText="Nenhum check-in previsto para hoje."
         />
 
@@ -440,6 +472,7 @@ export function BoardingDayView({
           onEventClick={onEventClick}
           onCancelAppointment={onCancelAppointment}
           onDeleteAppointment={onDeleteAppointment}
+          onUpdateStatus={onUpdateStatus}
           emptyText="Nenhum pet em permanência hoje."
         />
 
@@ -452,6 +485,7 @@ export function BoardingDayView({
           onEventClick={onEventClick}
           onCancelAppointment={onCancelAppointment}
           onDeleteAppointment={onDeleteAppointment}
+          onUpdateStatus={onUpdateStatus}
           emptyText="Nenhum check-out previsto para hoje."
         />
       </div>

@@ -8,6 +8,8 @@ import {
   isSameMonth,
   startOfMonth,
   startOfWeek,
+  startOfDay,
+  isBefore,
 } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
@@ -25,16 +27,13 @@ import {
   ContextMenuItem,
   ContextMenuSeparator,
   ContextMenuTrigger,
+  ContextMenuSub,
+  ContextMenuSubTrigger,
+  ContextMenuSubContent,
 } from '@/components/ui/context-menu'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import { Pencil, XCircle, Trash2 } from 'lucide-react'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Pencil, XCircle, Trash2, CalendarDays, Plus } from 'lucide-react'
+import { ScrollArea } from '@/components/ui/scroll-area'
 
 interface MonthViewProps {
   currentDate: Date
@@ -45,6 +44,7 @@ interface MonthViewProps {
   onEventClick: (event: Appointment) => void
   onCancelAppointment: (event: Appointment) => void
   onDeleteAppointment: (event: Appointment) => void
+  onUpdateStatus?: (id: string, status: Appointment['status']) => void
   onTimeClick: (date: Date) => void
   onEventDrop: (event: Appointment, newDate: Date) => void
   activeProfiles?: string[]
@@ -52,6 +52,16 @@ interface MonthViewProps {
 
 const WEEK_DAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
 const MAX_VISIBLE_EVENTS = 3
+
+const statusLabels: Record<string, string> = {
+  scheduled: 'Agendado',
+  confirmed: 'Confirmado',
+  in_progress: 'Em Atendimento',
+  completed: 'Finalizado',
+  cancelled: 'Cancelado',
+  checked_in: 'Hospedado',
+  checked_out: 'Encerrado',
+};
 
 function getStatusDotClass(status: string) {
   switch (status) {
@@ -141,12 +151,15 @@ export function MonthView({
   profiles = [],
   onEventClick,
   onCancelAppointment,
+  onDeleteAppointment,
+  onUpdateStatus,
   onTimeClick,
   onEventDrop,
   activeProfiles = [],
 }: MonthViewProps) {
   const [confirmCancel, setConfirmCancel] = useState<Appointment | null>(null)
   const [confirmDelete, setConfirmDelete] = useState<Appointment | null>(null)
+  const [summaryDay, setSummaryDay] = useState<Date | null>(null)
   const [dragOverDay, setDragOverDay] = useState<string | null>(null)
 
   const monthStart = useMemo(() => startOfMonth(currentDate), [currentDate])
@@ -232,6 +245,7 @@ export function MonthView({
     const timeLabel = format(new Date(evt.date), 'HH:mm')
 
     const statusDot = getStatusDotClass(evt.status)
+    const substatus = evt.clinicalStatus || evt.groomingStatus;
 
     return (
       <ContextMenu key={evt.id}>
@@ -244,38 +258,37 @@ export function MonthView({
               evt.status === 'in_progress' && 'bg-amber-50 border-amber-200 text-amber-900',
               evt.status === 'completed' && 'bg-green-50 border-green-200 text-green-900',
               evt.status === 'cancelled' && 'bg-red-50 border-red-200 text-red-900',
+              evt.serviceType === 'hospitalization' && 'border-l-red-500 border-l-2',
             )}
             onClick={() => onEventClick(evt)}
             draggable
             onDragStart={(e) => e.dataTransfer.setData('text/plain', evt.id)}
             title={[
-              `${timeLabel} • ${serviceLabel}`,
+              `${timeLabel} - ${serviceLabel}`,
               pet ? `Pet: ${pet.name}` : '',
               client ? `Tutor: ${client.name}` : '',
-              professional ? `Profissional: ${professional.name}` : '',
+              professional ? `${professional.name}` : 'Sem responsável',
+              `${statusLabels[evt.status] || evt.status}`,
             ]
               .filter(Boolean)
               .join('\n')}
           >
-            <div className="flex items-start justify-between gap-2">
+            <div className="flex items-start justify-between gap-1 overflow-hidden">
               <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-1.5 min-w-0">
-                  <span className={cn('h-2.5 w-2.5 rounded-full shrink-0', statusDot)} />
-                  <span className="text-[10px] font-bold shrink-0">{timeLabel}</span>
-                  <span className="text-[11px] font-semibold truncate">
+                <div className="flex items-center gap-1 min-w-0">
+                  <span className={cn('h-2 w-2 rounded-full shrink-0', statusDot)} />
+                  <span className="text-[9px] font-bold shrink-0">{timeLabel}</span>
+                  <span className="text-[10px] font-bold truncate">
                     {pet?.name || 'Pet'}
                   </span>
                 </div>
 
-                <div className="mt-0.5 text-[10px] truncate opacity-85">
-                  {professional?.name
-                    ? `Prof.: ${professional.name}`
-                    : 'Sem responsável'}
-                </div>
-              </div>
+                <div className="flex items-center gap-1 mt-0.5">
+                  {evt.serviceType === 'hospitalization' && (
+                    <span className="text-[8px] font-bold text-red-600 bg-red-50 px-0.5 rounded border border-red-200">INT</span>
+                  )}
 
-              <div className="shrink-0">
-                {getStatusBadge(evt.status)}
+                </div>
               </div>
             </div>
           </div>
@@ -286,24 +299,46 @@ export function MonthView({
             <Pencil className="mr-2 h-4 w-4" />
             Editar
           </ContextMenuItem>
-          <ContextMenuSeparator />
-          {evt.status === 'cancelled' ? (
-            <ContextMenuItem
-              className="text-destructive focus:text-destructive"
-              onClick={() => setConfirmDelete(evt)}
-            >
-              <Trash2 className="mr-2 h-4 w-4" />
-              Excluir Agendamento
-            </ContextMenuItem>
-          ) : (
-            <ContextMenuItem
-              className="text-destructive focus:text-destructive"
-              onClick={() => setConfirmCancel(evt)}
-            >
-              <XCircle className="mr-2 h-4 w-4" />
-              Cancelar Agendamento
-            </ContextMenuItem>
-          )}
+
+          <ContextMenuSub>
+            <ContextMenuSubTrigger disabled={evt.status === 'completed'}>
+              <span className="flex items-center">
+                <Plus className="mr-2 h-4 w-4" />
+                Ações
+              </span>
+            </ContextMenuSubTrigger>
+            <ContextMenuSubContent className="w-56">
+              {evt.status === 'scheduled' && (
+                <ContextMenuItem onClick={() => onUpdateStatus?.(evt.id, 'confirmed')}>
+                  <Badge className="mr-2 h-2 w-2 rounded-full bg-blue-500 p-0" />
+                  Confirmar Atendimento
+                </ContextMenuItem>
+              )}
+
+              {evt.status !== 'cancelled' && evt.status !== 'completed' && (
+                <>
+                  {evt.status === 'scheduled' && <ContextMenuSeparator />}
+                  <ContextMenuItem
+                    className="text-destructive focus:text-destructive"
+                    onClick={() => setConfirmCancel(evt)}
+                  >
+                    <XCircle className="mr-2 h-4 w-4" />
+                    Cancelar Agendamento
+                  </ContextMenuItem>
+                </>
+              )}
+
+              {evt.status === 'cancelled' && (
+                <ContextMenuItem
+                  className="text-destructive focus:text-destructive"
+                  onClick={() => setConfirmDelete(evt)}
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Excluir Agendamento
+                </ContextMenuItem>
+              )}
+            </ContextMenuSubContent>
+          </ContextMenuSub>
         </ContextMenuContent>
       </ContextMenu>
     )
@@ -387,7 +422,7 @@ export function MonthView({
                     type="button"
                     variant="ghost"
                     className="h-auto w-full justify-start rounded-lg px-2 py-1 text-[11px] font-medium text-orange-600 hover:bg-orange-50"
-                    onClick={() => onTimeClick(day)}
+                    onClick={() => setSummaryDay(day)}
                   >
                     +{hiddenCount} agendamento{hiddenCount > 1 ? 's' : ''}
                   </Button>
@@ -451,6 +486,91 @@ export function MonthView({
               Sim, Excluir
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!summaryDay} onOpenChange={() => setSummaryDay(null)}>
+        <DialogContent className="max-w-md p-0 overflow-hidden border-none rounded-2xl shadow-2xl">
+          <DialogHeader className="p-6 bg-orange-500 text-white">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-white/20 rounded-xl">
+                <CalendarDays className="h-6 w-6" />
+              </div>
+              <div>
+                <DialogTitle className="text-xl">Resumo do Dia</DialogTitle>
+                <DialogDescription className="text-orange-50 opacity-90">
+                  {summaryDay && format(summaryDay, "EEEE, d 'de' MMMM", { locale: ptBR })}
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+
+          <ScrollArea className="max-h-[60vh] p-6 bg-white">
+            <div className="space-y-4">
+              {summaryDay && (() => {
+                const dayKey = format(summaryDay, 'yyyy-MM-dd')
+                const dayEvents = eventsByDay.get(dayKey) || []
+
+                if (dayEvents.length === 0) {
+                  return <div className="text-center py-8 text-muted-foreground">Nenhum agendamento para este dia.</div>
+                }
+
+                return dayEvents.map(evt => {
+                  const pet = pets.find(p => p.id === evt.petId)
+                  const time = format(new Date(evt.date), 'HH:mm')
+                  const dotClass = getStatusDotClass(evt.status)
+
+                  return (
+                    <div
+                      key={evt.id}
+                      className="group flex items-center justify-between p-3 rounded-xl border border-slate-100 bg-slate-50/50 hover:bg-white hover:shadow-md transition-all cursor-pointer"
+                      onClick={() => {
+                        onEventClick(evt)
+                        setSummaryDay(null)
+                      }}
+                    >
+                      <div className="flex items-center gap-4 min-w-0">
+                        <div className="text-sm font-bold text-slate-400 group-hover:text-orange-500 transition-colors">
+                          {time}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className={cn("h-2 w-2 rounded-full", dotClass)} />
+                            <div className="font-bold text-slate-900 truncate">
+                              {pet?.name || 'Pet'}
+                            </div>
+                          </div>
+                          <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mt-0.5">
+                            {evt.serviceType === 'grooming' ? 'Banho e Tosa' :
+                              evt.serviceType === 'consultation' ? 'Consulta' :
+                                evt.serviceType === 'hospitalization' ? 'Internação' : 'Hospedagem'}
+                          </div>
+                        </div>
+                      </div>
+                      <Pencil className="h-4 w-4 text-slate-300 group-hover:text-orange-500 transition-colors" />
+                    </div>
+                  )
+                })
+              })()}
+            </div>
+          </ScrollArea>
+
+          <div className="p-4 bg-slate-50 border-t flex justify-end gap-2">
+            <Button variant="ghost" onClick={() => setSummaryDay(null)}>
+              Fechar
+            </Button>
+            {summaryDay && !isBefore(startOfDay(summaryDay), startOfDay(new Date())) && (
+              <Button
+                className="bg-orange-500 hover:bg-orange-600 text-white rounded-xl"
+                onClick={() => {
+                  if (summaryDay) onTimeClick(summaryDay)
+                  setSummaryDay(null)
+                }}
+              >
+                Novo Agendamento
+              </Button>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
     </div>

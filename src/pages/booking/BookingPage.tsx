@@ -188,7 +188,7 @@ export default function BookingPage() {
             Agendamento Online
           </h1>
           <p className="text-muted-foreground">
-            ZWeb - PetCare - Clínica Veterinária
+            PetCare - Clínica Veterinária
           </p>
         </div>
 

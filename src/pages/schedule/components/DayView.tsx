@@ -16,12 +16,16 @@ import {
   BusinessHours,
 } from '@/lib/types'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import {
   ContextMenu,
   ContextMenuContent,
   ContextMenuItem,
   ContextMenuSeparator,
   ContextMenuTrigger,
+  ContextMenuSub,
+  ContextMenuSubTrigger,
+  ContextMenuSubContent,
 } from '@/components/ui/context-menu'
 import {
   Dialog,
@@ -31,7 +35,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { Pencil, XCircle, Trash2 } from 'lucide-react'
+import { Pencil, Eye, XCircle, Trash2, Plus } from 'lucide-react'
 
 interface DayViewProps {
   currentDate: Date
@@ -42,6 +46,7 @@ interface DayViewProps {
   onEventClick: (event: Appointment) => void
   onCancelAppointment: (event: Appointment) => void
   onDeleteAppointment: (event: Appointment) => void
+  onUpdateStatus?: (id: string, status: Appointment['status']) => void
   onTimeClick: (date: Date) => void
   onEventDrop: (event: Appointment, newDate: Date) => void
   startHour?: number
@@ -49,6 +54,16 @@ interface DayViewProps {
   businessHours?: BusinessHours
   activeProfiles?: string[]
 }
+
+const statusLabels: Record<string, string> = {
+  scheduled: 'Agendado',
+  confirmed: 'Confirmado',
+  in_progress: 'Em Atendimento',
+  completed: 'Finalizado',
+  cancelled: 'Cancelado',
+  checked_in: 'Hospedado',
+  checked_out: 'Encerrado',
+};
 
 const HOUR_HEIGHT = 64
 const MAX_VISIBLE_COLUMNS = 3
@@ -99,7 +114,16 @@ const safeTimeToMin = (value: unknown): number | null => {
   return null
 }
 
-const resolveBusinessBlock = (businessHours: any, day: Date): DayBusinessBlock => {
+function getServiceLabel(type: string) {
+  switch (type) {
+    case 'grooming': return 'Banho e Tosa'
+    case 'consultation': return 'Consulta'
+    case 'hospitalization': return 'Internação'
+    default: return 'Hospedagem'
+  }
+}
+
+function resolveBusinessBlock(businessHours: any, day: Date): DayBusinessBlock {
   if (!businessHours) {
     return {
       isOpenAllDay: true,
@@ -125,9 +149,7 @@ const resolveBusinessBlock = (businessHours: any, day: Date): DayBusinessBlock =
     }
   }
 
-  const isOpen = config.open ?? config.enabled ?? config.active ?? true
-
-  if (!isOpen) {
+  if (config.open === false) {
     return {
       isOpenAllDay: false,
       isClosedAllDay: true,
@@ -138,37 +160,22 @@ const resolveBusinessBlock = (businessHours: any, day: Date): DayBusinessBlock =
     }
   }
 
-  const firstStart = safeTimeToMin(
-    config.start ??
-    config.startTime ??
-    config.morningStart ??
-    config.openingTime ??
-    null,
-  )
+  const start = safeTimeToMin(config.start)
+  const end = safeTimeToMin(config.end)
+  const breakStart = safeTimeToMin(config.breakStart)
+  const breakEnd = safeTimeToMin(config.breakEnd)
+  const end2 = safeTimeToMin(config.end2)
 
-  const firstEnd = safeTimeToMin(
-    config.end ??
-    config.endTime ??
-    config.morningEnd ??
-    config.closingTime ??
-    null,
-  )
+  const hasSecondShift =
+    breakStart !== null &&
+    breakEnd !== null &&
+    end2 !== null &&
+    breakEnd > breakStart
 
-  const secondStart = safeTimeToMin(
-    config.start2 ??
-    config.secondStart ??
-    config.afternoonStart ??
-    config.reopenTime ??
-    null,
-  )
-
-  const secondEnd = safeTimeToMin(
-    config.end2 ??
-    config.secondEnd ??
-    config.afternoonEnd ??
-    config.secondEndTime ??
-    null,
-  )
+  const firstStart = start
+  const firstEnd = hasSecondShift ? breakStart : end
+  const secondStart = hasSecondShift ? breakEnd : null
+  const secondEnd = hasSecondShift ? end2 : null
 
   if (firstStart === null || firstEnd === null) {
     return {
@@ -191,7 +198,7 @@ const resolveBusinessBlock = (businessHours: any, day: Date): DayBusinessBlock =
   }
 }
 
-const isWithinBusinessHours = (businessHours: any, day: Date, hour: number) => {
+function isWithinBusinessHours(businessHours: any, day: Date, hour: number) {
   const block = resolveBusinessBlock(businessHours, day)
 
   if (block.isOpenAllDay) return true
@@ -215,16 +222,7 @@ const isWithinBusinessHours = (businessHours: any, day: Date, hour: number) => {
   return overlapsFirst || overlapsSecond
 }
 
-function getServiceLabel(serviceType?: string) {
-  switch (serviceType) {
-    case 'grooming':
-      return 'Banho e Tosa'
-    case 'consultation':
-      return 'Consulta'
-    default:
-      return 'Atendimento'
-  }
-}
+
 
 function layoutOverlappingEvents(events: Appointment[]): EventLayout[] {
   if (events.length === 0) return []
@@ -315,6 +313,7 @@ export function DayView({
   onEventClick,
   onCancelAppointment,
   onDeleteAppointment,
+  onUpdateStatus,
   onTimeClick,
   onEventDrop,
   startHour = 7,
@@ -441,6 +440,8 @@ export function DayView({
     const timeLabel = format(start, 'HH:mm')
     const hasOverflow = typeof overflowHint === 'number' && overflowHint > 0
 
+    const substatus = evt.clinicalStatus || evt.groomingStatus;
+
     const eventClasses = cn(
       'absolute rounded-xl border shadow-sm overflow-hidden z-20 hover:z-30 cursor-pointer transition-shadow',
       evt.status === 'scheduled' && 'bg-slate-50 border-slate-200 text-slate-800',
@@ -448,6 +449,7 @@ export function DayView({
       evt.status === 'in_progress' && 'bg-amber-50 border-amber-200 text-amber-900',
       evt.status === 'completed' && 'bg-green-50 border-green-200 text-green-900',
       evt.status === 'cancelled' && 'bg-red-50 border-red-200 text-red-900',
+      evt.serviceType === 'hospitalization' && 'border-l-red-500 border-l-4',
     )
 
     return (
@@ -460,53 +462,50 @@ export function DayView({
             draggable
             onDragStart={(e) => e.dataTransfer.setData('text/plain', evt.id)}
             title={[
-              serviceLabel,
+              `${timeLabel} - ${serviceLabel}`,
               pet ? `Pet: ${pet.name}` : '',
               client ? `Tutor: ${client.name}` : '',
-              professional ? `Profissional: ${professional.name}` : '',
-              `Horário: ${timeLabel}`,
+              professional ? `${professional.name}` : 'Sem responsável',
+              `${statusLabels[evt.status] || evt.status}`,
             ]
               .filter(Boolean)
               .join('\n')}
           >
-            <div className="h-full flex flex-col justify-center px-2 py-1.5 border-l-4 border-l-current">
-              <div className="truncate text-[11px] font-bold leading-none">
-                {timeLabel}
+            <div className="h-full flex flex-col justify-center px-3 py-1 relative">
+              <div className="flex items-center gap-2 truncate leading-none">
+                <span className="text-[12px] font-bold text-slate-700 shrink-0">{timeLabel}</span>
+                <span className="text-[13px] font-bold text-slate-900 truncate">{pet?.name || 'Pet'}</span>
+                {evt.serviceType === 'hospitalization' && (
+                  <Badge variant="outline" className="h-4 px-1 text-[8px] bg-red-50 text-red-600 border-red-200 shrink-0">INT</Badge>
+                )}
               </div>
 
-              <div className="truncate text-[11px] font-semibold mt-1 leading-none">
-                {pet?.name || 'Pet'}
-              </div>
 
-              {compact && professional && (
-                <div className="truncate text-[9px] opacity-80 mt-1 leading-none">
-                  {professional.name}
-                </div>
-              )}
 
               {!compact && (
-                <>
-                  <div className="truncate text-[10px] opacity-85 mt-1">
+                <div className="mt-2 space-y-1">
+                  <div className="truncate text-[11px] opacity-85 flex items-center gap-1.5">
+                    <span className="w-1 h-3 bg-slate-300 rounded-full" />
                     {serviceLabel}
                   </div>
 
                   {client && (
-                    <div className="truncate text-[10px] opacity-75 mt-0.5">
+                    <div className="truncate text-[10px] opacity-70">
                       Tutor: {client.name}
                     </div>
                   )}
 
                   {professional && (
-                    <div className="truncate text-[10px] opacity-75 mt-0.5">
-                      Prof.: {professional.name}
+                    <div className="truncate text-[10px] opacity-70 italic">
+                      Responsável: {professional.name}
                     </div>
                   )}
-                </>
+                </div>
               )}
 
               {hasOverflow ? (
-                <div className="mt-1 text-[9px] font-semibold opacity-80">
-                  +{overflowHint} no mesmo horário
+                <div className="mt-1.5 text-[9px] font-bold opacity-80 bg-white/50 w-fit px-1.5 py-0.5 rounded-md border">
+                  +{overflowHint} conflitos
                 </div>
               ) : null}
             </div>
@@ -515,29 +514,58 @@ export function DayView({
 
         <ContextMenuContent>
           <ContextMenuItem onClick={() => onEventClick(evt)}>
-            <Pencil className="mr-2 h-4 w-4" />
-            Editar
+            {evt.status === 'completed' || evt.status === 'checked_out' ? (
+              <>
+                <Eye className="mr-2 h-4 w-4" />
+                Visualizar
+              </>
+            ) : (
+              <>
+                <Pencil className="mr-2 h-4 w-4" />
+                Editar
+              </>
+            )}
           </ContextMenuItem>
 
-          <ContextMenuSeparator />
+          <ContextMenuSub>
+            <ContextMenuSubTrigger disabled={evt.status === 'completed'}>
+              <span className="flex items-center">
+                <Plus className="mr-2 h-4 w-4" />
+                Ações
+              </span>
+            </ContextMenuSubTrigger>
+            <ContextMenuSubContent className="w-56">
+              {evt.status === 'scheduled' && (
+                <ContextMenuItem onClick={() => onUpdateStatus?.(evt.id, 'confirmed')}>
+                  <Badge className="mr-2 h-2 w-2 rounded-full bg-blue-500 p-0" />
+                  Confirmar Atendimento
+                </ContextMenuItem>
+              )}
 
-          {evt.status === 'cancelled' ? (
-            <ContextMenuItem
-              className="text-destructive focus:text-destructive"
-              onClick={() => setConfirmDelete(evt)}
-            >
-              <Trash2 className="mr-2 h-4 w-4" />
-              Excluir Agendamento
-            </ContextMenuItem>
-          ) : (
-            <ContextMenuItem
-              className="text-destructive focus:text-destructive"
-              onClick={() => setConfirmCancel(evt)}
-            >
-              <XCircle className="mr-2 h-4 w-4" />
-              Cancelar Agendamento
-            </ContextMenuItem>
-          )}
+              {evt.status !== 'cancelled' && evt.status !== 'completed' && (
+                <>
+                  {evt.status === 'scheduled' && <ContextMenuSeparator />}
+                  <ContextMenuItem
+                    className="text-destructive focus:text-destructive"
+                    onClick={() => setConfirmCancel(evt)}
+                  >
+                    <XCircle className="mr-2 h-4 w-4" />
+                    Cancelar Agendamento
+                  </ContextMenuItem>
+                </>
+              )}
+
+              {evt.status === 'cancelled' && (
+                <ContextMenuItem
+                  className="text-destructive focus:text-destructive"
+                  onClick={() => setConfirmDelete(evt)}
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Excluir Agendamento
+                </ContextMenuItem>
+              )}
+            </ContextMenuSubContent>
+          </ContextMenuSub>
         </ContextMenuContent>
       </ContextMenu>
     )

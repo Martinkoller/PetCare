@@ -8,6 +8,10 @@ type WorkflowMeta = {
   clinicalStatus?: string;
   groomingStatus?: string;
   source?: string;
+  clinicalMode?: string;
+  anamnesis?: string;
+  boardingMode?: string;
+  criticismLevel?: string;
 };
 
 const extractWorkflowMeta = (notes?: string | null): { noteText: string | null; meta: WorkflowMeta } => {
@@ -30,14 +34,17 @@ const extractWorkflowMeta = (notes?: string | null): { noteText: string | null; 
 };
 
 const buildNotesWithMeta = (noteText?: string | null, meta?: WorkflowMeta): string | null => {
-  const cleanMeta: WorkflowMeta = {
-    ...(meta?.clinicalStatus ? { clinicalStatus: meta.clinicalStatus } : {}),
-    ...(meta?.groomingStatus ? { groomingStatus: meta.groomingStatus } : {}),
-    ...(meta?.source ? { source: meta.source } : {}),
-  };
+  const cleanMeta: WorkflowMeta = {};
+  if (meta?.clinicalStatus) cleanMeta.clinicalStatus = meta.clinicalStatus;
+  if (meta?.groomingStatus) cleanMeta.groomingStatus = meta.groomingStatus;
+  if (meta?.source) cleanMeta.source = meta.source;
+  if (meta?.clinicalMode) cleanMeta.clinicalMode = meta.clinicalMode;
+  if (meta?.anamnesis) cleanMeta.anamnesis = meta.anamnesis;
+  if (meta?.boardingMode) cleanMeta.boardingMode = meta.boardingMode;
+  if (meta?.criticismLevel) cleanMeta.criticismLevel = meta.criticismLevel;
 
   const hasMeta = Object.keys(cleanMeta).length > 0;
-  const cleanNote = noteText ?? '';
+  const cleanNote = (noteText ?? '').trim();
 
   if (!hasMeta) return cleanNote || null;
   return cleanNote ? `${META_PREFIX}${JSON.stringify(cleanMeta)}\n${cleanNote}` : `${META_PREFIX}${JSON.stringify(cleanMeta)}`;
@@ -51,6 +58,10 @@ const normalizeAppointmentResponse = (appointment: any) => {
     clinicalStatus: meta.clinicalStatus,
     groomingStatus: meta.groomingStatus,
     source: meta.source,
+    clinicalMode: meta.clinicalMode,
+    anamnesis: meta.anamnesis,
+    boardingMode: meta.boardingMode,
+    criticismLevel: meta.criticismLevel,
     serviceItems: appointment.serviceItems ? JSON.parse(appointment.serviceItems) : [],
     returnDate: appointment.returnDate ? appointment.returnDate.toISOString() : undefined,
     startedAt: appointment.startedAt ? appointment.startedAt.toISOString() : undefined,
@@ -63,18 +74,24 @@ const normalizeAppointmentResponse = (appointment: any) => {
 
 const pickAppointmentData = (body: any, currentNotes?: string | null) => {
   const parsedCurrent = extractWorkflowMeta(currentNotes ?? null);
-  const noteText = body.notes !== undefined ? body.notes : parsedCurrent.noteText;
+  
+  // Rule 10: Metadata preservation
   const meta: WorkflowMeta = {
-    clinicalStatus:
-      body.clinicalStatus !== undefined
-        ? body.clinicalStatus
-        : parsedCurrent.meta.clinicalStatus,
-    groomingStatus:
-      body.groomingStatus !== undefined
-        ? body.groomingStatus
-        : parsedCurrent.meta.groomingStatus,
-    source: body.source !== undefined ? body.source : parsedCurrent.meta.source,
+    clinicalStatus: body.clinicalStatus ?? parsedCurrent.meta.clinicalStatus,
+    groomingStatus: body.groomingStatus ?? parsedCurrent.meta.groomingStatus,
+    source: body.source ?? parsedCurrent.meta.source,
+    clinicalMode: body.clinicalMode ?? parsedCurrent.meta.clinicalMode,
+    anamnesis: body.anamnesis ?? parsedCurrent.meta.anamnesis,
+    boardingMode: body.boardingMode ?? parsedCurrent.meta.boardingMode,
+    criticismLevel: body.criticismLevel ?? parsedCurrent.meta.criticismLevel,
   };
+
+  // If service type changes, we might need to reset sub-statuses
+  if (body.serviceType && body.serviceType !== parsedCurrent.meta.source) {
+      // Logic for status reset if needed could go here
+  }
+
+  const noteText = body.notes !== undefined ? body.notes : parsedCurrent.noteText;
 
   const data: any = {
     ...(body.petId !== undefined ? { petId: body.petId } : {}),
@@ -94,82 +111,13 @@ const pickAppointmentData = (body: any, currentNotes?: string | null) => {
     notes: buildNotesWithMeta(noteText, meta),
   };
 
-  if (body.notes === undefined && !meta.clinicalStatus && !meta.groomingStatus && !meta.source) {
-    delete data.notes;
-  }
-
   return data;
 };
 
-export const getAppointments = async (req: AuthRequest, res: Response) => {
-  try {
-    const appointments = await prisma.appointment.findMany({
-      where: {
-        status: { not: 'archived' }
-      },
-      orderBy: { date: 'asc' },
-      include: {
-        pet: {
-          include: { client: true }
-        }
-      },
-    });
+// --- Sync Helpers ---
 
-    res.json(appointments.map(normalizeAppointmentResponse));
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch appointments' });
-  }
-};
-
-export const createAppointment = async (req: AuthRequest, res: Response) => {
-  try {
-    const data = pickAppointmentData(req.body);
-
-    const appointment = await prisma.appointment.create({
-      data,
-    });
-
-    if (appointment.serviceType === 'boarding') {
-      try {
-        await prisma.boardingStay.create({
-          data: {
-            petId: appointment.petId,
-            appointmentId: appointment.id,
-            checkIn: appointment.date,
-            checkOut: appointment.returnDate || new Date(appointment.date.getTime() + 24 * 60 * 60 * 1000),
-            kennelNumber: 'TBD',
-            status: 'reserved',
-            dailyRate: 0,
-            totalPrice: 0,
-          }
-        });
-      } catch (err) {
-        console.error('Failed to create linked boarding stay', err);
-      }
-    }
-
-    res.status(201).json(normalizeAppointmentResponse(appointment));
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Failed to create appointment' });
-  }
-};
-
-export const updateAppointment = async (req: AuthRequest, res: Response) => {
-  const { id } = req.params;
-  try {
-    const existing = await prisma.appointment.findUnique({ where: { id: id as string } });
-    if (!existing) {
-      return res.status(404).json({ error: 'Appointment not found' });
-    }
-
-    const data = pickAppointmentData(req.body, existing.notes);
-
-    const appointment = await prisma.appointment.update({
-      where: { id: id as string },
-      data,
-    });
-
+const syncRelatedStays = async (appointment: any) => {
+    // Boarding Sync
     if (appointment.serviceType === 'boarding') {
       const bStatusMap: Record<string, string> = {
         'scheduled': 'reserved',
@@ -192,14 +140,150 @@ export const updateAppointment = async (req: AuthRequest, res: Response) => {
                status: bStatusMap[appointment.status] || stay.status
              }
            });
+        } else {
+            // Create if missing
+            await prisma.boardingStay.create({
+                data: {
+                  petId: appointment.petId,
+                  appointmentId: appointment.id,
+                  checkIn: appointment.date,
+                  checkOut: appointment.returnDate || new Date(appointment.date.getTime() + 24 * 60 * 60 * 1000),
+                  kennelNumber: 'TBD',
+                  status: bStatusMap[appointment.status] || 'reserved',
+                  dailyRate: 0,
+                  totalPrice: 0,
+                }
+            });
         }
       } catch (err) {
-        console.error('Failed to update boarding stay', err);
+        console.error('Failed to sync boarding stay', err);
       }
     }
 
+    // Hospitalization Sync
+    if (appointment.serviceType === 'hospitalization') {
+      const hStatusMap: Record<string, string> = {
+        'scheduled': 'admitted',
+        'confirmed': 'admitted',
+        'checked_in': 'treatment',
+        'in_progress': 'treatment',
+        'checked_out': 'discharged',
+        'completed': 'discharged',
+        'cancelled': 'discharged'
+      };
+
+      try {
+        const stay = await prisma.hospitalizationStay.findUnique({ where: { appointmentId: appointment.id } });
+        if (stay) {
+           await prisma.hospitalizationStay.update({
+             where: { id: stay.id },
+             data: {
+               checkIn: appointment.date,
+               status: hStatusMap[appointment.status] || stay.status
+             }
+           });
+        } else {
+            // Create if missing
+            await prisma.hospitalizationStay.create({
+                data: {
+                  petId: appointment.petId,
+                  appointmentId: appointment.id,
+                  checkIn: appointment.date,
+                  status: hStatusMap[appointment.status] || 'admitted',
+                  reasonForAdmission: 'Sincronizado via Agenda',
+                }
+            });
+        }
+      } catch (err) {
+        console.error('Failed to sync hospitalization stay', err);
+      }
+    }
+};
+
+export const getAppointments = async (req: AuthRequest, res: Response) => {
+  try {
+    const { start, end } = req.query;
+    
+    const where: any = {
+      status: { not: 'archived' }
+    };
+
+    if (start || end) {
+      where.date = {};
+      if (start && start !== 'undefined' && start !== 'null') {
+        const startDate = new Date(start as string);
+        if (!isNaN(startDate.getTime())) {
+          where.date.gte = startDate;
+        }
+      }
+      if (end && end !== 'undefined' && end !== 'null') {
+        const endDate = new Date(end as string);
+        if (!isNaN(endDate.getTime())) {
+          where.date.lte = endDate;
+        }
+      }
+      // If no valid dates were provided, remove the empty date object
+      if (Object.keys(where.date).length === 0) {
+        delete where.date;
+      }
+    }
+
+    const appointments = await prisma.appointment.findMany({
+      where,
+      orderBy: { date: 'asc' },
+      include: {
+        pet: {
+          include: { client: true }
+        },
+        boardingStay: true,
+        hospitalizationStay: true,
+      },
+    });
+
+    res.json(appointments.map(normalizeAppointmentResponse));
+  } catch (error) {
+    console.error('Error fetching appointments:', error);
+    res.status(500).json({ error: 'Failed to fetch appointments' });
+  }
+};
+
+export const createAppointment = async (req: AuthRequest, res: Response) => {
+  try {
+    const data = pickAppointmentData(req.query.notes ? req.query : req.body); // Fallback for some clients
+
+    const appointment = await prisma.appointment.create({
+      data,
+    });
+
+    await syncRelatedStays(appointment);
+
+    res.status(201).json(normalizeAppointmentResponse(appointment));
+  } catch (error) {
+    console.error('Error creating appointment:', error);
+    res.status(500).json({ error: 'Failed to create appointment' });
+  }
+};
+
+export const updateAppointment = async (req: AuthRequest, res: Response) => {
+  const { id } = req.params;
+  try {
+    const existing = await prisma.appointment.findUnique({ where: { id: id as string } });
+    if (!existing) {
+      return res.status(404).json({ error: 'Appointment not found' });
+    }
+
+    const data = pickAppointmentData(req.body, existing.notes);
+
+    const appointment = await prisma.appointment.update({
+      where: { id: id as string },
+      data,
+    });
+
+    await syncRelatedStays(appointment);
+
     res.json(normalizeAppointmentResponse(appointment));
   } catch (error) {
+    console.error('Error updating appointment:', error);
     res.status(500).json({ error: 'Failed to update appointment' });
   }
 };
@@ -207,11 +291,19 @@ export const updateAppointment = async (req: AuthRequest, res: Response) => {
 export const deleteAppointment = async (req: AuthRequest, res: Response) => {
   const { id } = req.params;
   try {
-    const stay = await prisma.boardingStay.findUnique({ where: { appointmentId: id as string } });
-    if (stay) {
+    const bStay = await prisma.boardingStay.findUnique({ where: { appointmentId: id as string } });
+    if (bStay) {
       await prisma.boardingStay.update({ 
-        where: { id: stay.id },
+        where: { id: bStay.id },
         data: { status: 'archived' }
+      });
+    }
+
+    const hStay = await prisma.hospitalizationStay.findUnique({ where: { appointmentId: id as string } });
+    if (hStay) {
+      await prisma.hospitalizationStay.update({
+        where: { id: hStay.id },
+        data: { status: 'discharged' } // Or another archived status if exists
       });
     }
     

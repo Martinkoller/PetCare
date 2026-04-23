@@ -24,6 +24,9 @@ import {
   ContextMenuItem,
   ContextMenuSeparator,
   ContextMenuTrigger,
+  ContextMenuSub,
+  ContextMenuSubTrigger,
+  ContextMenuSubContent,
 } from '@/components/ui/context-menu'
 import {
   Dialog,
@@ -33,7 +36,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { Pencil, XCircle, Trash2 } from 'lucide-react'
+import { Pencil, XCircle, Trash2, Plus } from 'lucide-react'
 
 interface BoardingWeekViewProps {
   currentDate: Date
@@ -43,6 +46,7 @@ interface BoardingWeekViewProps {
   onEventClick: (event: Appointment) => void
   onCancelAppointment: (event: Appointment) => void
   onDeleteAppointment: (event: Appointment) => void
+  onUpdateStatus?: (id: string, status: Appointment['status']) => void
 }
 
 function getBoardingDates(evt: Appointment) {
@@ -155,6 +159,7 @@ export function BoardingWeekView({
   onEventClick,
   onCancelAppointment,
   onDeleteAppointment,
+  onUpdateStatus,
 }: BoardingWeekViewProps) {
   const [confirmCancel, setConfirmCancel] = useState<Appointment | null>(null)
   const [confirmDelete, setConfirmDelete] = useState<Appointment | null>(null)
@@ -337,24 +342,46 @@ export function BoardingWeekView({
             <Pencil className="mr-2 h-4 w-4" />
             Editar Hospedagem
           </ContextMenuItem>
-          <ContextMenuSeparator />
-          {evt.status === 'cancelled' ? (
-            <ContextMenuItem
-              className="text-destructive focus:text-destructive"
-              onClick={() => setConfirmDelete(evt)}
-            >
-              <Trash2 className="mr-2 h-4 w-4" />
-              Excluir Agendamento
-            </ContextMenuItem>
-          ) : (
-            <ContextMenuItem
-              className="text-destructive focus:text-destructive"
-              onClick={() => setConfirmCancel(evt)}
-            >
-              <XCircle className="mr-2 h-4 w-4" />
-              Cancelar Hospedagem
-            </ContextMenuItem>
-          )}
+
+          <ContextMenuSub>
+            <ContextMenuSubTrigger disabled={evt.status === 'checked_out'}>
+              <span className="flex items-center">
+                <Plus className="mr-2 h-4 w-4" />
+                Ações
+              </span>
+            </ContextMenuSubTrigger>
+            <ContextMenuSubContent className="w-56">
+              {evt.status === 'scheduled' && (
+                <ContextMenuItem onClick={() => onUpdateStatus?.(evt.id, 'confirmed')}>
+                  <Badge className="mr-2 h-2 w-2 rounded-full bg-emerald-500 p-0" />
+                  Confirmar Reserva
+                </ContextMenuItem>
+              )}
+
+              {evt.status !== 'cancelled' && evt.status !== 'checked_out' && (
+                <>
+                  {evt.status === 'scheduled' && <ContextMenuSeparator />}
+                  <ContextMenuItem
+                    className="text-destructive focus:text-destructive"
+                    onClick={() => setConfirmCancel(evt)}
+                  >
+                    <XCircle className="mr-2 h-4 w-4" />
+                    Cancelar Hospedagem
+                  </ContextMenuItem>
+                </>
+              )}
+
+              {evt.status === 'cancelled' && (
+                <ContextMenuItem
+                  className="text-destructive focus:text-destructive"
+                  onClick={() => setConfirmDelete(evt)}
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Excluir Agendamento
+                </ContextMenuItem>
+              )}
+            </ContextMenuSubContent>
+          </ContextMenuSub>
         </ContextMenuContent>
       </ContextMenu>
     )

@@ -36,7 +36,7 @@ import { ptBR } from 'date-fns/locale'
 import { formatCurrency, cn } from '@/lib/utils'
 import { useAuthStore } from '@/stores/useAuthStore'
 import { Appointment } from '@/lib/types'
-import { ScheduleDialog } from '@/pages/schedule/components/ScheduleDialog'
+import { UnifiedAtendimentoDialog } from '@/components/shared/UnifiedAtendimentoDialog'
 import { PetDialog } from '@/pages/pets/PetDialog'
 import { ClientDialog } from '@/pages/clients/ClientDialog'
 
@@ -491,11 +491,14 @@ export default function DashboardPage() {
       </div>
 
       {/* Quick Action Dialogs */}
-      <ScheduleDialog
+      <UnifiedAtendimentoDialog
         open={scheduleOpen}
         onOpenChange={setScheduleOpen}
         appointment={schedulePreset}
-        onSave={(apt) => addAppointment(apt)}
+        onSave={() => {
+          setScheduleOpen(false)
+          setSchedulePreset({})
+        }}
       />
       <PetDialog
         open={petDialogOpen}

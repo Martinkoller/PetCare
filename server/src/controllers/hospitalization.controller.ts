@@ -12,6 +12,7 @@ export const getHospitalizationStays = async (req: AuthRequest, res: Response) =
         pet: {
           include: { client: true }
         },
+        appointment: true,
         logs: {
           orderBy: { createdAt: 'desc' },
           take: 5
@@ -42,6 +43,28 @@ export const createHospitalizationStay = async (req: AuthRequest, res: Response)
         pet: { include: { client: true } }
       }
     });
+
+    // Create a linked appointment to satisfy Rule 14 (Agenda-first)
+    try {
+      const appointment = await prisma.appointment.create({
+        data: {
+          petId: stay.petId,
+          serviceType: 'hospitalization',
+          date: stay.checkIn,
+          status: 'checked_in', // Already admitted
+          notes: `[INTERNAÇÃO] ${stay.reasonForAdmission || ''}`,
+          professionalId: stay.veterinarianId,
+        }
+      });
+
+      // Update stay with appointmentId
+      await prisma.hospitalizationStay.update({
+        where: { id: stay.id },
+        data: { appointmentId: appointment.id }
+      });
+    } catch (err) {
+      console.error('Failed to create linked appointment for manual hospitalization', err);
+    }
 
     res.status(201).json(stay);
   } catch (error) {
@@ -90,6 +113,20 @@ export const dischargeHospitalizationStay = async (req: AuthRequest, res: Respon
         checkOut: new Date()
       }
     });
+
+    if (stay.appointmentId) {
+      const aStatusMap: Record<string, string> = {
+        'discharged': 'completed',
+        'deceased': 'cancelled'
+      };
+
+      await prisma.appointment.update({
+        where: { id: stay.appointmentId },
+        data: {
+          status: aStatusMap[status] || 'completed'
+        }
+      });
+    }
 
     // Create a MedicalRecord summary as requested by user
     await prisma.medicalRecord.create({
