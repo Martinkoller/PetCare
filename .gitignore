@@ -13,5 +13,5 @@ dist/
 server/scratch/
 server/*.sql
 
-# extras
-tatus
+# IDE / editores
+.vscode/
