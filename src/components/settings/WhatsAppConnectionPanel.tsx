@@ -101,7 +101,7 @@ export default function WhatsAppConnectionPanel() {
                 instance: e.target.value,
               }))
             }
-            placeholder="petcare"
+            placeholder="agilipet"
           />
         </div>
       </div>

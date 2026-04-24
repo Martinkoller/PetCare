@@ -44,7 +44,7 @@ export function OfficialDocuments({ pet, prescriptions }: OfficialDocumentsProps
 
     const header = `
       <div class="header">
-        <h2>Clínica Veterinária PetCare</h2>
+        <h2>Clínica Veterinária AgiliPet</h2>
         <p>Rua Exemplo, 123 - Centro | Tel: (11) 99999-9999</p>
       </div>
     `
@@ -99,7 +99,7 @@ export function OfficialDocuments({ pet, prescriptions }: OfficialDocumentsProps
     return `
       <div class="document">
         <div class="header">
-          <h2>Clínica Veterinária PetCare</h2>
+          <h2>Clínica Veterinária AgiliPet</h2>
         </div>
         <h3 class="title">ATESTADO DE SAÚDE VETERINÁRIO</h3>
         <p style="text-align: justify; line-height: 1.8;">

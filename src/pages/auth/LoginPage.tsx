@@ -54,7 +54,7 @@ export default function LoginPage() {
             <div className="w-14 h-14 rounded-2xl bg-orange-500 flex items-center justify-center shadow-md">
               <PawPrint className="w-8 h-8 text-white" />
             </div>
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900">PetCare</h1>
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900">AgiliPet</h1>
             <p className="text-sm text-slate-500">Faça login para continuar</p>
           </div>
 

@@ -137,7 +137,7 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
       phone: '',
       apiUrl: '',
       apiKey: '',
-      instance: 'petcare',
+      instance: 'agilipet',
       status: 'DISCONNECTED',
       qrCode: '',
       pairedNumber: '',

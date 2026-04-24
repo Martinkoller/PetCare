@@ -188,7 +188,7 @@ export default function BookingPage() {
             Agendamento Online
           </h1>
           <p className="text-muted-foreground">
-            PetCare - Clínica Veterinária
+            AgiliPet - Clínica Veterinária
           </p>
         </div>
 

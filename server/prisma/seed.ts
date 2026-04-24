@@ -45,9 +45,9 @@ async function main() {
   console.log('🏥 Creating organization...');
   const org = await prisma.organization.create({
     data: {
-      name: 'PetCare Premium — Hospital Veterinário',
+      name: 'AgiliPet — Hospital Veterinário',
       cnpj: '12.345.678/0001-90',
-      email: 'contato@petcarepremium.com.br',
+      email: 'contato@agilipet.com.br',
       phone: '(11) 3456-7890',
       street: 'Av. Paulista',
       number: '1234',
@@ -72,13 +72,13 @@ async function main() {
   const hash = await bcrypt.hash('admin123', 10);
 
   const [admin, vet1, vet2, vet3, groomer1, groomer2, attendant] = await Promise.all([
-    prisma.user.create({ data: { organizationId: org.id, email: 'admin@petcare.local',    passwordHash: hash, name: 'Admin Principal',       role: 'admin' } }),
-    prisma.user.create({ data: { organizationId: org.id, email: 'marcelo@petcare.local',  passwordHash: hash, name: 'Dr. Marcelo Silva',      role: 'veterinarian' } }),
-    prisma.user.create({ data: { organizationId: org.id, email: 'beatriz@petcare.local',  passwordHash: hash, name: 'Dra. Beatriz Costa',     role: 'veterinarian' } }),
-    prisma.user.create({ data: { organizationId: org.id, email: 'andre@petcare.local',    passwordHash: hash, name: 'Dr. André Santos',       role: 'veterinarian' } }),
-    prisma.user.create({ data: { organizationId: org.id, email: 'carla@petcare.local',    passwordHash: hash, name: 'Carla Groomer',          role: 'groomer' } }),
-    prisma.user.create({ data: { organizationId: org.id, email: 'juliano@petcare.local',  passwordHash: hash, name: 'Juliano Esteticista',    role: 'groomer' } }),
-    prisma.user.create({ data: { organizationId: org.id, email: 'fernanda@petcare.local', passwordHash: hash, name: 'Fernanda Recepcionista', role: 'attendant' } }),
+    prisma.user.create({ data: { organizationId: org.id, email: 'admin@agilipet.local',    passwordHash: hash, name: 'Admin Principal',       role: 'admin' } }),
+    prisma.user.create({ data: { organizationId: org.id, email: 'marcelo@agilipet.local',  passwordHash: hash, name: 'Dr. Marcelo Silva',      role: 'veterinarian' } }),
+    prisma.user.create({ data: { organizationId: org.id, email: 'beatriz@agilipet.local',  passwordHash: hash, name: 'Dra. Beatriz Costa',     role: 'veterinarian' } }),
+    prisma.user.create({ data: { organizationId: org.id, email: 'andre@agilipet.local',    passwordHash: hash, name: 'Dr. André Santos',       role: 'veterinarian' } }),
+    prisma.user.create({ data: { organizationId: org.id, email: 'carla@agilipet.local',    passwordHash: hash, name: 'Carla Groomer',          role: 'groomer' } }),
+    prisma.user.create({ data: { organizationId: org.id, email: 'juliano@agilipet.local',  passwordHash: hash, name: 'Juliano Esteticista',    role: 'groomer' } }),
+    prisma.user.create({ data: { organizationId: org.id, email: 'fernanda@agilipet.local', passwordHash: hash, name: 'Fernanda Recepcionista', role: 'attendant' } }),
   ]);
   const vets = [vet1, vet2, vet3];
 
@@ -662,13 +662,13 @@ async function main() {
   console.log('✅ Seed concluído!');
   console.log('');
   console.log('🔑 Credenciais:');
-  console.log('   Admin:       admin@petcare.local     / admin123');
-  console.log('   Veterinário: marcelo@petcare.local   / admin123');
-  console.log('   Veterinária: beatriz@petcare.local   / admin123');
-  console.log('   Veterinário: andre@petcare.local     / admin123');
-  console.log('   Groomer:     carla@petcare.local     / admin123');
-  console.log('   Groomer:     juliano@petcare.local   / admin123');
-  console.log('   Recepção:    fernanda@petcare.local  / admin123');
+  console.log('   Admin:       admin@agilipet.local     / admin123');
+  console.log('   Veterinário: marcelo@agilipet.local   / admin123');
+  console.log('   Veterinária: beatriz@agilipet.local   / admin123');
+  console.log('   Veterinário: andre@agilipet.local     / admin123');
+  console.log('   Groomer:     carla@agilipet.local     / admin123');
+  console.log('   Groomer:     juliano@agilipet.local   / admin123');
+  console.log('   Recepção:    fernanda@agilipet.local  / admin123');
   console.log('');
   console.log('🐾 Portal do Tutor:');
   console.log('   Aprovado:  ana.portal@email.com    / portal123');

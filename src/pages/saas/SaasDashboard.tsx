@@ -78,7 +78,7 @@ export default function SaasDashboard() {
             <PawPrint className="w-5 h-5 text-white" />
           </div>
           <div>
-            <div className="text-sm font-bold text-slate-900">PetCare — Painel SAAS</div>
+            <div className="text-sm font-bold text-slate-900">AgiliPet — Painel SAAS</div>
             <div className="text-xs text-slate-500">marteckconsultoria</div>
           </div>
         </div>

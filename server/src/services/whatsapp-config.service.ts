@@ -10,7 +10,7 @@ const defaultConfig: WhatsAppConnection = {
   phone: '',
   apiUrl: '',
   apiKey: '',
-  instance: 'petcare',
+  instance: 'agilipet',
   status: 'DISCONNECTED',
   qrCode: '',
   pairedNumber: '',
