@@ -1,6 +1,6 @@
 /* Defines the core data types for the application */
 
-export type Role = 'admin' | 'veterinarian' | 'groomer' | 'attendant'
+export type Role = 'saas_admin' | 'admin' | 'veterinarian' | 'groomer' | 'attendant'
 
 export interface User {
   id: string

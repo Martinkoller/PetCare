@@ -35,6 +35,7 @@ import taskRoutes from './routes/task.routes';
 import whatsappRoutes from './routes/whatsapp.routes';
 import hospitalizationRoutes from './routes/hospitalization.routes';
 import clientInteractionRoutes from './routes/client-interaction.routes';
+import saasRoutes from './routes/saas.routes';
 import { notificationSchedulerService } from './services/notification-scheduler.service';
 
 app.use('/auth', authRoutes);
@@ -51,6 +52,7 @@ app.use('/tasks', taskRoutes);
 app.use('/whatsapp', whatsappRoutes);
 app.use('/hospitalization', hospitalizationRoutes);
 app.use('/api', clientInteractionRoutes);
+app.use('/saas', saasRoutes);
 
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
     console.error('Unhandled error:', err)

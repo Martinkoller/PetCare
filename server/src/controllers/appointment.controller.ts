@@ -144,6 +144,7 @@ const syncRelatedStays = async (appointment: any) => {
             // Create if missing
             await prisma.boardingStay.create({
                 data: {
+                  organizationId: appointment.organizationId,
                   petId: appointment.petId,
                   appointmentId: appointment.id,
                   checkIn: appointment.date,
@@ -186,6 +187,7 @@ const syncRelatedStays = async (appointment: any) => {
             // Create if missing
             await prisma.hospitalizationStay.create({
                 data: {
+                  organizationId: appointment.organizationId,
                   petId: appointment.petId,
                   appointmentId: appointment.id,
                   checkIn: appointment.date,

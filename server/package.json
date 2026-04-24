@@ -7,6 +7,7 @@
     "dev": "nodemon",
     "start": "node dist/index.js",
     "build": "tsc",
+    "seed:prod": "ts-node prisma/seed.production.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -18,12 +19,14 @@
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",
+    "@types/nodemailer": "^8.0.0",
     "axios": "^1.15.1",
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.6",
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.3",
+    "nodemailer": "^8.0.5",
     "prisma": "^5.22.0"
   },
   "devDependencies": {

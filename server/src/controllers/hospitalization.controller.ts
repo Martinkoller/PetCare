@@ -30,8 +30,10 @@ export const createHospitalizationStay = async (req: AuthRequest, res: Response)
   try {
     const { petId, reasonForAdmission, kennelNumber, veterinarianId, expectedDischargeDate } = req.body;
     
+    const orgId = req.user!.organizationId!;
     const stay = await prisma.hospitalizationStay.create({
       data: {
+        organizationId: orgId,
         petId,
         reasonForAdmission,
         kennelNumber: kennelNumber || 'TBD',
@@ -48,10 +50,11 @@ export const createHospitalizationStay = async (req: AuthRequest, res: Response)
     try {
       const appointment = await prisma.appointment.create({
         data: {
+          organizationId: orgId,
           petId: stay.petId,
           serviceType: 'hospitalization',
           date: stay.checkIn,
-          status: 'checked_in', // Already admitted
+          status: 'checked_in',
           notes: `[INTERNAÇÃO] ${stay.reasonForAdmission || ''}`,
           professionalId: stay.veterinarianId,
         }
@@ -128,9 +131,9 @@ export const dischargeHospitalizationStay = async (req: AuthRequest, res: Respon
       });
     }
 
-    // Create a MedicalRecord summary as requested by user
     await prisma.medicalRecord.create({
       data: {
+        organizationId: req.user!.organizationId!,
         petId,
         date: new Date(),
         description: `[ALTA HOSPITALAR] Motivo: ${stay.reasonForAdmission || 'Não informado'}\nObservações: ${finalObservations || 'Sem observações'}`,

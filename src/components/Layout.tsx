@@ -52,6 +52,7 @@ import {
   ClipboardCheck,
   TrendingUp,
   BookOpen,
+  Building2,
 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 
@@ -82,6 +83,7 @@ export default function Layout() {
     navItems.push(
       { title: 'Relatorios Financeiros', url: '/financials', icon: TrendingUp },
       { title: 'Catalogo de Servicos', url: '/services', icon: List },
+      { title: 'Meus Dados', url: '/my-data', icon: Building2 },
       { title: 'Administracao', url: '/admin', icon: Settings },
     )
   }
@@ -100,6 +102,7 @@ export default function Layout() {
     boarding: 'Hospedagem',
     hospitalization: 'Internação',
     admin: 'Administracao',
+    'my-data': 'Meus Dados',
     services: 'Catalogo de Servicos',
     inventory: 'Estoque',
     sales: 'Vendas',

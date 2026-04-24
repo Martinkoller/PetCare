@@ -134,6 +134,7 @@ export const addMedicalRecord = async (req: AuthRequest, res: Response) => {
     try {
         const record = await prisma.medicalRecord.create({
             data: {
+                organizationId: req.user!.organizationId!,
                 petId,
                 date: req.body.date ? new Date(req.body.date) : new Date(),
                 description:
@@ -173,6 +174,7 @@ export const addVaccination = async (req: AuthRequest, res: Response) => {
     try {
         const vaccination = await prisma.vaccination.create({
             data: {
+                organizationId: req.user!.organizationId!,
                 petId,
                 name: req.body.name,
                 batch: req.body.batch || null,

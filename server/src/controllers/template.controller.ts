@@ -27,6 +27,7 @@ export const createAppointmentTemplate = async (
 ) => {
   try {
     const data = {
+      organizationId: req.user!.organizationId!,
       name: req.body.name,
       description: req.body.description || '',
       defaultDurationDays: Number(req.body.defaultDurationDays || 0),
