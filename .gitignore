@@ -1,1 +1,17 @@
-node_modules
+# ambiente
+.env
+.env.*
+node_modules/
+
+# build frontend
+dist/
+
+# configs locais
+.claude/
+
+# arquivos temporários / testes locais
+server/scratch/
+server/*.sql
+
+# extras
+tatus
