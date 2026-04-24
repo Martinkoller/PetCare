@@ -17,6 +17,7 @@ export const createTask = async (req: AuthRequest, res: Response) => {
     try {
         const task = await prisma.task.create({
             data: {
+                organizationId: req.user!.organizationId!,
                 title: req.body.title,
                 description: req.body.description || null,
                 category: req.body.category,

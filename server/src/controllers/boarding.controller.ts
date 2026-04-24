@@ -39,8 +39,10 @@ export const createBoarding = async (req: AuthRequest, res: Response) => {
   try {
     const data = pickBoardingData(req.body) as any;
 
+    const orgId = req.user!.organizationId!;
     const appointment = await prisma.appointment.create({
       data: {
+        organizationId: orgId,
         petId: data.petId,
         serviceType: 'boarding',
         status: data.status === 'active' ? 'checked_in' : 'scheduled',
@@ -53,6 +55,7 @@ export const createBoarding = async (req: AuthRequest, res: Response) => {
     });
 
     data.appointmentId = appointment.id;
+    data.organizationId = orgId;
 
     const boarding = await prisma.boardingStay.create({
       data,

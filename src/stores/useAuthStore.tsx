@@ -22,13 +22,6 @@ interface AuthContextType {
   updatePassword: (password: string) => Promise<{ error: any }>
 }
 
-const PUBLIC_USER: User = {
-  id: 'public-user',
-  name: 'Acesso Livre',
-  email: 'public@petcare.local',
-  role: 'admin',
-}
-
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -36,16 +29,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   const fetchProfile = useCallback(async () => {
+    const token = localStorage.getItem('token')
+    if (!token) {
+      setLoading(false)
+      return
+    }
     try {
-      // O backend aceita requisições sem token (retorna public-user)
-      // e com token retorna o usuário real — usamos isso para detectar o modo
       const response = await api.get('/auth/me')
       setUser(response.data)
     } catch {
-      // Servidor fora do ar: usa o public-user como fallback para não bloquear o app
-      const token = localStorage.getItem('token')
-      if (token) localStorage.removeItem('token')
-      setUser(PUBLIC_USER)
+      localStorage.removeItem('token')
+      setUser(null)
     } finally {
       setLoading(false)
     }
@@ -70,8 +64,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = useCallback(async () => {
     localStorage.removeItem('token')
-    // Volta para public-user (acesso livre sem credenciais)
-    setUser(PUBLIC_USER)
+    setUser(null)
     return { error: null }
   }, [])
 

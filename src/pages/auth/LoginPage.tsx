@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { useAuthStore } from '@/stores/useAuthStore'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -18,25 +18,38 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!email || !password) {
-      toast.error('Informe e-mail e senha.')
-      return
-    }
+    if (!email || !password) { toast.error('Informe e-mail e senha.'); return }
+
     setLoading(true)
     const { error } = await signIn(email, password)
     setLoading(false)
+
     if (error) {
-      toast.error(error.message || 'Credenciais inválidas.')
-    } else {
-      navigate('/dashboard', { replace: true })
+      if (error.message === 'trial_expired') {
+        toast.error('Período de trial encerrado. Entre em contato pelo fone 49 999715125.')
+      } else {
+        toast.error(error.message || 'Credenciais inválidas.')
+      }
+      return
     }
+
+    const stored = localStorage.getItem('token')
+    if (stored) {
+      try {
+        const payload = JSON.parse(atob(stored.split('.')[1]))
+        if (payload.role === 'saas_admin') {
+          navigate('/saas', { replace: true })
+          return
+        }
+      } catch { }
+    }
+    navigate('/dashboard', { replace: true })
   }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-100 via-orange-50 to-slate-100">
       <div className="w-full max-w-sm">
         <div className="rounded-3xl border border-slate-200 bg-white shadow-xl p-8 space-y-6">
-          {/* Logo */}
           <div className="flex flex-col items-center gap-2">
             <div className="w-14 h-14 rounded-2xl bg-orange-500 flex items-center justify-center shadow-md">
               <PawPrint className="w-8 h-8 text-white" />
@@ -45,7 +58,6 @@ export default function LoginPage() {
             <p className="text-sm text-slate-500">Faça login para continuar</p>
           </div>
 
-          {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-1.5">
               <Label className="text-xs font-bold uppercase tracking-wider text-slate-500">E-mail</Label>
@@ -87,6 +99,11 @@ export default function LoginPage() {
             >
               {loading ? 'Entrando...' : 'Entrar'}
             </Button>
+
+            <p className="text-center text-sm text-slate-500">
+              Não tem conta?{' '}
+              <Link to="/register" className="text-orange-500 font-semibold hover:underline">Cadastre-se grátis</Link>
+            </p>
           </form>
         </div>
       </div>
