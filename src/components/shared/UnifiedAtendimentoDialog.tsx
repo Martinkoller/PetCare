@@ -30,7 +30,6 @@ import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
-import { Checkbox } from '@/components/ui/checkbox'
 import { cn } from '@/lib/utils'
 import { Appointment, ServiceType, Pet, Client } from '@/lib/types'
 import { usePetStore } from '@/stores/PetContext'
@@ -113,7 +112,6 @@ export function UnifiedAtendimentoDialog({
 
   const [isDetailsOpen, setIsDetailsOpen] = React.useState(true)
   const [isNotesOpen, setIsNotesOpen] = React.useState(false)
-  const [isActionsOpen, setIsActionsOpen] = React.useState(false)
 
   const selectedPet = React.useMemo(() => pets.find(p => p.id === formData.petId), [pets, formData.petId])
   const selectedTutor = React.useMemo(() => clients.find(c => c.id === selectedTutorId), [clients, selectedTutorId])
@@ -135,6 +133,10 @@ export function UnifiedAtendimentoDialog({
     if (!formData.date) {
       toast.error('Por favor, defina a data e hora.')
       return
+    }
+
+    if (formData.serviceType === 'boarding' && formData.status === 'checked_in') {
+      if (!formData.boardingStay?.kennelNumber) { toast.error('Informe o Canil / acomodação.'); return }
     }
     
     const finalData = {
@@ -296,28 +298,30 @@ export function UnifiedAtendimentoDialog({
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-end">
-                <div className="lg:col-span-4">
-                  <Label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2 block">Responsável</Label>
-                  <Select 
-                    value={formData.professionalId} 
-                    onValueChange={(v) => handleUpdate({ professionalId: v })}
-                    disabled={readOnly}
-                  >
-                    <SelectTrigger className="h-11 rounded-2xl border-slate-300">
-                      <SelectValue placeholder="Selecione o responsável" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {professionals.map(p => (
-                        <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                {formData.serviceType !== 'boarding' && (
+                  <div className="lg:col-span-4">
+                    <Label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2 block">Responsável</Label>
+                    <Select
+                      value={formData.professionalId}
+                      onValueChange={(v) => handleUpdate({ professionalId: v })}
+                      disabled={readOnly}
+                    >
+                      <SelectTrigger className="h-11 rounded-2xl border-slate-300">
+                        <SelectValue placeholder="Selecione o responsável" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {professionals.map(p => (
+                          <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
 
-                <div className="lg:col-span-3">
+                <div className={formData.serviceType === 'boarding' ? 'lg:col-span-3' : 'lg:col-span-3'}>
                   <Label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2 block">Status</Label>
-                  <Select 
-                    value={formData.status} 
+                  <Select
+                    value={formData.status}
                     onValueChange={(v) => handleUpdate({ status: v as any })}
                     disabled={readOnly}
                   >
@@ -325,67 +329,107 @@ export function UnifiedAtendimentoDialog({
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="scheduled" disabled={appointment?.id && formData.status !== 'scheduled'}>Agendado</SelectItem>
-                      <SelectItem 
-                        value="confirmed" 
-                        disabled={appointment?.id && appointment.status !== 'scheduled' && appointment.status !== 'confirmed'}
-                      >
-                        Confirmado
-                      </SelectItem>
-                      <SelectItem 
-                        value="in_progress" 
-                        disabled={appointment?.id && appointment.status !== 'in_progress'}
-                      >
-                        Em Atendimento
-                      </SelectItem>
-                      <SelectItem 
-                        value="completed" 
-                        disabled={appointment?.id && appointment.status !== 'completed'}
-                      >
-                        Finalizado
-                      </SelectItem>
-                      <SelectItem 
-                        value="cancelled" 
-                        disabled={appointment?.id && !['scheduled', 'confirmed', 'cancelled'].includes(appointment.status)}
-                      >
-                        Cancelado
-                      </SelectItem>
                       {formData.serviceType === 'boarding' && (
                         <>
-                          <SelectItem value="checked_in" disabled={appointment?.id && appointment.status !== 'checked_in'}>Hospedado (Check-in)</SelectItem>
-                          <SelectItem value="checked_out" disabled={appointment?.id && appointment.status !== 'checked_out'}>Encerrado (Check-out)</SelectItem>
+                          <SelectItem value="scheduled">Agendado</SelectItem>
+                          <SelectItem value="checked_in">Hospedado (Check-in)</SelectItem>
                         </>
+                      )}
+                      {(formData.serviceType === 'grooming' || formData.serviceType === 'consultation' || formData.serviceType === 'vaccination') && (
+                        <>
+                          <SelectItem value="scheduled">Agendado</SelectItem>
+                          <SelectItem value="confirmed">Confirmado</SelectItem>
+                        </>
+                      )}
+                      {formData.serviceType === 'hospitalization' && (
+                        <SelectItem value="confirmed">Confirmado</SelectItem>
                       )}
                     </SelectContent>
                   </Select>
                 </div>
 
-                <div className="lg:col-span-5">
-                  <Label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2 block">Data e Hora</Label>
-                  <div className="flex gap-2">
-                    <Input 
-                      type="date" 
-                      className="h-11 rounded-2xl border-slate-300" 
-                      value={formData.date?.split('T')[0]}
-                      disabled={readOnly}
-                      onChange={(e) => {
-                        const time = formData.date?.split('T')[1] || '09:00:00'
-                        handleUpdate({ date: `${e.target.value}T${time}` })
-                      }}
-                    />
-                    <Input 
-                      type="time" 
-                      className="h-11 rounded-2xl border-slate-300 w-32" 
-                      value={formData.date?.split('T')[1]?.substring(0, 5)}
-                      disabled={readOnly}
-                      onChange={(e) => {
-                        const date = formData.date?.split('T')[0] || format(new Date(), 'yyyy-MM-dd')
-                        handleUpdate({ date: `${date}T${e.target.value}:00` })
-                      }}
-                    />
+                {formData.serviceType !== 'boarding' ? (
+                  <div className="lg:col-span-5">
+                    <Label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2 block">Data e Hora</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        type="date"
+                        className="h-11 rounded-2xl border-slate-300"
+                        value={formData.date?.split('T')[0]}
+                        disabled={readOnly}
+                        onChange={(e) => {
+                          const time = formData.date?.split('T')[1] || '09:00:00'
+                          handleUpdate({ date: `${e.target.value}T${time}` })
+                        }}
+                      />
+                      <Input
+                        type="time"
+                        className="h-11 rounded-2xl border-slate-300 w-32"
+                        value={formData.date?.split('T')[1]?.substring(0, 5)}
+                        disabled={readOnly}
+                        onChange={(e) => {
+                          const date = formData.date?.split('T')[0] || format(new Date(), 'yyyy-MM-dd')
+                          handleUpdate({ date: `${date}T${e.target.value}:00` })
+                        }}
+                      />
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <>
+                    <div className="lg:col-span-4">
+                      <Label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2 block">Data e Hora Entrada</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          type="date"
+                          className="h-11 rounded-2xl border-slate-300"
+                          value={formData.date?.split('T')[0]}
+                          disabled={readOnly}
+                          onChange={(e) => {
+                            const time = formData.date?.split('T')[1] || '09:00:00'
+                            handleUpdate({ date: `${e.target.value}T${time}` })
+                          }}
+                        />
+                        <Input
+                          type="time"
+                          className="h-11 rounded-2xl border-slate-300 w-32"
+                          value={formData.date?.split('T')[1]?.substring(0, 5)}
+                          disabled={readOnly}
+                          onChange={(e) => {
+                            const date = formData.date?.split('T')[0] || format(new Date(), 'yyyy-MM-dd')
+                            handleUpdate({ date: `${date}T${e.target.value}:00` })
+                          }}
+                        />
+                      </div>
+                    </div>
+                    <div className="lg:col-span-4">
+                      <Label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2 block">Data e Hora Saída</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          type="date"
+                          className="h-11 rounded-2xl border-slate-300"
+                          value={formData.returnDate?.split('T')[0]}
+                          disabled={readOnly}
+                          onChange={(e) => {
+                            const time = formData.returnDate?.split('T')[1] || '18:00:00'
+                            handleUpdate({ returnDate: `${e.target.value}T${time}` })
+                          }}
+                        />
+                        <Input
+                          type="time"
+                          className="h-11 rounded-2xl border-slate-300 w-32"
+                          value={formData.returnDate?.split('T')[1]?.substring(0, 5)}
+                          disabled={readOnly}
+                          onChange={(e) => {
+                            const date = formData.returnDate?.split('T')[0] || format(new Date(), 'yyyy-MM-dd')
+                            handleUpdate({ returnDate: `${date}T${e.target.value}:00` })
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
+
             </div>
           </section>
 
@@ -445,34 +489,6 @@ export function UnifiedAtendimentoDialog({
             )}
           </section>
 
-          {/* Ações e Confirmações */}
-          <section className="rounded-3xl border border-slate-200 bg-white overflow-hidden shadow-sm">
-            <button 
-              onClick={() => setIsActionsOpen(!isActionsOpen)}
-              className="w-full px-5 py-4 bg-slate-50 border-b border-slate-100 flex items-center justify-between hover:bg-slate-100/50 transition-colors"
-            >
-              <div className="text-sm font-semibold text-slate-900">Ações Finais e Automações</div>
-              <ChevronDown className={cn("w-5 h-5 text-slate-400 transition-transform", isActionsOpen && "rotate-180")} />
-            </button>
-            {isActionsOpen && (
-              <div className="p-6">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <label className={cn("flex items-center gap-3 rounded-2xl border border-slate-200 px-4 h-12 bg-slate-50", !readOnly && "cursor-pointer")}>
-                    <Checkbox defaultChecked disabled={readOnly} />
-                    <span className="text-sm font-medium">Confirmar via WhatsApp</span>
-                  </label>
-                  <label className={cn("flex items-center gap-3 rounded-2xl border border-slate-200 px-4 h-12 bg-slate-50", !readOnly && "cursor-pointer")}>
-                    <Checkbox defaultChecked disabled={readOnly} />
-                    <span className="text-sm font-medium">Gerar cobrança antecipada</span>
-                  </label>
-                  <label className={cn("flex items-center gap-3 rounded-2xl border border-slate-200 px-4 h-12 bg-slate-50", !readOnly && "cursor-pointer")}>
-                    <Checkbox disabled={readOnly} />
-                    <span className="text-sm font-medium">Bloquear horário na agenda</span>
-                  </label>
-                </div>
-              </div>
-            )}
-          </section>
         </main>
 
         {/* Footer */}
@@ -481,17 +497,12 @@ export function UnifiedAtendimentoDialog({
             {readOnly ? 'Fechar' : 'Cancelar'}
           </Button>
           {!readOnly && (
-            <div className="flex flex-wrap items-center gap-3">
-              <Button variant="ghost" className="h-11 px-5 rounded-2xl text-blue-700 hover:bg-blue-50">
-                Salvar como Rascunho
-              </Button>
-              <Button 
-                className="h-11 px-8 rounded-2xl bg-blue-600 text-white font-semibold hover:bg-blue-700"
-                onClick={handleSave}
-              >
-                Gravar
-              </Button>
-            </div>
+            <Button
+              className="h-11 px-8 rounded-2xl bg-blue-600 text-white font-semibold hover:bg-blue-700"
+              onClick={handleSave}
+            >
+              Gravar
+            </Button>
           )}
         </footer>
       </DialogContent>

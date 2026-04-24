@@ -1,10 +1,11 @@
+import * as React from 'react'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
-import { Appointment } from '@/lib/types'
+import { Appointment, ServiceItem, ServiceCatalogItem } from '@/lib/types'
+import { serviceCatalogService } from '@/services/service-catalog-service'
+import { X } from 'lucide-react'
 
 interface GroomingFieldsProps {
   formData: Partial<Appointment>
@@ -13,122 +14,131 @@ interface GroomingFieldsProps {
 }
 
 export function GroomingFields({ formData, onChange, readOnly }: GroomingFieldsProps) {
-  const mainServices = [
-    { value: 'bath', label: 'Banho' },
-    { value: 'hygienic_clip', label: 'Tosa higiênica' },
-    { value: 'full_clip', label: 'Tosa completa' },
-    { value: 'bath_and_clip', label: 'Banho e tosa' },
-    { value: 'hydration', label: 'Hidratação' },
-  ]
+  const [catalog, setCatalog] = React.useState<ServiceCatalogItem[]>([])
+  const [search, setSearch] = React.useState('')
+  const [open, setOpen] = React.useState(false)
+
+  React.useEffect(() => {
+    serviceCatalogService.getServices()
+      .then(items => setCatalog(items.filter(i => i.active && i.category === 'grooming')))
+      .catch(() => {})
+  }, [])
+
+  const selectedItems: ServiceItem[] = formData.serviceItems || []
+
+  const filtered = catalog.filter(c =>
+    c.name.toLowerCase().includes(search.toLowerCase()) &&
+    !selectedItems.some(s => s.catalogItemId === c.id)
+  )
+
+  const addItem = (c: ServiceCatalogItem) => {
+    onChange({
+      serviceItems: [
+        ...selectedItems,
+        { id: crypto.randomUUID(), description: c.name, price: c.price, duration: c.duration, catalogItemId: c.id },
+      ],
+    })
+    setSearch('')
+    setOpen(false)
+  }
+
+  const removeItem = (id: string) => {
+    onChange({ serviceItems: selectedItems.filter(s => s.id !== id) })
+  }
 
   const complementaryServices = [
     'Corte de unha', 'Limpeza de ouvido', 'Escovação dental', 'Hidratação', 'Desembolo', 'Perfume premium'
   ]
 
-  const preferences = [
-    'Perfume', 'Sem perfume', 'Laço / gravata', 'Máquina', 'Tesoura'
-  ]
-
-  const currentService = formData.notes?.split('|')[0] || 'bath'
+  const preferences = ['Perfume', 'Sem perfume', 'Laço / gravata', 'Máquina', 'Tesoura']
 
   const toggleServiceItem = (item: string) => {
-    const currentItems = formData.serviceItems || []
-    const exists = currentItems.find(i => i.description === item)
+    const exists = selectedItems.find(i => i.description === item && !i.catalogItemId)
     if (exists) {
-      onChange({ serviceItems: currentItems.filter(i => i.description !== item) })
+      onChange({ serviceItems: selectedItems.filter(i => i.id !== exists.id) })
     } else {
-      onChange({ 
-        serviceItems: [...currentItems, { id: Math.random().toString(), description: item, price: 0 }] 
-      })
+      onChange({ serviceItems: [...selectedItems, { id: crypto.randomUUID(), description: item, price: 0 }] })
     }
   }
 
   return (
     <div className="space-y-6">
-      <div>
-        <Label className="text-xs font-bold uppercase tracking-wider text-slate-500">
-          Serviço principal
-        </Label>
-        <div className="mt-2 grid grid-cols-1 lg:grid-cols-5 gap-4">
-          {mainServices.map((service) => (
-            <button
-              key={service.value}
-              type="button"
-              disabled={readOnly}
-              className={cn(
-                "rounded-2xl border p-4 text-left transition-all",
-                currentService === service.value
-                  ? "border-cyan-200 bg-cyan-50 ring-1 ring-cyan-200"
-                  : "border-slate-200 hover:border-slate-300"
-              )}
-              onClick={() => onChange({ notes: `${service.value}|${formData.notes?.split('|')[1] || ''}` })}
-            >
-              <div className="text-sm font-semibold">{service.label}</div>
-            </button>
-          ))}
+      {/* Serviço principal — busca */}
+      <div className="space-y-2">
+        <Label className="text-xs font-bold uppercase tracking-wider text-slate-500">Serviço principal</Label>
+
+        <div className="relative">
+          <Input
+            placeholder="Pesquisar serviço..."
+            className="h-11 rounded-2xl border-slate-300"
+            value={search}
+            disabled={readOnly}
+            onChange={e => { setSearch(e.target.value); setOpen(true) }}
+            onFocus={() => setOpen(true)}
+            onBlur={() => setTimeout(() => setOpen(false), 150)}
+          />
+          {open && filtered.length > 0 && (
+            <div className="absolute z-50 mt-1 w-full rounded-2xl border border-slate-200 bg-white shadow-lg max-h-52 overflow-y-auto">
+              {filtered.map(c => (
+                <button
+                  key={c.id}
+                  type="button"
+                  onMouseDown={() => addItem(c)}
+                  className="flex w-full items-center justify-between px-4 py-2.5 text-sm hover:bg-slate-50"
+                >
+                  <span>{c.name}</span>
+                  <span className="text-slate-400">R$ {c.price.toFixed(2)}</span>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
+
+        {selectedItems.filter(s => s.catalogItemId).length > 0 && (
+          <div className="rounded-2xl border border-slate-200 overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-slate-50 text-xs uppercase text-slate-500">
+                <tr>
+                  <th className="px-4 py-2 text-left font-semibold">Serviço</th>
+                  <th className="px-4 py-2 text-right font-semibold">Preço</th>
+                  {!readOnly && <th className="w-10" />}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {selectedItems.filter(s => s.catalogItemId).map(s => (
+                  <tr key={s.id}>
+                    <td className="px-4 py-2">{s.description}</td>
+                    <td className="px-4 py-2 text-right text-slate-600">R$ {s.price.toFixed(2)}</td>
+                    {!readOnly && (
+                      <td className="px-2 py-2 text-center">
+                        <button type="button" onClick={() => removeItem(s.id)} className="text-slate-400 hover:text-red-500">
+                          <X className="h-4 w-4" />
+                        </button>
+                      </td>
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-        <div className="space-y-2">
-          <Label className="text-xs font-bold uppercase tracking-wider text-slate-500">Porte</Label>
-          <Select disabled={readOnly}>
-            <SelectTrigger className="rounded-2xl h-11">
-              <SelectValue placeholder="Pequeno" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="small">Pequeno</SelectItem>
-              <SelectItem value="medium">Médio</SelectItem>
-              <SelectItem value="large">Grande</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="space-y-2">
-          <Label className="text-xs font-bold uppercase tracking-wider text-slate-500">Pelagem</Label>
-          <Select disabled={readOnly}>
-            <SelectTrigger className="rounded-2xl h-11">
-              <SelectValue placeholder="Média" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="short">Curta</SelectItem>
-              <SelectItem value="medium">Média</SelectItem>
-              <SelectItem value="long">Longa</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="space-y-2">
-          <Label className="text-xs font-bold uppercase tracking-wider text-slate-500">Comportamento</Label>
-          <Select disabled={readOnly}>
-            <SelectTrigger className="rounded-2xl h-11">
-              <SelectValue placeholder="Tranquilo" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="calm">Tranquilo</SelectItem>
-              <SelectItem value="anxious">Ansioso</SelectItem>
-              <SelectItem value="reactive">Reativo</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="space-y-2">
-          <Label className="text-xs font-bold uppercase tracking-wider text-slate-500">Previsão de retirada</Label>
-          <Input type="time" className="rounded-2xl h-11" defaultValue="11:30" disabled={readOnly} />
-        </div>
-      </div>
-
+      {/* Serviços complementares */}
       <div className="space-y-3">
         <Label className="text-xs font-bold uppercase tracking-wider text-slate-500">Serviços complementares</Label>
         <div className="flex flex-wrap gap-2">
-          {complementaryServices.map((item) => (
+          {complementaryServices.map(item => (
             <button
               key={item}
               type="button"
               disabled={readOnly}
               onClick={() => toggleServiceItem(item)}
               className={cn(
-                "rounded-full border px-3 py-1.5 text-xs font-semibold transition-all",
-                formData.serviceItems?.some(i => i.description === item)
-                  ? "border-cyan-200 bg-cyan-50 text-cyan-700"
-                  : "border-slate-200 bg-slate-50 text-slate-700 hover:border-slate-300"
+                'rounded-full border px-3 py-1.5 text-xs font-semibold transition-all',
+                selectedItems.some(i => i.description === item && !i.catalogItemId)
+                  ? 'border-cyan-200 bg-cyan-50 text-cyan-700'
+                  : 'border-slate-200 bg-slate-50 text-slate-700 hover:border-slate-300',
               )}
             >
               {item}
@@ -137,17 +147,18 @@ export function GroomingFields({ formData, onChange, readOnly }: GroomingFieldsP
         </div>
       </div>
 
+      {/* Preferências */}
       <div className="space-y-3">
         <Label className="text-xs font-bold uppercase tracking-wider text-slate-500">Preferências do serviço</Label>
         <div className="flex flex-wrap gap-2">
-          {preferences.map((pref) => (
+          {preferences.map(pref => (
             <button
               key={pref}
               type="button"
               disabled={readOnly}
               className={cn(
-                "rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700",
-                !readOnly && "hover:border-slate-300"
+                'rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700',
+                !readOnly && 'hover:border-slate-300',
               )}
             >
               {pref}
@@ -156,6 +167,7 @@ export function GroomingFields({ formData, onChange, readOnly }: GroomingFieldsP
         </div>
       </div>
 
+      {/* Observações */}
       <div className="space-y-2">
         <Label className="text-xs font-bold uppercase tracking-wider text-slate-500">Observações operacionais</Label>
         <Textarea

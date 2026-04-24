@@ -125,6 +125,7 @@ model Appointment {
   reminderSentAt              DateTime?   // lembrete simples
   confirmationRequestSentAt   DateTime?   // pedido de confirmação interativo
   followUpSentAt              DateTime?
+  completedAt           DateTime?
   createdAt             DateTime  @default(now())
   updatedAt     DateTime @updatedAt
 
