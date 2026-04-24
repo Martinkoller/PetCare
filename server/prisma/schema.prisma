@@ -21,6 +21,7 @@ model Organization {
   city        String?
   state       String?
   status      String   @default("trial") // 'trial' | 'active' | 'inactive'
+  plan        String   @default("essencial") // 'essencial' | 'hotel' | 'clinica'
   trialEndsAt DateTime
   confirmedAt DateTime?
   emailConfirmationToken String? @db.VarChar(512)

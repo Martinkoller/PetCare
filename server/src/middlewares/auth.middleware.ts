@@ -6,6 +6,7 @@ export interface AuthRequest extends Request {
         id: string;
         role: string;
         organizationId: string | null;
+        plan?: string;
         clientId?: string;
     };
 }
@@ -21,6 +22,7 @@ export const authenticate = async (req: AuthRequest, res: Response, next: NextFu
                 id: decoded.userId,
                 role: decoded.role,
                 organizationId: decoded.organizationId ?? null,
+                plan: decoded.plan ?? undefined,
                 ...(decoded.clientId ? { clientId: decoded.clientId } : {}),
             };
         } catch (_error) {

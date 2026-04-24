@@ -50,7 +50,7 @@ export const getMyOrganization = async (req: AuthRequest, res: Response) => {
                 id: true, name: true, cnpj: true, email: true, phone: true,
                 zipCode: true, street: true, number: true, complement: true,
                 neighborhood: true, city: true, state: true,
-                status: true, trialEndsAt: true, confirmedAt: true, createdAt: true,
+                status: true, plan: true, trialEndsAt: true, confirmedAt: true, createdAt: true,
                 _count: { select: { users: true, clients: true, pets: true } },
             },
         });

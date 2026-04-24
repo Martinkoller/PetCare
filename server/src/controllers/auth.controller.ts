@@ -15,10 +15,11 @@ export const login = async (req: Request, res: Response) => {
         if (!isValid) return res.status(401).json({ error: 'Credenciais inválidas.' });
 
         // Verifica organização (saas_admin não tem organizationId)
+        let orgPlan: string | null = null;
         if (user.role !== 'saas_admin' && user.organizationId) {
             const org = await prisma.organization.findUnique({
                 where: { id: user.organizationId },
-                select: { status: true, trialEndsAt: true, confirmedAt: true },
+                select: { status: true, plan: true, trialEndsAt: true, confirmedAt: true },
             });
 
             if (org) {
@@ -31,10 +32,12 @@ export const login = async (req: Request, res: Response) => {
                 if (org.status === 'trial' && new Date() > org.trialEndsAt) {
                     return res.status(403).json({ error: 'trial_expired' });
                 }
+                // trial libera tudo; ativo usa o plano contratado
+                orgPlan = org.status === 'trial' ? 'clinica' : org.plan;
             }
         }
 
-        const token = generateToken(user.id, user.role, user.organizationId);
+        const token = generateToken(user.id, user.role, user.organizationId, orgPlan);
 
         res.json({
             token,
@@ -80,7 +83,7 @@ export const register = async (req: Request, res: Response) => {
             data: { email, passwordHash, name, role: role || 'attendant' },
         });
 
-        const token = generateToken(user.id, user.role, user.organizationId);
+        const token = generateToken(user.id, user.role, user.organizationId, null);
         res.status(201).json({ token, user: { id: user.id, email: user.email, name: user.name, role: user.role } });
     } catch (error) {
         console.error(error);

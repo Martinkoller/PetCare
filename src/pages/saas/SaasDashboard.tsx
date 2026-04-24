@@ -8,6 +8,18 @@ import { toast } from 'sonner'
 import api from '@/lib/api'
 import { useAuthStore } from '@/stores/useAuthStore'
 
+const PLAN_LABELS: Record<string, string> = {
+  essencial: 'Essencial',
+  hotel: 'Hotel',
+  clinica: 'Clínica',
+}
+
+const PLAN_COLORS: Record<string, string> = {
+  essencial: 'bg-blue-100 text-blue-700',
+  hotel: 'bg-purple-100 text-purple-700',
+  clinica: 'bg-emerald-100 text-emerald-700',
+}
+
 interface OrgRow {
   id: string
   name: string
@@ -15,6 +27,7 @@ interface OrgRow {
   email: string
   phone?: string
   status: string
+  plan: string
   trialEndsAt: string
   confirmedAt?: string
   createdAt: string
@@ -62,6 +75,16 @@ export default function SaasDashboard() {
       load()
     } catch {
       toast.error('Erro ao atualizar status.')
+    }
+  }
+
+  const changePlan = async (id: string, plan: string) => {
+    try {
+      await api.patch(`/saas/organizations/${id}/plan`, { plan })
+      toast.success(`Plano atualizado para ${PLAN_LABELS[plan]}.`)
+      load()
+    } catch {
+      toast.error('Erro ao atualizar plano.')
     }
   }
 
@@ -115,16 +138,16 @@ export default function SaasDashboard() {
             <table className="w-full text-sm">
               <thead className="bg-slate-50 border-b border-slate-100">
                 <tr>
-                  {['Empresa', 'CNPJ', 'E-mail', 'Status', 'Trial / Ativo desde', 'Usuários', 'Clientes', 'Ações'].map(h => (
+                  {['Empresa', 'CNPJ', 'E-mail', 'Status', 'Plano', 'Trial / Ativo desde', 'Usuários', 'Clientes', 'Ações'].map(h => (
                     <th key={h} className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-slate-500">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {loading ? (
-                  <tr><td colSpan={8} className="px-4 py-8 text-center text-slate-400">Carregando...</td></tr>
+                  <tr><td colSpan={9} className="px-4 py-8 text-center text-slate-400">Carregando...</td></tr>
                 ) : orgs.length === 0 ? (
-                  <tr><td colSpan={8} className="px-4 py-8 text-center text-slate-400">Nenhuma empresa cadastrada.</td></tr>
+                  <tr><td colSpan={9} className="px-4 py-8 text-center text-slate-400">Nenhuma empresa cadastrada.</td></tr>
                 ) : orgs.map(org => {
                   const trialDaysLeft = differenceInDays(new Date(org.trialEndsAt), new Date())
                   return (
@@ -135,6 +158,17 @@ export default function SaasDashboard() {
                       </td>
                       <td className="px-4 py-3 text-slate-600">{org.email}</td>
                       <td className="px-4 py-3"><StatusBadge status={org.status} /></td>
+                      <td className="px-4 py-3">
+                        <select
+                          value={org.plan || 'essencial'}
+                          onChange={e => changePlan(org.id, e.target.value)}
+                          className={`text-xs font-semibold rounded-full px-2 py-0.5 border-0 cursor-pointer focus:outline-none ${PLAN_COLORS[org.plan] || 'bg-slate-100 text-slate-600'}`}
+                        >
+                          <option value="essencial">Essencial</option>
+                          <option value="hotel">Hotel</option>
+                          <option value="clinica">Clínica</option>
+                        </select>
+                      </td>
                       <td className="px-4 py-3 text-slate-600 text-xs">
                         {org.status === 'trial'
                           ? trialDaysLeft >= 0

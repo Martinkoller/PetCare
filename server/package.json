@@ -8,7 +8,10 @@
     "start": "node dist/index.js",
     "build": "tsc",
     "seed:prod": "ts-node prisma/seed.production.ts",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "cross-env NODE_ENV=test jest",
+    "test:watch": "cross-env NODE_ENV=test jest --watch",
+    "test:unit": "cross-env NODE_ENV=test jest --testPathPattern=unit",
+    "test:api": "cross-env NODE_ENV=test jest --testPathPattern=api"
   },
   "keywords": [],
   "author": "",
@@ -33,9 +36,16 @@
     "@types/bcryptjs": "^2.4.6",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
+    "@types/jest": "^30.0.0",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^25.0.10",
+    "@types/supertest": "^7.2.0",
+    "cross-env": "^10.1.0",
+    "jest": "^30.3.0",
+    "mysql2": "^3.22.2",
     "nodemon": "^3.1.11",
+    "supertest": "^7.2.2",
+    "ts-jest": "^29.4.9",
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
     "typescript": "^5.9.3"

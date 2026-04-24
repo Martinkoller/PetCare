@@ -13,7 +13,7 @@ export const tenantGuard = async (req: AuthRequest, res: Response, next: NextFun
 
     const org = await prisma.organization.findUnique({
         where: { id: organizationId },
-        select: { status: true, trialEndsAt: true, confirmedAt: true },
+        select: { status: true, plan: true, trialEndsAt: true, confirmedAt: true },
     });
 
     if (!org) {
@@ -30,6 +30,11 @@ export const tenantGuard = async (req: AuthRequest, res: Response, next: NextFun
 
     if (org.status === 'trial' && new Date() > org.trialEndsAt) {
         return res.status(403).json({ error: 'trial_expired' });
+    }
+
+    // expõe o plano efetivo para uso nos controllers (trial = acesso total)
+    if (req.user) {
+        req.user.plan = org.status === 'trial' ? 'clinica' : org.plan;
     }
 
     next();

@@ -23,8 +23,11 @@ function validateCNPJ(cnpj: string): boolean {
 export const registerOrganization = async (req: Request, res: Response) => {
     const {
         companyName, cnpj, email, password, name,
-        zipCode, street, number, complement, neighborhood, city, state, phone,
+        zipCode, street, number, complement, neighborhood, city, state, phone, plan,
     } = req.body;
+
+    const validPlans = ['essencial', 'hotel', 'clinica'];
+    const selectedPlan = validPlans.includes(plan) ? plan : 'essencial';
 
     if (!companyName || !cnpj || !email || !password || !name) {
         return res.status(400).json({ error: 'Campos obrigatórios não informados.' });
@@ -62,6 +65,7 @@ export const registerOrganization = async (req: Request, res: Response) => {
                 city,
                 state,
                 status: 'trial',
+                plan: selectedPlan,
                 trialEndsAt,
                 emailConfirmationToken: token,
                 emailConfirmationExpiresAt: expiresAt,

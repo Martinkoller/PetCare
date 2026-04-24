@@ -71,16 +71,18 @@ process.on('unhandledRejection', (reason) => {
     console.error('unhandledRejection:', reason)
 })
 
-app.listen(port, () => {
-    console.log(`Server running at http://localhost:${port}`);
+export { app };
 
-    // Start Notification Scheduler (every 5 minutes)
-    setInterval(() => {
-        notificationSchedulerService.run();
-    }, 5 * 60 * 1000);
+if (process.env.NODE_ENV !== 'test') {
+    app.listen(port, () => {
+        console.log(`Server running at http://localhost:${port}`);
 
-    // Initial check on startup
-    setTimeout(() => {
-        notificationSchedulerService.run();
-    }, 10000);
-});
+        setInterval(() => {
+            notificationSchedulerService.run();
+        }, 5 * 60 * 1000);
+
+        setTimeout(() => {
+            notificationSchedulerService.run();
+        }, 10000);
+    });
+}

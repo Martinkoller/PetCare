@@ -56,6 +56,7 @@ async function main() {
       state: 'SP',
       zipCode: '01310-100',
       status: 'active',
+      plan: 'clinica',
       trialEndsAt: daysFromNow(30),
       confirmedAt: new Date(),
       settings: JSON.stringify({
@@ -112,18 +113,18 @@ async function main() {
   // ── Clients & Pets ────────────────────────────────────────────────────────
   console.log('🐾 Creating clients and pets...');
   const clientData = [
-    { name: 'Ana Silva',      phone: '(11) 91234-5678', email: 'ana.silva@email.com',      whatsapp: true  },
-    { name: 'Bruno Santos',   phone: '(11) 92345-6789', email: 'bruno.santos@email.com',   whatsapp: true  },
-    { name: 'Carla Oliveira', phone: '(11) 93456-7890', email: 'carla.oliveira@email.com', whatsapp: true  },
-    { name: 'Diego Souza',    phone: '(11) 94567-8901', email: 'diego.souza@email.com',    whatsapp: false },
-    { name: 'Elena Rodrigues',phone: '(11) 95678-9012', email: 'elena.rodrigues@email.com',whatsapp: true  },
-    { name: 'Fábio Ferreira', phone: '(11) 96789-0123', email: 'fabio.ferreira@email.com', whatsapp: true  },
-    { name: 'Gabriela Alves', phone: '(11) 97890-1234', email: 'gabi.alves@email.com',     whatsapp: false },
-    { name: 'Hugo Pereira',   phone: '(11) 98901-2345', email: 'hugo.pereira@email.com',   whatsapp: true  },
-    { name: 'Íris Lima',      phone: '(11) 99012-3456', email: 'iris.lima@email.com',      whatsapp: true  },
-    { name: 'João Gomes',     phone: '(11) 90123-4567', email: 'joao.gomes@email.com',     whatsapp: true  },
-    { name: 'Kátia Pinto',    phone: '(21) 91111-2222', email: 'katia.pinto@email.com',    whatsapp: true  },
-    { name: 'Luan Correia',   phone: '(21) 92222-3333', email: 'luan.correia@email.com',   whatsapp: false },
+    { name: 'Ana Silva',      phone: '(49) 99971-5125', email: 'ana.silva@email.com',      whatsapp: true  },
+    { name: 'Bruno Santos',   phone: '(49) 99971-5125', email: 'bruno.santos@email.com',   whatsapp: true  },
+    { name: 'Carla Oliveira', phone: '(49) 99971-5125', email: 'carla.oliveira@email.com', whatsapp: true  },
+    { name: 'Diego Souza',    phone: '(49) 99971-5125', email: 'diego.souza@email.com',    whatsapp: false },
+    { name: 'Elena Rodrigues',phone: '(49) 99971-5125', email: 'elena.rodrigues@email.com',whatsapp: true  },
+    { name: 'Fábio Ferreira', phone: '(49) 99971-5125', email: 'fabio.ferreira@email.com', whatsapp: true  },
+    { name: 'Gabriela Alves', phone: '(49) 99971-5125', email: 'gabi.alves@email.com',     whatsapp: false },
+    { name: 'Hugo Pereira',   phone: '(49) 99971-5125', email: 'hugo.pereira@email.com',   whatsapp: true  },
+    { name: 'Íris Lima',      phone: '(49) 99971-5125', email: 'iris.lima@email.com',      whatsapp: true  },
+    { name: 'João Gomes',     phone: '(49) 99971-5125', email: 'joao.gomes@email.com',     whatsapp: true  },
+    { name: 'Kátia Pinto',    phone: '(49) 99971-5125', email: 'katia.pinto@email.com',    whatsapp: true  },
+    { name: 'Luan Correia',   phone: '(49) 99971-5125', email: 'luan.correia@email.com',   whatsapp: false },
   ];
 
   const petData = [

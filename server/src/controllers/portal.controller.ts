@@ -60,7 +60,7 @@ export const portalLogin = async (req: Request, res: Response) => {
       return res.status(403).json({ error: 'Acesso negado pela clínica. Entre em contato.' });
     }
 
-    const token = generateToken(access.id, 'client_portal', access.organizationId, { clientId: access.clientId });
+    const token = generateToken(access.id, 'client_portal', access.organizationId, null, { clientId: access.clientId });
 
     res.json({
       token,

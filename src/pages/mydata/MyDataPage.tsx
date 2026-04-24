@@ -23,6 +23,7 @@ interface OrgData {
   city?: string
   state?: string
   status: string
+  plan: string
   trialEndsAt: string
   confirmedAt?: string
   createdAt: string
@@ -31,8 +32,14 @@ interface OrgData {
 
 const statusLabel: Record<string, { label: string; class: string }> = {
   active: { label: 'Ativo', class: 'bg-green-100 text-green-700' },
-  trial: { label: 'Trial', class: 'bg-yellow-100 text-yellow-700' },
+  trial: { label: 'Trial (15 dias grátis)', class: 'bg-yellow-100 text-yellow-700' },
   inactive: { label: 'Inativo', class: 'bg-red-100 text-red-700' },
+}
+
+const planLabel: Record<string, { label: string; desc: string; class: string }> = {
+  essencial: { label: 'Essencial', desc: 'Agenda + Banho e Tosa', class: 'bg-blue-100 text-blue-700' },
+  hotel:     { label: 'Hotel',     desc: 'Essencial + Hospedagem', class: 'bg-purple-100 text-purple-700' },
+  clinica:   { label: 'Clínica',   desc: 'Hotel + Prontuário e Internação', class: 'bg-emerald-100 text-emerald-700' },
 }
 
 function formatCNPJ(v: string) {
@@ -127,6 +134,8 @@ export default function MyDataPage() {
   if (!org) return null
 
   const status = statusLabel[org.status] ?? { label: org.status, class: '' }
+  const plan = planLabel[org.plan] ?? { label: org.plan, desc: '', class: 'bg-slate-100 text-slate-600' }
+  const effectivePlan = org.status === 'trial' ? planLabel['clinica'] : plan
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
@@ -163,6 +172,12 @@ export default function MyDataPage() {
               <span>Desde {formatDate(org.createdAt)}</span>
             </div>
             <Badge className={`${status.class} border-0`}>{status.label}</Badge>
+            <div className="flex items-center gap-1.5">
+              <Badge className={`${effectivePlan.class} border-0`}>{effectivePlan.label}</Badge>
+              {org.status === 'trial' && (
+                <span className="text-xs text-slate-400">(plano contratado: {plan.label})</span>
+              )}
+            </div>
           </div>
         </CardContent>
       </Card>
