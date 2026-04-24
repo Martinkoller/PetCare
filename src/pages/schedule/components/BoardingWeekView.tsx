@@ -216,61 +216,10 @@ export function BoardingWeekView({
         <ContextMenuTrigger asChild>
           <div
             className={cn(
-              'grid grid-cols-[280px_repeat(7,minmax(120px,1fr))] border-b hover:bg-muted/20 transition-colors',
+              'grid grid-cols-7 border-b hover:bg-muted/20 transition-colors',
               statusMeta.row,
             )}
           >
-            {/* Coluna fixa esquerda */}
-            <div
-              className="border-r p-3 cursor-pointer"
-              onClick={() => onEventClick(evt)}
-              title={[
-                `Pet: ${pet?.name || 'Pet'}`,
-                client ? `Tutor: ${client.name}` : '',
-                `Check-in: ${format(checkIn, 'dd/MM/yyyy', { locale: ptBR })}`,
-                `Check-out: ${format(checkOut, 'dd/MM/yyyy', { locale: ptBR })}`,
-                `Status: ${statusMeta.label}`,
-              ]
-                .filter(Boolean)
-                .join('\n')}
-            >
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span className={cn('h-2.5 w-2.5 rounded-full shrink-0', statusMeta.dot)} />
-                    <span className="font-semibold truncate text-sm">
-                      {pet?.name || 'Pet'}
-                    </span>
-                  </div>
-
-                  <div className="mt-1 text-xs text-muted-foreground truncate">
-                    {client?.name ? `Tutor: ${client.name}` : 'Sem tutor'}
-                  </div>
-
-                  <div className="mt-1 text-[11px] text-muted-foreground">
-                    {format(checkIn, 'dd/MM', { locale: ptBR })} →{' '}
-                    {format(checkOut, 'dd/MM', { locale: ptBR })}
-                  </div>
-                </div>
-
-                <Badge
-                  variant="secondary"
-                  className={cn(
-                    'shrink-0',
-                    evt.status === 'scheduled' && 'bg-orange-100 text-orange-800 border-orange-200',
-                    evt.status === 'confirmed' && 'bg-emerald-100 text-emerald-800 border-emerald-200',
-                    (evt.status === 'checked_in' || evt.status === 'in_progress') &&
-                    'bg-blue-100 text-blue-800 border-blue-200',
-                    (evt.status === 'checked_out' || evt.status === 'completed') &&
-                    'bg-slate-100 text-slate-700 border-slate-200',
-                    evt.status === 'cancelled' && 'bg-red-100 text-red-800 border-red-200',
-                  )}
-                >
-                  {statusMeta.label}
-                </Badge>
-              </div>
-            </div>
-
             {/* 7 dias da semana */}
             {weekDays.map((day, index) => {
               const active = isBoardingActiveOnDay(evt, day)
@@ -391,15 +340,8 @@ export function BoardingWeekView({
     <div className="flex h-full flex-col overflow-hidden rounded-2xl border bg-background shadow-sm">
       {/* Cabeçalho */}
       <div className="overflow-x-auto">
-        <div className="min-w-[1120px]">
-          <div className="grid grid-cols-[280px_repeat(7,minmax(120px,1fr))] border-b bg-muted/30">
-            <div className="border-r px-4 py-3">
-              <div className="text-sm font-semibold">Hospedagens</div>
-              <div className="text-xs text-muted-foreground">
-                Pet • Tutor • Período • Status
-              </div>
-            </div>
-
+        <div>
+          <div className="grid grid-cols-7 border-b bg-muted/30">
             {weekDays.map((day) => (
               <div
                 key={day.toISOString()}

@@ -4,6 +4,7 @@ import { Toaster } from '@/components/ui/toaster'
 import { Toaster as Sonner } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import Layout from './components/Layout'
+import { ProtectedRoute } from './components/ProtectedRoute'
 import { AuthProvider } from './stores/useAuthStore'
 import { ClientProvider } from './stores/ClientContext'
 import { PetProvider } from './stores/PetContext'
@@ -14,6 +15,7 @@ import { AppointmentProvider } from './stores/AppointmentStore'
 import { HospitalizationProvider } from './stores/HospitalizationContext'
 
 import NotFound from './pages/NotFound'
+import LoginPage from './pages/auth/LoginPage'
 
 const DashboardPage   = lazy(() => import('./pages/dashboard/DashboardPage'))
 const ClientsPage     = lazy(() => import('./pages/clients/ClientsPage'))
@@ -42,25 +44,28 @@ const PageLoader = () => (
 function AppRoutes() {
   return (
     <Routes>
+      <Route path="/login" element={<LoginPage />} />
       <Route path="/booking" element={<BookingPage />} />
-      <Route element={<Layout />}>
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
-        <Route path="/dashboard" element={<DashboardPage />} />
-        <Route path="/schedule" element={<SchedulePage />} />
-        <Route path="/tasks" element={<TasksPage />} />
-        <Route path="/clients" element={<ClientsPage />} />
-        <Route path="/clients/:id" element={<ClientProfilePage />} />
-        <Route path="/pets" element={<PetsPage />} />
-        <Route path="/grooming" element={<GroomingPage />} />
-        <Route path="/clinic" element={<ClinicPage />} />
-        <Route path="/boarding" element={<BoardingPage />} />
-        <Route path="/hospitalization" element={<HospitalizationPage />} />
-        <Route path="/admin" element={<AdminPage />} />
-        <Route path="/services" element={<ServicesPage />} />
-        <Route path="/inventory" element={<InventoryPage />} />
-        <Route path="/sales" element={<SalesPage />} />
-        <Route path="/financials" element={<FinancialsPage />} />
-        <Route path="/knowledge" element={<KnowledgePage />} />
+      <Route element={<ProtectedRoute />}>
+        <Route element={<Layout />}>
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/schedule" element={<SchedulePage />} />
+          <Route path="/tasks" element={<TasksPage />} />
+          <Route path="/clients" element={<ClientsPage />} />
+          <Route path="/clients/:id" element={<ClientProfilePage />} />
+          <Route path="/pets" element={<PetsPage />} />
+          <Route path="/grooming" element={<GroomingPage />} />
+          <Route path="/clinic" element={<ClinicPage />} />
+          <Route path="/boarding" element={<BoardingPage />} />
+          <Route path="/hospitalization" element={<HospitalizationPage />} />
+          <Route path="/admin" element={<AdminPage />} />
+          <Route path="/services" element={<ServicesPage />} />
+          <Route path="/inventory" element={<InventoryPage />} />
+          <Route path="/sales" element={<SalesPage />} />
+          <Route path="/financials" element={<FinancialsPage />} />
+          <Route path="/knowledge" element={<KnowledgePage />} />
+        </Route>
       </Route>
       <Route path="*" element={<NotFound />} />
     </Routes>
