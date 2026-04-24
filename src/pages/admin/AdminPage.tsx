@@ -6,6 +6,7 @@ import { TemplateSettings } from './TemplateSettings'
 import { CalendarIntegrations } from './CalendarIntegrations'
 import { TeamSettings } from './TeamSettings'
 import { BusinessHoursSettings } from './BusinessHoursSettings'
+import { PortalAccessSettings } from './PortalAccessSettings'
 
 export default function AdminPage() {
   return (
@@ -28,6 +29,7 @@ export default function AdminPage() {
           <TabsTrigger value="grooming">Banho e Tosa</TabsTrigger>
           <TabsTrigger value="statuses">Status Gerais</TabsTrigger>
           <TabsTrigger value="templates">Modelos</TabsTrigger>
+          <TabsTrigger value="portal">Portal Tutor</TabsTrigger>
         </TabsList>
 
         <TabsContent value="team">
@@ -56,6 +58,10 @@ export default function AdminPage() {
 
         <TabsContent value="templates">
           <TemplateSettings />
+        </TabsContent>
+
+        <TabsContent value="portal">
+          <PortalAccessSettings />
         </TabsContent>
       </Tabs>
     </div>
