@@ -33,10 +33,8 @@ export default function LoginPage() {
       return
     }
 
-    // Redireciona por role (user é atualizado no store pelo signIn)
     const stored = localStorage.getItem('token')
     if (stored) {
-      // Decodifica o payload para checar role sem nova requisição
       try {
         const payload = JSON.parse(atob(stored.split('.')[1]))
         if (payload.role === 'saas_admin') {

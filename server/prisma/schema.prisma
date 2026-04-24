@@ -91,7 +91,7 @@ model Client {
   blockCredit      Boolean   @default(false)
   origin           String?
 
-  organization Organization       @relation(fields: [organizationId], references: [id])
+  organization Organization        @relation(fields: [organizationId], references: [id])
   pets         Pet[]
   interactions ClientInteraction[]
 
@@ -244,7 +244,7 @@ model ServiceCatalogItem {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  organization Organization        @relation(fields: [organizationId], references: [id])
+  organization Organization         @relation(fields: [organizationId], references: [id])
   parent       ServiceCatalogItem?  @relation("SubServices", fields: [parentId], references: [id])
   children     ServiceCatalogItem[] @relation("SubServices")
 
@@ -319,8 +319,8 @@ model BoardingStay {
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
 
-  organization Organization   @relation(fields: [organizationId], references: [id])
-  appointment  Appointment?   @relation(fields: [appointmentId], references: [id])
+  organization Organization      @relation(fields: [organizationId], references: [id])
+  appointment  Appointment?      @relation(fields: [appointmentId], references: [id])
   services     BoardingService[]
 
   @@map("boarding_stays")
@@ -362,7 +362,7 @@ model Sale {
 }
 
 model SaleItem {
-  id          String @id @default(uuid())
+  id          String  @id @default(uuid())
   saleId      String
   productId   String
   productName String
@@ -460,9 +460,9 @@ model HospitalizationStay {
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
 
-  organization Organization        @relation(fields: [organizationId], references: [id])
-  pet          Pet                 @relation(fields: [petId], references: [id], onDelete: Cascade)
-  appointment  Appointment?        @relation(fields: [appointmentId], references: [id])
+  organization Organization         @relation(fields: [organizationId], references: [id])
+  pet          Pet                  @relation(fields: [petId], references: [id], onDelete: Cascade)
+  appointment  Appointment?         @relation(fields: [appointmentId], references: [id])
   logs         HospitalizationLog[]
 
   @@map("hospitalization_stays")
