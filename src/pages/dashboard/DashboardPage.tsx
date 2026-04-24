@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { Input } from '@/components/ui/input'
 import { useAppointmentStore } from '@/stores/AppointmentStore'
 import { useBoardingStore } from '@/stores/BoardingStore'
@@ -8,7 +8,6 @@ import { useClientStore } from '@/stores/ClientContext'
 import { usePetStore } from '@/stores/PetContext'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import {
   Calendar,
@@ -29,9 +28,10 @@ import {
   ShoppingCart,
   UserPlus,
   X,
+  BarChart2,
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
-import { format, isSameDay, isWithinInterval, startOfDay, parseISO } from 'date-fns'
+import { format, isSameDay, startOfDay, parseISO } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { formatCurrency, cn } from '@/lib/utils'
 import { useAuthStore } from '@/stores/useAuthStore'
@@ -39,6 +39,28 @@ import { Appointment } from '@/lib/types'
 import { UnifiedAtendimentoDialog } from '@/components/shared/UnifiedAtendimentoDialog'
 import { PetDialog } from '@/pages/pets/PetDialog'
 import { ClientDialog } from '@/pages/clients/ClientDialog'
+import api from '@/lib/api'
+
+// ── Dashboard metrics types ────────────────────────────────────────────────────
+
+interface DashboardMetrics {
+  revenue: { today: number; thisMonth: number; lastMonth: number }
+  appointmentsByPeriod: { today: number; thisWeek: number; thisMonth: number }
+  popularServices: { service: string; count: number; revenue: number }[]
+  appointmentsByWeekday: { day: string; count: number }[]
+  monthlyGrowth: { month: string; appointments: number; revenue: number }[]
+  activeClients: { clientId: string; name: string; count: number }[]
+}
+
+const useDashboardMetrics = () => {
+  const [metrics, setMetrics] = useState<DashboardMetrics | null>(null)
+  useEffect(() => {
+    api.get<DashboardMetrics>('/dashboard/metrics')
+      .then((r) => setMetrics(r.data))
+      .catch(() => {})
+  }, [])
+  return metrics
+}
 
 // ── Status helpers ────────────────────────────────────────────────────────────
 
@@ -87,6 +109,7 @@ export default function DashboardPage() {
   const { clients } = useClientStore()
   const { pets } = usePetStore()
   const { user } = useAuthStore()
+  const metrics = useDashboardMetrics()
 
   const [scheduleOpen, setScheduleOpen] = useState(false)
   const [schedulePreset, setSchedulePreset] = useState<Partial<Appointment>>({})
@@ -317,6 +340,35 @@ export default function DashboardPage() {
           </Card>
         </div>
 
+        {/* Revenue Cards */}
+        {metrics && (
+          <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
+            {[
+              { label: 'Receita Hoje', value: metrics.revenue.today, icon: DollarSign, cls: 'border-l-emerald-500', iconCls: 'bg-emerald-50 text-emerald-600' },
+              { label: 'Receita do Mês', value: metrics.revenue.thisMonth, icon: TrendingUp, cls: 'border-l-sky-500', iconCls: 'bg-sky-50 text-sky-600' },
+              { label: 'Mês Anterior', value: metrics.revenue.lastMonth, icon: BarChart2, cls: 'border-l-slate-400', iconCls: 'bg-slate-50 text-slate-500' },
+            ].map(({ label, value, icon: Icon, cls, iconCls }) => (
+              <Card key={label} className={cn('border-l-4 hover:shadow-md transition-shadow', cls)}>
+                <CardContent className="p-5 flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{label}</p>
+                    <p className="text-2xl font-bold mt-1">{formatCurrency(value)}</p>
+                    {label === 'Receita do Mês' && metrics.revenue.lastMonth > 0 && (
+                      <p className={cn('text-xs mt-1 font-medium', metrics.revenue.thisMonth >= metrics.revenue.lastMonth ? 'text-emerald-600' : 'text-red-500')}>
+                        {metrics.revenue.thisMonth >= metrics.revenue.lastMonth ? '▲' : '▼'}
+                        {' '}{Math.abs(((metrics.revenue.thisMonth - metrics.revenue.lastMonth) / metrics.revenue.lastMonth) * 100).toFixed(1)}% vs mês anterior
+                      </p>
+                    )}
+                  </div>
+                  <div className={cn('h-12 w-12 shrink-0 rounded-xl flex items-center justify-center', iconCls)}>
+                    <Icon className="h-6 w-6" />
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+
         {/* Main grid */}
         <div className="grid gap-6 lg:grid-cols-3">
 
@@ -411,8 +463,70 @@ export default function DashboardPage() {
             </Card>
           </div>
 
-          {/* Right: Atividade Recente */}
+          {/* Right: Métricas + Atividade Recente */}
           <div className="space-y-6">
+
+            {/* Crescimento Mensal */}
+            {metrics && metrics.monthlyGrowth.length > 0 && (
+              <Card>
+                <CardHeader className="pb-3 pt-4 px-5">
+                  <CardTitle className="text-base font-semibold flex items-center gap-2">
+                    <TrendingUp className="h-4 w-4 text-sky-500" />
+                    Crescimento — 6 meses
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="px-5 pb-5">
+                  <div className="space-y-2">
+                    {(() => {
+                      const max = Math.max(...metrics.monthlyGrowth.map((m) => m.revenue), 1)
+                      return metrics.monthlyGrowth.map((m) => (
+                        <div key={m.month} className="flex items-center gap-2">
+                          <span className="text-xs text-muted-foreground w-12 shrink-0">{m.month}</span>
+                          <div className="flex-1 bg-muted rounded-full h-2 overflow-hidden">
+                            <div
+                              className="h-2 rounded-full bg-sky-500 transition-all"
+                              style={{ width: `${(m.revenue / max) * 100}%` }}
+                            />
+                          </div>
+                          <span className="text-xs font-medium w-20 text-right shrink-0">{formatCurrency(m.revenue)}</span>
+                        </div>
+                      ))
+                    })()}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Serviços Populares */}
+            {metrics && metrics.popularServices.length > 0 && (
+              <Card>
+                <CardHeader className="pb-3 pt-4 px-5">
+                  <CardTitle className="text-base font-semibold flex items-center gap-2">
+                    <BarChart2 className="h-4 w-4 text-purple-500" />
+                    Serviços Populares
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="px-5 pb-5">
+                  <div className="space-y-2">
+                    {(() => {
+                      const max = Math.max(...metrics.popularServices.map((s) => s.count), 1)
+                      return metrics.popularServices.map((s) => (
+                        <div key={s.service} className="flex items-center gap-2">
+                          <span className="text-xs text-muted-foreground w-24 shrink-0 truncate">{s.service}</span>
+                          <div className="flex-1 bg-muted rounded-full h-2 overflow-hidden">
+                            <div
+                              className="h-2 rounded-full bg-purple-500 transition-all"
+                              style={{ width: `${(s.count / max) * 100}%` }}
+                            />
+                          </div>
+                          <span className="text-xs font-medium w-8 text-right shrink-0">{s.count}x</span>
+                        </div>
+                      ))
+                    })()}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Status do Banho e Tosa hoje */}
             <Card>

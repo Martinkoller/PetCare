@@ -18,6 +18,13 @@ import NotFound from './pages/NotFound'
 import LoginPage from './pages/auth/LoginPage'
 import RegisterPage from './pages/auth/RegisterPage'
 import ConfirmEmailPage from './pages/auth/ConfirmEmailPage'
+import { PortalAuthProvider } from './stores/usePortalAuthStore'
+import { CartProvider } from './stores/useCartStore'
+import PortalLoginPage from './pages/portal/PortalLoginPage'
+import PortalRegisterPage from './pages/portal/PortalRegisterPage'
+import PortalShopPage from './pages/portal/PortalShopPage'
+import PortalCheckoutPage from './pages/portal/PortalCheckoutPage'
+import PortalOrdersPage from './pages/portal/PortalOrdersPage'
 
 const DashboardPage       = lazy(() => import('./pages/dashboard/DashboardPage'))
 const ClientsPage         = lazy(() => import('./pages/clients/ClientsPage'))
@@ -53,6 +60,13 @@ function AppRoutes() {
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/confirm-email" element={<ConfirmEmailPage />} />
       <Route path="/booking" element={<BookingPage />} />
+
+      {/* Portal do Tutor */}
+      <Route path="/portal/login" element={<PortalLoginPage />} />
+      <Route path="/portal/cadastro" element={<PortalRegisterPage />} />
+      <Route path="/portal/loja" element={<PortalShopPage />} />
+      <Route path="/portal/checkout" element={<PortalCheckoutPage />} />
+      <Route path="/portal/pedidos" element={<PortalOrdersPage />} />
 
       {/* SAAS Admin */}
       <Route element={<SaasAdminRoute />}>
@@ -90,6 +104,8 @@ function AppRoutes() {
 
 const App = () => (
   <BrowserRouter future={{ v7_startTransition: false, v7_relativeSplatPath: false }}>
+    <PortalAuthProvider>
+    <CartProvider>
     <AuthProvider>
       <ConfigProvider>
         <ClientProvider>
@@ -113,6 +129,8 @@ const App = () => (
         </ClientProvider>
       </ConfigProvider>
     </AuthProvider>
+    </CartProvider>
+    </PortalAuthProvider>
   </BrowserRouter>
 )
 

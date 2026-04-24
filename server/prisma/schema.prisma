@@ -45,6 +45,8 @@ model Organization {
   messageTemplates     MessageTemplate[]
   notificationLogs     NotificationLog[]
   hospitalizationStays HospitalizationStay[]
+  clientOrders         ClientOrder[]
+  clientPortalAccesses ClientPortalAccess[]
 
   @@map("organizations")
 }
@@ -91,9 +93,11 @@ model Client {
   blockCredit      Boolean   @default(false)
   origin           String?
 
-  organization Organization        @relation(fields: [organizationId], references: [id])
-  pets         Pet[]
-  interactions ClientInteraction[]
+  organization  Organization        @relation(fields: [organizationId], references: [id])
+  pets          Pet[]
+  interactions  ClientInteraction[]
+  orders        ClientOrder[]
+  portalAccess  ClientPortalAccess?
 
   @@map("clients")
 }
@@ -483,4 +487,41 @@ model HospitalizationLog {
   hospitalization HospitalizationStay @relation(fields: [hospitalizationId], references: [id], onDelete: Cascade)
 
   @@map("hospitalization_logs")
+}
+
+// ── Portal do Tutor ───────────────────────────────────────────────────────────
+
+model ClientPortalAccess {
+  id             String    @id @default(uuid())
+  organizationId String
+  clientId       String    @unique
+  email          String    @unique
+  passwordHash   String
+  status         String    @default("pending") // 'pending' | 'approved' | 'rejected'
+  approvedAt     DateTime?
+  approvedBy     String?   // userId de quem aprovou
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  client       Client       @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@map("client_portal_accesses")
+}
+
+model ClientOrder {
+  id             String   @id @default(uuid())
+  organizationId String
+  clientId       String
+  items          String   @db.Text // JSON: [{id, name, price, qty, type}]
+  total          Float
+  status         String   @default("pending") // 'pending' | 'confirmed' | 'cancelled'
+  notes          String?  @db.Text
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  client       Client       @relation(fields: [clientId], references: [id])
+
+  @@map("client_orders")
 }

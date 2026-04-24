@@ -134,9 +134,11 @@ export function AppointmentProvider({ children }: { children: ReactNode }) {
             },
           })
         }
-      } catch (e) {
+      } catch (e: any) {
         console.error(e)
-        toast.error('Erro ao criar agendamento')
+        const msg = e?.response?.data?.error || e?.message || 'Erro ao criar agendamento'
+        toast.error(msg)
+        throw e
       }
     },
     [getClient, getPet],
@@ -207,8 +209,11 @@ export function AppointmentProvider({ children }: { children: ReactNode }) {
             triggerNotification({ type: 'consulta_finalizacao', clientId: client.id, clientName: client.name, petName: pet.name, phone: client.phone, vars })
           }
         }
-      } catch (_e) {
-        toast.error('Erro ao atualizar agendamento')
+      } catch (e: any) {
+        console.error(e)
+        const msg = e?.response?.data?.error || e?.message || 'Erro ao atualizar agendamento'
+        toast.error(msg)
+        throw e
       }
     },
     [getClient, getPet, appointments],

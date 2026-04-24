@@ -6,6 +6,7 @@ export interface AuthRequest extends Request {
         id: string;
         role: string;
         organizationId: string | null;
+        clientId?: string;
     };
 }
 
@@ -20,6 +21,7 @@ export const authenticate = async (req: AuthRequest, res: Response, next: NextFu
                 id: decoded.userId,
                 role: decoded.role,
                 organizationId: decoded.organizationId ?? null,
+                ...(decoded.clientId ? { clientId: decoded.clientId } : {}),
             };
         } catch (_error) {
             // invalid token

@@ -249,14 +249,92 @@ export const getAppointments = async (req: AuthRequest, res: Response) => {
   }
 };
 
+// --- Conflict Validation ---
+
+type ConflictCheckParams = {
+  organizationId: string;
+  professionalId?: string | null;
+  startAt: Date;
+  durationMinutes: number;
+  excludeId?: string;
+};
+
+const getBusinessHours = async (organizationId: string): Promise<{ openHour: number; closeHour: number }> => {
+  try {
+    const org = await prisma.organization.findUnique({ where: { id: organizationId } });
+    const settings = org?.settings ? JSON.parse(org.settings) : {};
+    const openHour = settings.businessHours?.openHour ?? 8;
+    const closeHour = settings.businessHours?.closeHour ?? 18;
+    return { openHour, closeHour };
+  } catch {
+    return { openHour: 8, closeHour: 18 };
+  }
+};
+
+const validateConflict = async (params: ConflictCheckParams): Promise<string | null> => {
+  const { organizationId, professionalId, startAt, durationMinutes, excludeId } = params;
+  const endAt = new Date(startAt.getTime() + durationMinutes * 60_000);
+
+  const { openHour, closeHour } = await getBusinessHours(organizationId);
+  const openMin = openHour * 60;
+  const closeMin = closeHour * 60;
+  const startMin = startAt.getHours() * 60 + startAt.getMinutes();
+  const endMin = endAt.getHours() * 60 + endAt.getMinutes();
+
+  if (startMin < openMin || endMin > closeMin) {
+    return `Horário fora do expediente (${openHour}h–${closeHour}h).`;
+  }
+
+  // Only check conflict by professional when one is assigned
+  if (!professionalId) return null;
+
+  const conflicting = await prisma.appointment.findFirst({
+    where: {
+      organizationId,
+      professionalId,
+      status: { notIn: ['cancelled', 'archived'] },
+      ...(excludeId ? { id: { not: excludeId } } : {}),
+      AND: [
+        { date: { lt: endAt } },
+        // date + duration > startAt — computed via raw or JS post-filter below
+      ],
+    },
+  });
+
+  if (!conflicting) return null;
+
+  // Fine-grained overlap check (date + duration overlap)
+  const conflictEnd = new Date(conflicting.date.getTime() + (conflicting.duration ?? 30) * 60_000);
+  const overlaps = conflicting.date < endAt && conflictEnd > startAt;
+
+  if (overlaps) {
+    return `Profissional já tem agendamento das ${conflicting.date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })} às ${conflictEnd.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}.`;
+  }
+
+  return null;
+};
+
 export const createAppointment = async (req: AuthRequest, res: Response) => {
   try {
-    const data = pickAppointmentData(req.query.notes ? req.query : req.body); // Fallback for some clients
+    const body = req.query.notes ? req.query : req.body;
+    const data = pickAppointmentData(body);
 
-    const appointment = await prisma.appointment.create({
-      data,
-    });
+    const organizationId = req.user?.organizationId;
+    if (!organizationId) return res.status(400).json({ error: 'No organization' });
 
+    data.organizationId = organizationId;
+
+    if (data.date) {
+      const conflict = await validateConflict({
+        organizationId,
+        professionalId: data.professionalId,
+        startAt: new Date(data.date),
+        durationMinutes: data.duration ?? 30,
+      });
+      if (conflict) return res.status(409).json({ error: conflict });
+    }
+
+    const appointment = await prisma.appointment.create({ data });
     await syncRelatedStays(appointment);
 
     res.status(201).json(normalizeAppointmentResponse(appointment));
@@ -267,20 +345,28 @@ export const createAppointment = async (req: AuthRequest, res: Response) => {
 };
 
 export const updateAppointment = async (req: AuthRequest, res: Response) => {
-  const { id } = req.params;
+  const id = req.params.id as string;
   try {
-    const existing = await prisma.appointment.findUnique({ where: { id: id as string } });
-    if (!existing) {
-      return res.status(404).json({ error: 'Appointment not found' });
-    }
+    const existing = await prisma.appointment.findUnique({ where: { id } });
+    if (!existing) return res.status(404).json({ error: 'Appointment not found' });
 
     const data = pickAppointmentData(req.body, existing.notes);
 
-    const appointment = await prisma.appointment.update({
-      where: { id: id as string },
-      data,
-    });
+    const startAt = data.date ? new Date(data.date) : existing.date;
+    const duration = data.duration ?? existing.duration ?? 30;
+    const professionalId = 'professionalId' in data ? data.professionalId : existing.professionalId;
+    const organizationId = existing.organizationId;
 
+    const conflict = await validateConflict({
+      organizationId,
+      professionalId,
+      startAt,
+      durationMinutes: duration,
+      excludeId: id,
+    });
+    if (conflict) return res.status(409).json({ error: conflict });
+
+    const appointment = await prisma.appointment.update({ where: { id }, data });
     await syncRelatedStays(appointment);
 
     res.json(normalizeAppointmentResponse(appointment));
