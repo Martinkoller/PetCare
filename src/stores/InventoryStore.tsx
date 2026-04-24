@@ -52,7 +52,6 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
       const fetched = await productService.getProducts()
       setProducts(fetched)
     } catch (error) {
-      console.error('Failed to load products', error)
       toast.error('Erro ao carregar produtos')
     }
   }, [])
@@ -97,8 +96,7 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
         prev.map((p) => (p.id === productId ? updatedProduct : p)),
       )
 
-      productService.updateProduct(updatedProduct).catch((err) => {
-        console.error('Failed to update product stock', err)
+      productService.updateProduct(updatedProduct).catch(() => {
         toast.error('Erro ao sincronizar estoque')
       })
 

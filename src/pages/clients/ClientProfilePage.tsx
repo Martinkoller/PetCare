@@ -118,8 +118,7 @@ export default function ClientProfilePage() {
     try {
       const data = await whatsappService.getLogs(clientId)
       setWhatsappLogs(data)
-    } catch (error) {
-      console.error(error)
+    } catch {
     } finally {
       setIsLoadingWhatsappLogs(false)
     }
@@ -130,8 +129,7 @@ export default function ClientProfilePage() {
     try {
       const data = await clientInteractionService.getInteractions(clientId)
       setInteractions(data)
-    } catch (error) {
-      console.error(error)
+    } catch {
     } finally {
       setIsLoadingInteractions(false)
     }

@@ -114,7 +114,6 @@ export function ClientDialog({
         if (onSave) onSave(savedClient)
         onOpenChange(false)
       } catch (error) {
-        console.error('Error saving client:', error)
         toast.error('Erro ao salvar cliente.')
       } finally {
         setIsSaving(false)

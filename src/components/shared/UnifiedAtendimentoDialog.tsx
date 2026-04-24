@@ -152,8 +152,7 @@ export function UnifiedAtendimentoDialog({
 
       if (onSave) onSave(finalData)
       onOpenChange(false)
-    } catch (err) {
-      console.error('Save failed:', err)
+    } catch {
       toast.error('Erro ao salvar o atendimento.')
     }
   }

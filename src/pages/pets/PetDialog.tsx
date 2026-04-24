@@ -143,7 +143,6 @@ export function PetDialog({
       onSave(savedPet)
       onOpenChange(false)
     } catch (e: any) {
-      console.error('Error saving pet:', e)
       toast.error('Erro ao salvar pet.')
     } finally {
       setIsSaving(false)

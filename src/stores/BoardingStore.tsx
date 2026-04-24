@@ -53,7 +53,7 @@ export function BoardingProvider({ children }: { children: ReactNode }) {
       const fetched = await boardingService.getBoardings()
       setBoardingStays(fetched)
     } catch (error) {
-      console.error('Error loading boardings', error)
+      
       toast.error('Erro ao carregar hospedagens')
     }
   }, [])
@@ -69,7 +69,7 @@ export function BoardingProvider({ children }: { children: ReactNode }) {
         setBoardingStays((prev) => [...prev, newStay])
         return newStay
       } catch (error) {
-        console.error('Error adding boarding stay', error)
+        
         toast.error('Erro ao registrar hospedagem.')
         throw error
       }
@@ -85,7 +85,7 @@ export function BoardingProvider({ children }: { children: ReactNode }) {
           prev.map((b) => (b.id === stay.id ? updatedStay : b)),
         )
       } catch (error) {
-        console.error('Error updating boarding stay', error)
+        
         toast.error('Erro ao atualizar hospedagem.')
       }
     },
@@ -98,7 +98,7 @@ export function BoardingProvider({ children }: { children: ReactNode }) {
         await boardingService.deleteBoarding(id)
         setBoardingStays((prev) => prev.filter((b) => b.id !== id))
       } catch (error) {
-        console.error('Error deleting boarding stay', error)
+        
         toast.error('Erro ao excluir hospedagem.')
       }
     },
@@ -134,7 +134,7 @@ export function BoardingProvider({ children }: { children: ReactNode }) {
 
         toast.success('Servico/Produto adicionado a hospedagem')
       } catch (error) {
-        console.error('Error adding boarding service', error)
+        
         toast.error('Erro ao adicionar servico.')
       }
     },

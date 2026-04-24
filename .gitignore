@@ -15,3 +15,8 @@ server/*.sql
 
 # IDE / editores
 .vscode/
+
+# pastas externas de referência (não fazem parte do projeto)
+Model-Vue-Site-main/
+vue-typescript-admin-template-master/
+contexto/

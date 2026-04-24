@@ -29,7 +29,6 @@ export function ClientProvider({ children }: { children: ReactNode }) {
             const fetchedClients = await clientService.getClients()
             setClients(fetchedClients)
         } catch (error) {
-            console.error('Failed to load clients', error)
             toast.error('Erro ao carregar clientes.')
         }
     }, [])

@@ -81,7 +81,6 @@ export default function ServicesPage() {
       setIsDialogOpen(false)
     } catch (e) {
       toast.error('Erro ao salvar serviço. Verifique os dados.')
-      console.error(e)
     }
   }
 

@@ -304,8 +304,7 @@ export default function ClinicPage() {
         toast.success('Consulta agendada!')
       }
       setIsNewConsultationOpen(false)
-    } catch (e) {
-      console.error(e)
+    } catch {
     }
   }
 

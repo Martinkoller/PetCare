@@ -258,7 +258,6 @@ export function CheckInDialog({
         setInstructions('')
       }
     } catch (e) {
-      console.error(e)
       toast.error('Erro ao salvar agendamentos')
     }
   }
@@ -268,8 +267,7 @@ export function CheckInDialog({
       const created = await addClient(clientData)
       setNewClientId(created.id)
       setIsPetDialogOpen(true)
-    } catch (e) {
-      console.error(e)
+    } catch {
     }
   }
 

@@ -74,7 +74,6 @@ export function AppointmentProvider({ children }: { children: ReactNode }) {
       setAppointments(appointmentsData)
       setServices(servicesData)
     } catch (error) {
-      console.error('Failed to load appointment data', error)
       toast.error('Erro ao carregar agenda e servicos.')
     }
   }, [])
@@ -135,7 +134,6 @@ export function AppointmentProvider({ children }: { children: ReactNode }) {
           })
         }
       } catch (e: any) {
-        console.error(e)
         const msg = e?.response?.data?.error || e?.message || 'Erro ao criar agendamento'
         toast.error(msg)
         throw e
@@ -210,7 +208,6 @@ export function AppointmentProvider({ children }: { children: ReactNode }) {
           }
         }
       } catch (e: any) {
-        console.error(e)
         const msg = e?.response?.data?.error || e?.message || 'Erro ao atualizar agendamento'
         toast.error(msg)
         throw e
@@ -287,7 +284,6 @@ export function AppointmentProvider({ children }: { children: ReactNode }) {
           }),
         )
       } catch (error) {
-        console.error(error)
         toast.error('Erro ao salvar prontuario')
       }
     },
@@ -306,7 +302,6 @@ export function AppointmentProvider({ children }: { children: ReactNode }) {
           ),
         )
       } catch (error) {
-        console.error(error)
         toast.error('Erro ao registrar vacina')
       }
     },

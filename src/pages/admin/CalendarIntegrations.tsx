@@ -26,7 +26,6 @@ export function CalendarIntegrations() {
       const data = await integrationService.getIntegrations()
       setIntegrations(data)
     } catch (error) {
-      console.error(error)
       toast.error('Erro ao carregar integrações')
     } finally {
       setIsLoading(false)
@@ -48,7 +47,6 @@ export function CalendarIntegrations() {
           navigate('/admin', { replace: true })
           loadIntegrations()
         } catch (error) {
-      console.error(error)
           toast.error('Falha na integração. Tente novamente.')
         } finally {
           setIsConnecting(false)
@@ -71,7 +69,6 @@ export function CalendarIntegrations() {
         setIsConnecting(false)
       }
     } catch (error) {
-      console.error(error)
       toast.error('Erro ao conectar.')
       setIsConnecting(false)
     }

@@ -29,7 +29,6 @@ export function PetProvider({ children }: { children: ReactNode }) {
             const fetchedPets = await petService.getPets()
             setPets(fetchedPets)
         } catch (error) {
-            console.error('Failed to load pets', error)
             toast.error('Erro ao carregar pets.')
         }
     }, [])

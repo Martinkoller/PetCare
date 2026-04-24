@@ -32,7 +32,6 @@ export function HospitalizationProvider({ children }: { children: ReactNode }) {
       const data = await hospitalizationService.getStays()
       setStays(data)
     } catch (error) {
-      console.error(error)
       toast.error('Erro ao carregar mapa de internação')
     } finally {
       setLoading(false)

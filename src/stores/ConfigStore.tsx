@@ -204,8 +204,7 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
           status: conn.status || 'DISCONNECTED',
         }))
       }
-    } catch (error) {
-      console.error('Failed to load config', error)
+    } catch {
     }
   }, [])
 
