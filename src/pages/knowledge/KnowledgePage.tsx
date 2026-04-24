@@ -22,6 +22,9 @@ import {
   BookOpen,
   Zap,
   Link2,
+  HeartPulse,
+  Globe,
+  PawPrint,
 } from 'lucide-react'
 
 // ─── Content definition ───────────────────────────────────────────────────────
@@ -50,21 +53,26 @@ const MODULES: ModuleDoc[] = [
     icon: LayoutDashboard,
     color: 'text-blue-600 bg-blue-50',
     summary:
-      'Painel central da operação. Apresenta os indicadores mais importantes do dia em tempo real e atalhos para as ações mais frequentes, reduzindo o tempo gasto navegando entre módulos.',
+      'Painel central da operação. Apresenta indicadores financeiros e operacionais em tempo real, atalhos para as ações mais frequentes e gráficos de desempenho mensal.',
     features: [
       'KPIs do dia: consultas agendadas, animais no hotel, atendimentos em andamento e agenda pessoal',
+      'Receita de hoje, receita do mês atual e comparativo com o mês anterior (com variação percentual)',
+      'Gráfico de crescimento mensal: últimos 6 meses combinando agendamentos e vendas',
+      'Ranking de serviços mais populares (top 5) com barra proporcional de volume',
       'Botões de ação rápida para criar agendamento, pet, cliente, consulta, banho, vacina, prescrição e venda',
       'Prévia da agenda do dia com horários e status de cada compromisso',
       'Feed de atividades recentes: últimos serviços concluídos, vendas e novos cadastros',
       'Alertas configuráveis: estoque baixo, agendamentos online e aniversariantes',
     ],
     integrations: [
-      { module: 'Agenda', description: 'Exibe os próximos agendamentos do dia' },
+      { module: 'Agenda', description: 'Exibe os próximos agendamentos do dia e alimenta os gráficos de receita' },
+      { module: 'Vendas', description: 'Receita de vendas avulsas compõe os cards financeiros e o gráfico mensal' },
       { module: 'Hospedagem', description: 'Mostra quantos animais estão no hotel no momento' },
       { module: 'Clínica', description: 'Conta as consultas ativas' },
       { module: 'Estoque', description: 'Aciona alertas de estoque baixo quando configurado' },
     ],
     tips: [
+      'Os cards de receita consolidam agendamentos E vendas avulsas — é o número real de faturamento.',
       'Use os botões de ação rápida para cadastros urgentes sem precisar navegar pelo menu lateral.',
       'Os alertas do Dashboard são configurados em Administração → Preferências.',
     ],
@@ -75,24 +83,31 @@ const MODULES: ModuleDoc[] = [
     icon: Calendar,
     color: 'text-violet-600 bg-violet-50',
     summary:
-      'Calendário unificado para todos os profissionais da clínica. Permite agendar, visualizar e gerenciar compromissos em visão diária ou semanal, com detecção automática de conflitos de horário.',
+      'Calendário unificado para todos os profissionais da clínica. Permite agendar, visualizar e gerenciar compromissos em visão diária ou semanal, com detecção automática de conflitos por profissional e validação de horário de funcionamento.',
     features: [
       'Alternância entre visão Dia e Semana',
       'Filtro por profissional para isolar a agenda de cada membro da equipe',
       'Criação de agendamento diretamente no slot de horário clicado',
-      'Detecção de conflito: alerta quando o mesmo profissional tem dois compromissos sobrepostos',
+      'Detecção de conflito: bloqueia agendamento quando o mesmo profissional já tem compromisso sobrepostos (retorna erro 409 com horário do conflito)',
+      'Validação de horário de funcionamento: agendamentos fora do expediente configurado são bloqueados',
+      'Suporte a tipos: consulta, banho e tosa, hospedagem, internação',
+      'Suporte a tipos de entrada: agendado e encaixe',
+      'Prioridades: normal, urgente',
       'Edição e cancelamento de agendamentos existentes',
       'Ícone de serviço diferencia visualmente consultas, banhos e hospedagens',
     ],
     integrations: [
       { module: 'Clientes / Pets', description: 'Cada agendamento vincula um pet e, por consequência, o seu tutor' },
       { module: 'Catálogo de Serviços', description: 'Tipo de serviço e duração são preenchidos a partir do catálogo' },
-      { module: 'Administração', description: 'Perfis de profissionais disponíveis vêm do cadastro de equipe' },
+      { module: 'Administração → Horários', description: 'Horário de abertura e fechamento validado em cada agendamento' },
+      { module: 'Administração → Equipe', description: 'Perfis de profissionais disponíveis vêm do cadastro de equipe' },
       { module: 'Booking Público', description: 'Agendamentos feitos pelo cliente aparecem automaticamente aqui' },
+      { module: 'Hospedagem / Internação', description: 'Agendamentos do tipo hospedagem/internação criam automaticamente a ficha de estada correspondente' },
     ],
     tips: [
       'Clique diretamente em um horário livre para abrir o formulário de agendamento já com data e hora preenchidos.',
-      'Use o filtro de profissional para imprimir ou revisar a agenda individual antes do dia começar.',
+      'O sistema bloqueia automaticamente conflitos — não há risco de dois atendimentos sobrepostos para o mesmo profissional.',
+      'Configure os horários de funcionamento em Administração → Horários para que a validação funcione corretamente.',
     ],
   },
   {
@@ -351,29 +366,115 @@ const MODULES: ModuleDoc[] = [
     ],
   },
   {
+    id: 'hospitalization',
+    title: 'Internação',
+    icon: HeartPulse,
+    color: 'text-red-600 bg-red-50',
+    summary:
+      'Gestão de pacientes internados para tratamento clínico prolongado. Controla admissão, acompanhamento de evolução e alta, com mapa de ocupação dos leitos disponíveis.',
+    features: [
+      'Mapa de leitos: visualização de ocupação por status (livre, ocupado, em limpeza)',
+      'Fluxo: admitido → em tratamento → alta',
+      'Ficha de internação com motivo de admissão, diagnóstico e observações clínicas',
+      'Registro de evolução diária do paciente',
+      'Alta com data e observações de pós-internação',
+      'Criação automática de ficha ao agendar serviço do tipo "internação" na Agenda',
+      'Sincronização bidirecional: mudança de status na Agenda reflete na ficha de internação',
+    ],
+    integrations: [
+      { module: 'Agenda', description: 'Agendamentos do tipo "internação" criam automaticamente a ficha de internação' },
+      { module: 'Pets / Clientes', description: 'Ficha vinculada ao pet; contato do tutor acessível direto na ficha' },
+      { module: 'Clínica', description: 'Prontuário clínico do pet pode ser consultado em paralelo durante a internação' },
+      { module: 'Estoque', description: 'Medicamentos e insumos utilizados durante a internação podem ser descontados do estoque' },
+    ],
+    tips: [
+      'Use a Agenda para criar internações — ela preenche automaticamente a ficha com pet, data e veterinário.',
+      'Registre a evolução diária para ter um histórico completo que o tutor pode acompanhar.',
+    ],
+  },
+  {
+    id: 'booking',
+    title: 'Booking Público',
+    icon: Globe,
+    color: 'text-sky-600 bg-sky-50',
+    summary:
+      'Página pública de agendamento online acessível sem login. Permite que tutores agendem serviços diretamente pela internet, criando automaticamente o cliente, o pet e o agendamento no sistema.',
+    features: [
+      'Formulário público acessível via link — sem necessidade de conta no sistema',
+      'Seleção de serviço, data, horário disponível e profissional',
+      'Criação automática de cliente e pet caso não existam no cadastro',
+      'Agendamento aparece imediatamente na Agenda para aprovação ou confirmação',
+      'Validação de conflito de horário aplicada igual aos agendamentos internos',
+      'Página responsiva para acesso via celular',
+    ],
+    integrations: [
+      { module: 'Agenda', description: 'Agendamentos criados via Booking aparecem diretamente no calendário' },
+      { module: 'Clientes / Pets', description: 'Cria o cliente e o pet automaticamente se não existirem' },
+      { module: 'Catálogo de Serviços', description: 'Serviços disponíveis para seleção vêm do catálogo ativo' },
+      { module: 'Administração → Horários', description: 'Respeita o horário de funcionamento configurado' },
+    ],
+    tips: [
+      'Compartilhe o link /booking nas redes sociais e no WhatsApp para reduzir agendamentos manuais.',
+      'Agendamentos vindos do Booking chegam com status "agendado" — confirme ou entre em contato com o tutor antes.',
+    ],
+  },
+  {
+    id: 'portal',
+    title: 'Portal do Tutor',
+    icon: PawPrint,
+    color: 'text-orange-600 bg-orange-50',
+    summary:
+      'Área exclusiva para tutores acessarem serviços e produtos da clínica online. O tutor se cadastra com e-mail e senha, a clínica aprova o acesso, e então ele pode fazer pedidos pela loja virtual.',
+    features: [
+      'Auto-cadastro do tutor: vincula sua conta ao cliente já cadastrado na clínica',
+      'Aprovação pela clínica: acesso só é liberado após aprovação manual em Administração → Portal Tutor',
+      'Loja virtual: catálogo de serviços e produtos com carrinho persistente no backend',
+      'Checkout: confirmação do pedido com resumo e total',
+      'Histórico de pedidos: tutor visualiza todos os pedidos com status atualizado',
+      'Gestão de pedidos pela clínica: confirmar ou cancelar pedidos recebidos',
+      'Credenciais separadas: login independente do sistema principal',
+    ],
+    integrations: [
+      { module: 'Clientes', description: 'Cada conta do portal é vinculada a um cliente existente no sistema' },
+      { module: 'Administração → Portal Tutor', description: 'Solicitações de acesso e pedidos são gerenciados nessa aba' },
+      { module: 'Catálogo de Serviços', description: 'Produtos e serviços exibidos na loja vêm do catálogo ativo' },
+    ],
+    tips: [
+      'O tutor precisa informar o ID do cliente ao se cadastrar — forneça esse código diretamente ao tutor.',
+      'Acesse Administração → Portal Tutor para aprovar novos cadastros; sem aprovação, o tutor não consegue logar.',
+      'Pedidos recebidos ficam com status "pendente" até você confirmar ou cancelar na aba de gestão.',
+    ],
+  },
+  {
     id: 'admin',
     title: 'Administração',
     icon: Settings,
     color: 'text-slate-600 bg-slate-50',
     badge: 'Admin',
     summary:
-      'Central de configurações do sistema. Controla equipe, notificações, integrações de calendário, fluxo de etapas do banho e tosa e modelos de mensagens. Acesso restrito ao perfil Administrador.',
+      'Central de configurações do sistema. Controla equipe, horários de funcionamento, notificações, integrações de calendário, fluxo do Kanban de banho, modelos de mensagens e acesso ao Portal do Tutor.',
     features: [
       'Equipe: visualização de membros, cargos e status de autenticação',
+      'Horários: configuração de abertura e fechamento usada na validação de agendamentos',
       'Notificações: ativar/desativar WhatsApp, e-mail e SMS; editar templates de mensagem por evento',
       'Integrações: sincronização com Google Calendar e Outlook',
       'Banho e Tosa: criar, editar, reordenar e excluir etapas do Kanban; definir etapa Inicial e Final',
       'Status Gerais: criar status personalizados para uso nos módulos',
       'Modelos: templates de agendamento reutilizáveis',
+      'Portal Tutor: aprovar/rejeitar/revogar acessos de tutores; confirmar ou cancelar pedidos recebidos',
     ],
     integrations: [
       { module: 'Todos os módulos', description: 'As configurações aqui impactam o comportamento de todos os outros módulos' },
+      { module: 'Agenda', description: 'Horários de funcionamento e equipe definidos aqui são usados na validação de agendamentos' },
       { module: 'Banho e Tosa', description: 'Etapas do Kanban e suas regras são definidas aqui' },
       { module: 'Notificações', description: 'Templates editados aqui são usados nos disparos automáticos e manuais' },
+      { module: 'Portal do Tutor', description: 'Aprovação de acessos e gestão de pedidos online feita nesta aba' },
     ],
     tips: [
       'Sempre defina uma etapa como "Inicial" e outra como "Final" no fluxo de Banho e Tosa — são obrigatórias.',
+      'Configure os Horários antes de usar a Agenda — agendamentos fora do expediente serão bloqueados automaticamente.',
       'Teste os templates de notificação antes de ativar o envio automático para clientes reais.',
+      'Pedidos do Portal Tutor aparecem com badge de contagem na aba — verifique diariamente.',
     ],
   },
 ]
@@ -382,8 +483,8 @@ const MODULES: ModuleDoc[] = [
 
 const FLOW_STEPS = [
   { label: 'Cadastro', desc: 'Cliente + Pet', color: 'bg-green-100 text-green-800 border-green-200' },
-  { label: 'Agendamento', desc: 'Agenda / Booking', color: 'bg-violet-100 text-violet-800 border-violet-200' },
-  { label: 'Atendimento', desc: 'Banho / Clínica / Hospedagem', color: 'bg-pink-100 text-pink-800 border-pink-200' },
+  { label: 'Agendamento', desc: 'Agenda / Booking / Portal', color: 'bg-violet-100 text-violet-800 border-violet-200' },
+  { label: 'Atendimento', desc: 'Banho / Clínica / Hospedagem / Internação', color: 'bg-pink-100 text-pink-800 border-pink-200' },
   { label: 'Insumos', desc: 'Estoque consumido', color: 'bg-yellow-100 text-yellow-800 border-yellow-200' },
   { label: 'Faturamento', desc: 'Vendas / Financeiros', color: 'bg-teal-100 text-teal-800 border-teal-200' },
   { label: 'Notificação', desc: 'WhatsApp / E-mail', color: 'bg-blue-100 text-blue-800 border-blue-200' },
