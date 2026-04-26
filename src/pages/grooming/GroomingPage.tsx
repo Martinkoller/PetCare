@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Plus, Columns, CalendarClock, ChevronLeft, ChevronRight } from 'lucide-react'
 import { toast } from 'sonner'
-import { addDays, format, isSameDay, parseISO, startOfDay, subDays } from 'date-fns'
+import { addDays, format, isSameDay, startOfDay, subDays } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { UnifiedAtendimentoDialog } from '@/components/shared/UnifiedAtendimentoDialog'
 import { GroomingKanbanCard } from './GroomingKanbanCard'
@@ -53,9 +53,7 @@ export default function GroomingPage() {
   // Drag-and-drop state
   const [activeDragColumn, setActiveDragColumn] = useState<string | null>(null)
   const isDragging = useRef(false)
-  const [pendingDrop, setPendingDrop] = useState<{ aptId: string; stageId: string } | null>(null)
   const [pendingWA, setPendingWA] = useState<{ apt: Appointment; clientName: string; petName: string; message: string } | null>(null)
-  const [checklistPending, setChecklistPending] = useState<{ aptId: string; stageId: string; items: ServiceItem[] } | null>(null)
   const [checklistReview, setChecklistReview] = useState<{
     aptId: string
     stageId: string
@@ -270,20 +268,6 @@ export default function GroomingPage() {
       toast.success('Serviço agendado!')
     }
   }
-
-  const doFinalize = (aptId: string, stageId: string) => {
-    const apt = appointments.find((a) => a.id === aptId)
-    if (apt) {
-      updateAppointment({
-        ...apt,
-        status: 'completed',
-        groomingStatus: stageId,
-        completedAt: new Date().toLocaleString('sv').replace(' ', 'T'),
-      } as Appointment)
-    }
-    toast.success('Atendimento finalizado!')
-  }
-
 
   // ── Check-in: move agendamento do dia para o primeiro stage do fluxo ────────
 

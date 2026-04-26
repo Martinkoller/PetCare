@@ -42,7 +42,7 @@
     "active": true,
     "sendMode": "auto",
     "sendDelay": 0,
-    "minutesBefore": 15
+    "minutesBefore": 240
   },
   {
     "id": "consulta_lembrete",
@@ -154,6 +154,6 @@
     "active": true,
     "sendMode": "auto",
     "sendDelay": 0,
-    "minutesBefore": 25
+    "minutesBefore": 999
   }
 ]
