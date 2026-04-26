@@ -20,3 +20,8 @@ server/*.sql
 Model-Vue-Site-main/
 vue-typescript-admin-template-master/
 contexto/
+
+# Playwright / E2E artifacts
+test-results/
+playwright-report/
+e2e/report/
