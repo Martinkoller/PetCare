@@ -97,8 +97,15 @@ export default function SchedulePage() {
   const { businessHours, profiles } = useConfigStore()
 
   const [currentDate, setCurrentDate] = useState(new Date())
-  const [mode, setMode] = useState<CalendarMode>('week')
-  const [serviceTab, setServiceTab] = useState<ServiceTab>('work')
+  const [workMode, setWorkMode] = useState<CalendarMode>('week')
+  const [boardingMode, setBoardingMode] = useState<CalendarMode>('month')
+  const [serviceTab, setServiceTab] = useState<ServiceTab>('boarding')
+
+  const mode = serviceTab === 'work' ? workMode : boardingMode
+  const setMode = (m: CalendarMode) => {
+    if (serviceTab === 'work') setWorkMode(m)
+    else setBoardingMode(m)
+  }
 
   const [activeProfiles, setActiveProfiles] = useState<string[]>([])
   const [activeStatuses, setActiveStatuses] = useState<string[]>([])
@@ -180,30 +187,19 @@ export default function SchedulePage() {
     })
   }, [appointments, serviceTab, activeProfiles, activeStatuses])
 
-  const headerLabel = useMemo(() => {
-    const prefix = serviceTab === 'work' ? 'Agenda de Trabalho' : 'Hospedagem'
+  const prevTitle = mode === 'day' ? 'Dia anterior' : mode === 'week' ? 'Semana anterior' : 'Mês anterior'
+  const nextTitle = mode === 'day' ? 'Próximo dia' : mode === 'week' ? 'Próxima semana' : 'Próximo mês'
 
-    if (mode === 'day') {
-      return `${prefix} • ${format(currentDate, "EEEE, dd 'de' MMMM 'de' yyyy", {
-        locale: ptBR,
-      })}`
-    }
-
+  const todayLabel = useMemo(() => {
+    const today = new Date()
+    if (mode === 'day') return format(today, "dd 'de' MMM", { locale: ptBR })
     if (mode === 'week') {
-      const start = startOfWeek(currentDate, { weekStartsOn: 0 })
-      const end = endOfWeek(currentDate, { weekStartsOn: 0 })
-
-      return `${prefix} • ${format(start, 'dd/MM', { locale: ptBR })} a ${format(
-        end,
-        'dd/MM/yyyy',
-        { locale: ptBR },
-      )}`
+      const s = startOfWeek(today, { weekStartsOn: 0 })
+      const e = endOfWeek(today, { weekStartsOn: 0 })
+      return `${format(s, 'dd/MM', { locale: ptBR })} a ${format(e, 'dd/MM', { locale: ptBR })}`
     }
-
-    return `${prefix} • ${format(currentDate, "MMMM 'de' yyyy", {
-      locale: ptBR,
-    })}`
-  }, [currentDate, mode, serviceTab])
+    return format(today, 'MMMM', { locale: ptBR })
+  }, [mode])
 
   const handlePrev = () => {
     if (mode === 'day') setCurrentDate((prev) => subDays(prev, 1))
@@ -398,23 +394,7 @@ export default function SchedulePage() {
   }
 
   return (
-    <div className="flex h-full flex-col gap-4 p-4 md:p-6">
-      {/* Header */}
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="min-w-0">
-          <h1 className="text-3xl font-bold tracking-tight">Agenda</h1>
-          <p className="text-sm text-muted-foreground capitalize">{headerLabel}</p>
-        </div>
-
-        <Button
-          className="h-11 px-5 rounded-xl bg-orange-500 hover:bg-orange-600"
-          onClick={handleNewAppointment}
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          Novo Agendamento
-        </Button>
-      </div>
-
+    <div className="flex flex-col gap-4 relative flex-1 min-h-0">
       {/* Painel superior */}
       <div className="rounded-2xl border bg-background p-3 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -426,6 +406,7 @@ export default function SchedulePage() {
                 size="icon"
                 className="h-8 w-8 rounded-lg"
                 onClick={handlePrev}
+                title={prevTitle}
               >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
@@ -434,8 +415,9 @@ export default function SchedulePage() {
                 variant="ghost"
                 className="h-8 px-3 rounded-lg font-medium"
                 onClick={handleToday}
+                title="Ir para hoje"
               >
-                Hoje
+                {todayLabel}
               </Button>
 
               <Button
@@ -443,10 +425,12 @@ export default function SchedulePage() {
                 size="icon"
                 className="h-8 w-8 rounded-lg"
                 onClick={handleNext}
+                title={nextTitle}
               >
                 <ChevronRight className="h-4 w-4" />
               </Button>
             </div>
+
 
             <div className="flex items-center gap-1 rounded-xl border bg-white p-1">
               <Button
@@ -665,6 +649,17 @@ export default function SchedulePage() {
           setSelectedDate(null)
         }}
       />
+
+      {/* FAB — Novo Agendamento */}
+      <button
+        type="button"
+        onClick={handleNewAppointment}
+        title="Novo Agendamento"
+        className="fixed bottom-6 right-6 z-50 flex items-center gap-2 rounded-full bg-orange-500 px-5 py-3 text-sm font-semibold text-white shadow-lg transition-all hover:bg-orange-600 hover:shadow-xl active:scale-95"
+      >
+        <Plus className="h-5 w-5" />
+        Novo Agendamento
+      </button>
     </div>
   )
 }

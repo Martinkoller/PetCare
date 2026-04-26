@@ -1,8 +1,6 @@
 import { useMemo, useState } from 'react'
 import {
   addDays,
-  endOfMonth,
-  endOfWeek,
   format,
   isSameDay,
   isSameMonth,
@@ -163,27 +161,27 @@ export function MonthView({
   const [dragOverDay, setDragOverDay] = useState<string | null>(null)
 
   const monthStart = useMemo(() => startOfMonth(currentDate), [currentDate])
-  const monthEnd = useMemo(() => endOfMonth(currentDate), [currentDate])
   const calendarStart = useMemo(
     () => startOfWeek(monthStart, { weekStartsOn: 0 }),
     [monthStart],
   )
-  const calendarEnd = useMemo(
-    () => endOfWeek(monthEnd, { weekStartsOn: 0 }),
-    [monthEnd],
-  )
 
-  const calendarDays = useMemo(() => {
-    const days: Date[] = []
-    let day = calendarStart
-
-    while (day <= calendarEnd) {
-      days.push(day)
-      day = addDays(day, 1)
+  // Sempre 6 semanas completas, agrupadas por semana
+  const weeks = useMemo(() => {
+    const result: Date[][] = []
+    let cursor = calendarStart
+    for (let w = 0; w < 6; w++) {
+      const week: Date[] = []
+      for (let i = 0; i < 7; i++) {
+        week.push(cursor)
+        cursor = addDays(cursor, 1)
+      }
+      result.push(week)
     }
+    return result
+  }, [calendarStart])
 
-    return days
-  }, [calendarStart, calendarEnd])
+  const calendarDays = useMemo(() => weeks.flat(), [weeks])
 
   const filteredEvents = useMemo(() => {
     return events
@@ -358,83 +356,88 @@ export function MonthView({
         ))}
       </div>
 
-      {/* Grade mensal */}
-      <div className="grid grid-cols-7 auto-rows-fr flex-1">
-        {calendarDays.map((day) => {
-          const dayKey = format(day, 'yyyy-MM-dd')
-          const dayEvents = eventsByDay.get(dayKey) || []
-          const visibleEvents = dayEvents.slice(0, MAX_VISIBLE_EVENTS)
-          const hiddenCount = Math.max(dayEvents.length - MAX_VISIBLE_EVENTS, 0)
-          const isCurrentMonth = isSameMonth(day, currentDate)
-          const isToday = isSameDay(day, new Date())
-          const isDragOver = dragOverDay === dayKey
+      {/* Grade mensal — uma linha por semana */}
+      <div className="flex flex-col flex-1">
+        {weeks.map((week, weekIdx) => (
+          <div key={weekIdx} className="grid grid-cols-7 flex-1 border-b last:border-b-0">
+            {week.map((day) => {
+              const dayKey = format(day, 'yyyy-MM-dd')
+              const dayEvents = eventsByDay.get(dayKey) || []
+              const visibleEvents = dayEvents.slice(0, MAX_VISIBLE_EVENTS)
+              const hiddenCount = Math.max(dayEvents.length - MAX_VISIBLE_EVENTS, 0)
+              const isCurrentMonth = isSameMonth(day, currentDate)
+              const isToday = isSameDay(day, new Date())
+              const isDragOver = dragOverDay === dayKey
+              const isFirstOfMonth = day.getDate() === 1
 
-          return (
-            <div
-              key={dayKey}
-              className={cn(
-                'min-h-[160px] border-r border-b p-2 relative transition-colors',
-                !isCurrentMonth && 'bg-muted/20',
-                isDragOver && 'bg-orange-50',
-              )}
-              onDragOver={(e) => {
-                e.preventDefault()
-                setDragOverDay(dayKey)
-              }}
-              onDragLeave={() => {
-                if (dragOverDay === dayKey) setDragOverDay(null)
-              }}
-              onDrop={(e) => {
-                e.preventDefault()
-                setDragOverDay(null)
-                const eventId = e.dataTransfer.getData('text/plain')
-                if (!eventId) return
-                handleDropOnDay(day, eventId)
-              }}
-            >
-              {/* Número do dia */}
-              <Button
-                type="button"
-                variant="ghost"
-                className="h-auto w-full justify-start rounded-lg p-0 hover:bg-transparent"
-                onClick={() => onTimeClick(day)}
-              >
+              return (
                 <div
+                  key={dayKey}
                   className={cn(
-                    'inline-flex h-7 min-w-7 items-center justify-center rounded-full px-2 text-sm font-semibold',
-                    isToday
-                      ? 'bg-orange-500 text-white'
-                      : isCurrentMonth
-                        ? 'text-foreground'
-                        : 'text-muted-foreground',
+                    'border-r last:border-r-0 p-2 relative transition-colors',
+                    !isCurrentMonth && 'bg-muted/20',
+                    isDragOver && 'bg-orange-50',
                   )}
+                  onDragOver={(e) => { e.preventDefault(); setDragOverDay(dayKey) }}
+                  onDragLeave={() => { if (dragOverDay === dayKey) setDragOverDay(null) }}
+                  onDrop={(e) => {
+                    e.preventDefault()
+                    setDragOverDay(null)
+                    const eventId = e.dataTransfer.getData('text/plain')
+                    if (!eventId) return
+                    handleDropOnDay(day, eventId)
+                  }}
                 >
-                  {format(day, 'd', { locale: ptBR })}
-                </div>
-              </Button>
-
-              {/* Lista de eventos */}
-              <div className="mt-2 space-y-1.5">
-                {visibleEvents.map((evt) => renderEventCard(evt))}
-
-                {hiddenCount > 0 && (
+                  {/* Número do dia + mês no dia 1 */}
                   <Button
                     type="button"
                     variant="ghost"
-                    className="h-auto w-full justify-start rounded-lg px-2 py-1 text-[11px] font-medium text-orange-600 hover:bg-orange-50"
-                    onClick={() => setSummaryDay(day)}
+                    className="h-auto w-full justify-start rounded-lg p-0 hover:bg-transparent"
+                    onClick={() => onTimeClick(day)}
                   >
-                    +{hiddenCount} agendamento{hiddenCount > 1 ? 's' : ''}
+                    <div className="flex items-center gap-1.5">
+                      <div
+                        className={cn(
+                          'inline-flex h-7 min-w-7 items-center justify-center rounded-full px-2 text-sm font-semibold',
+                          isToday
+                            ? 'bg-orange-500 text-white'
+                            : isCurrentMonth
+                              ? 'text-foreground'
+                              : 'text-muted-foreground',
+                        )}
+                      >
+                        {format(day, 'd', { locale: ptBR })}
+                      </div>
+                      {isFirstOfMonth && (
+                        <span className={cn(
+                          'text-xs font-semibold capitalize',
+                          isCurrentMonth ? 'text-muted-foreground' : 'text-muted-foreground/60',
+                        )}>
+                          {format(day, 'MMM', { locale: ptBR })}
+                        </span>
+                      )}
+                    </div>
                   </Button>
-                )}
 
-                {dayEvents.length === 0 && (
-                  <div className="h-6 rounded-md border border-dashed border-transparent" />
-                )}
-              </div>
-            </div>
-          )
-        })}
+                  {/* Lista de eventos */}
+                  <div className="mt-1.5 space-y-1.5">
+                    {visibleEvents.map((evt) => renderEventCard(evt))}
+                    {hiddenCount > 0 && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        className="h-auto w-full justify-start rounded-lg px-2 py-1 text-[11px] font-medium text-orange-600 hover:bg-orange-50"
+                        onClick={() => setSummaryDay(day)}
+                      >
+                        +{hiddenCount} agendamento{hiddenCount > 1 ? 's' : ''}
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        ))}
       </div>
 
       <Dialog open={!!confirmCancel} onOpenChange={() => setConfirmCancel(null)}>

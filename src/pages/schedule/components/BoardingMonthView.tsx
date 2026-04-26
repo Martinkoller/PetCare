@@ -2,8 +2,6 @@ import { useMemo, useState } from 'react'
 import {
   addDays,
   endOfDay,
-  endOfMonth,
-  endOfWeek,
   format,
   isSameDay,
   isSameMonth,
@@ -13,11 +11,7 @@ import {
 } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
-import {
-  Appointment,
-  Client,
-  Pet,
-} from '@/lib/types'
+import { Appointment, Client, Pet } from '@/lib/types'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -52,14 +46,20 @@ interface BoardingMonthViewProps {
 }
 
 const WEEK_DAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
-const MAX_VISIBLE_EVENTS = 4
+
+// Layout constants (px)
+const DAY_HEADER_H = 36  // altura reservada para número do dia
+const BAR_H = 22         // altura de cada barra
+const BAR_GAP = 3        // espaçamento vertical entre barras
+const BAR_TOP_PAD = 4    // padding acima da primeira barra
+const CELL_PAD = 4       // padding horizontal da célula
 
 function getBoardingDates(evt: Appointment) {
   const checkIn = startOfDay(new Date(evt.date))
-
   const eventAny = evt as any
-
   const rawCheckOut =
+    eventAny.boardingStay?.checkOut ??
+    eventAny.returnDate ??
     eventAny.endDate ??
     eventAny.checkoutDate ??
     eventAny.checkOutDate ??
@@ -67,102 +67,28 @@ function getBoardingDates(evt: Appointment) {
     eventAny.boardingEnd ??
     eventAny.end ??
     null
-
   const checkOut = rawCheckOut
     ? endOfDay(new Date(rawCheckOut))
     : endOfDay(new Date(new Date(evt.date).getTime() + 24 * 60 * 60 * 1000))
-
   return { checkIn, checkOut }
-}
-
-function isBoardingActiveOnDay(evt: Appointment, day: Date) {
-  const { checkIn, checkOut } = getBoardingDates(evt)
-  const dayStart = startOfDay(day)
-  const dayEnd = endOfDay(day)
-
-  return checkIn <= dayEnd && checkOut >= dayStart
 }
 
 function getBoardingStatusMeta(status: string) {
   switch (status) {
     case 'scheduled':
-      return {
-        dot: 'bg-orange-500',
-        card: 'bg-orange-50 border-orange-200 text-orange-900',
-        badge: (
-          <Badge
-            variant="secondary"
-            className="bg-orange-100 text-orange-800 border-orange-200 text-[9px] h-4 px-1.5"
-          >
-            Reservado
-          </Badge>
-        ),
-      }
-
+      return { dot: 'bg-orange-500', bar: 'bg-orange-200 border-orange-400 text-orange-900', label: 'Reservado' }
     case 'confirmed':
-      return {
-        dot: 'bg-emerald-500',
-        card: 'bg-emerald-50 border-emerald-200 text-emerald-900',
-        badge: (
-          <Badge
-            variant="secondary"
-            className="bg-emerald-100 text-emerald-800 border-emerald-200 text-[9px] h-4 px-1.5"
-          >
-            Confirmado
-          </Badge>
-        ),
-      }
-
+      return { dot: 'bg-emerald-500', bar: 'bg-emerald-200 border-emerald-400 text-emerald-900', label: 'Confirmado' }
     case 'checked_in':
     case 'in_progress':
-      return {
-        dot: 'bg-blue-500',
-        card: 'bg-blue-50 border-blue-200 text-blue-900',
-        badge: (
-          <Badge
-            variant="secondary"
-            className="bg-blue-100 text-blue-800 border-blue-200 text-[9px] h-4 px-1.5"
-          >
-            Hospedado
-          </Badge>
-        ),
-      }
-
+      return { dot: 'bg-blue-500', bar: 'bg-blue-200 border-blue-400 text-blue-900', label: 'Hospedado' }
     case 'checked_out':
     case 'completed':
-      return {
-        dot: 'bg-slate-500',
-        card: 'bg-slate-50 border-slate-200 text-slate-800',
-        badge: (
-          <Badge
-            variant="outline"
-            className="bg-slate-50 text-slate-700 border-slate-200 text-[9px] h-4 px-1.5"
-          >
-            Encerrado
-          </Badge>
-        ),
-      }
-
+      return { dot: 'bg-slate-500', bar: 'bg-slate-200 border-slate-400 text-slate-800', label: 'Encerrado' }
     case 'cancelled':
-      return {
-        dot: 'bg-red-500',
-        card: 'bg-red-50 border-red-200 text-red-900',
-        badge: (
-          <Badge
-            variant="secondary"
-            className="bg-red-100 text-red-800 border-red-200 text-[9px] h-4 px-1.5"
-          >
-            Cancelado
-          </Badge>
-        ),
-      }
-
+      return { dot: 'bg-red-500', bar: 'bg-red-200 border-red-400 text-red-900', label: 'Cancelado' }
     default:
-      return {
-        dot: 'bg-slate-400',
-        card: 'bg-slate-50 border-slate-200 text-slate-800',
-        badge: null,
-      }
+      return { dot: 'bg-orange-500', bar: 'bg-orange-200 border-orange-400 text-orange-900', label: 'Reservado' }
   }
 }
 
@@ -180,125 +106,111 @@ export function BoardingMonthView({
   const [confirmDelete, setConfirmDelete] = useState<Appointment | null>(null)
 
   const monthStart = useMemo(() => startOfMonth(currentDate), [currentDate])
-  const monthEnd = useMemo(() => endOfMonth(currentDate), [currentDate])
+  const calendarStart = useMemo(() => startOfWeek(monthStart, { weekStartsOn: 0 }), [monthStart])
 
-  const calendarStart = useMemo(
-    () => startOfWeek(monthStart, { weekStartsOn: 0 }),
-    [monthStart],
-  )
-
-  const calendarEnd = useMemo(
-    () => endOfWeek(monthEnd, { weekStartsOn: 0 }),
-    [monthEnd],
-  )
-
-  const calendarDays = useMemo(() => {
-    const days: Date[] = []
+  // Sempre 6 semanas completas — exibe o mês seguinte quando há espaço
+  const weeks = useMemo(() => {
+    const result: Date[][] = []
     let cursor = calendarStart
-
-    while (cursor <= calendarEnd) {
-      days.push(cursor)
-      cursor = addDays(cursor, 1)
+    for (let w = 0; w < 6; w++) {
+      const week: Date[] = []
+      for (let i = 0; i < 7; i++) {
+        week.push(cursor)
+        cursor = addDays(cursor, 1)
+      }
+      result.push(week)
     }
+    return result
+  }, [calendarStart])
 
-    return days
-  }, [calendarStart, calendarEnd])
+  const boardingEvents = useMemo(() =>
+    events
+      .filter((e) => e.serviceType === 'boarding')
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()),
+    [events],
+  )
 
-  const boardingEvents = useMemo(() => {
-    return events
-      .filter((evt) => evt.serviceType === 'boarding')
-      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-  }, [events])
+  // Para cada semana: calcula as barras com posição colStart/colSpan e row (sem sobreposição)
+  const weekLayouts = useMemo(() => {
+    return weeks.map((week) => {
+      const weekStart = week[0]
+      const weekEnd = week[6]
 
-  const eventsByDay = useMemo(() => {
-    const map = new Map<string, Appointment[]>()
-
-    for (const day of calendarDays) {
-      const key = format(day, 'yyyy-MM-dd')
-      map.set(key, [])
-    }
-
-    for (const day of calendarDays) {
-      const key = format(day, 'yyyy-MM-dd')
-      const dayEvents = boardingEvents.filter((evt) => isBoardingActiveOnDay(evt, day))
-
-      dayEvents.sort((a, b) => {
-        const aStart = new Date(a.date).getTime()
-        const bStart = new Date(b.date).getTime()
-        return aStart - bStart
+      const eventsInWeek = boardingEvents.filter((evt) => {
+        const { checkIn, checkOut } = getBoardingDates(evt)
+        return checkIn <= endOfDay(weekEnd) && checkOut >= startOfDay(weekStart)
       })
 
-      map.set(key, dayEvents)
-    }
+      type Bar = {
+        evt: Appointment
+        colStart: number
+        colSpan: number
+        isStart: boolean
+        isEnd: boolean
+        row: number
+      }
 
-    return map
-  }, [calendarDays, boardingEvents])
+      const bars: Bar[] = []
+      // rowOccupancy[row] = lista de índices de coluna ocupados
+      const rowOccupancy: number[][] = []
 
-  const renderBoardingCard = (evt: Appointment, day: Date) => {
-    const pet = pets.find((p) => p.id === evt.petId)
-    const client = pet ? clients.find((c) => c.id === pet.clientId) : undefined
-    const { checkIn, checkOut } = getBoardingDates(evt)
-    const isStart = isSameDay(day, checkIn)
-    const isEnd = isSameDay(day, checkOut)
+      for (const evt of eventsInWeek) {
+        const { checkIn, checkOut } = getBoardingDates(evt)
 
-    const meta = getBoardingStatusMeta(evt.status)
+        // Primeiro dia visível na semana (checkIn antes da semana → col 0)
+        const firstIdx = week.findIndex((d) => startOfDay(d) >= startOfDay(checkIn))
+        const effectiveStart = firstIdx === -1 ? 0 : firstIdx
 
-    const dayFlag = isStart
-      ? 'Check-in'
-      : isEnd
-        ? 'Check-out'
-        : 'Hospedado'
+        // Último dia visível na semana (checkOut depois da semana → col 6)
+        let effectiveEnd = 6
+        for (let i = 6; i >= 0; i--) {
+          if (startOfDay(week[i]) <= startOfDay(checkOut)) { effectiveEnd = i; break }
+        }
 
+        const colSpan = effectiveEnd - effectiveStart + 1
+
+        // Encontra row livre
+        let row = 0
+        while (true) {
+          if (!rowOccupancy[row]) { rowOccupancy[row] = []; break }
+          const conflict = rowOccupancy[row].some(
+            (c) => c >= effectiveStart && c <= effectiveEnd,
+          )
+          if (!conflict) break
+          row++
+        }
+        if (!rowOccupancy[row]) rowOccupancy[row] = []
+        for (let c = effectiveStart; c <= effectiveEnd; c++) {
+          rowOccupancy[row].push(c)
+        }
+
+        bars.push({
+          evt,
+          colStart: effectiveStart,
+          colSpan,
+          isStart: isSameDay(checkIn, week[effectiveStart]) && firstIdx !== -1,
+          isEnd: effectiveEnd !== -1 && isSameDay(checkOut, week[effectiveEnd]),
+          row,
+        })
+      }
+
+      const maxRow = bars.reduce((m, b) => Math.max(m, b.row), -1)
+      const barsHeight = maxRow >= 0 ? (maxRow + 1) * (BAR_H + BAR_GAP) : 0
+      const minHeight = DAY_HEADER_H + BAR_TOP_PAD + barsHeight + 8
+
+      return { week, bars, minHeight }
+    })
+  }, [weeks, boardingEvents])
+
+  const renderContextMenu = (evt: Appointment, child: React.ReactNode) => {
     return (
-      <ContextMenu key={`${evt.id}-${format(day, 'yyyy-MM-dd')}`}>
-        <ContextMenuTrigger asChild>
-          <div
-            className={cn(
-              'rounded-lg border px-2 py-1.5 text-left shadow-sm cursor-pointer transition-all hover:shadow-md',
-              meta.card,
-            )}
-            onClick={() => onEventClick(evt)}
-            title={[
-              `Pet: ${pet?.name || 'Pet'}`,
-              client ? `Tutor: ${client.name}` : '',
-              `Check-in: ${format(checkIn, 'dd/MM/yyyy', { locale: ptBR })}`,
-              `Check-out: ${format(checkOut, 'dd/MM/yyyy', { locale: ptBR })}`,
-              `Situação do dia: ${dayFlag}`,
-            ]
-              .filter(Boolean)
-              .join('\n')}
-          >
-            <div className="flex items-start justify-between gap-2">
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-1.5 min-w-0">
-                  <span className={cn('h-2.5 w-2.5 rounded-full shrink-0', meta.dot)} />
-                  <span className="text-[11px] font-semibold truncate">
-                    {pet?.name || 'Pet'}
-                  </span>
-                </div>
-
-                <div className="mt-0.5 text-[10px] truncate opacity-85">
-                  {client?.name ? `Tutor: ${client.name}` : 'Sem tutor'}
-                </div>
-
-                <div className="mt-0.5 text-[10px] font-medium opacity-85">
-                  {dayFlag}
-                </div>
-              </div>
-
-              <div className="shrink-0">
-                {meta.badge}
-              </div>
-            </div>
-          </div>
-        </ContextMenuTrigger>
-
+      <ContextMenu key={evt.id}>
+        <ContextMenuTrigger asChild>{child}</ContextMenuTrigger>
         <ContextMenuContent>
           <ContextMenuItem onClick={() => onEventClick(evt)}>
             <Pencil className="mr-2 h-4 w-4" />
             Editar Hospedagem
           </ContextMenuItem>
-
           <ContextMenuSub>
             <ContextMenuSubTrigger disabled={evt.status === 'checked_out'}>
               <span className="flex items-center">
@@ -313,7 +225,6 @@ export function BoardingMonthView({
                   Confirmar Reserva
                 </ContextMenuItem>
               )}
-
               {evt.status !== 'cancelled' && evt.status !== 'checked_out' && (
                 <>
                   {evt.status === 'scheduled' && <ContextMenuSeparator />}
@@ -326,7 +237,6 @@ export function BoardingMonthView({
                   </ContextMenuItem>
                 </>
               )}
-
               {evt.status === 'cancelled' && (
                 <ContextMenuItem
                   className="text-destructive focus:text-destructive"
@@ -345,7 +255,7 @@ export function BoardingMonthView({
 
   return (
     <div className="flex flex-col h-full border rounded-2xl bg-background overflow-hidden shadow-sm">
-      {/* Cabeçalho dos dias */}
+      {/* Cabeçalho dos dias da semana */}
       <div className="grid grid-cols-7 border-b bg-muted/30">
         {WEEK_DAYS.map((label) => (
           <div
@@ -357,76 +267,123 @@ export function BoardingMonthView({
         ))}
       </div>
 
-      {/* Grade mensal */}
-      <div className="grid grid-cols-7 auto-rows-fr flex-1">
-        {calendarDays.map((day) => {
-          const dayKey = format(day, 'yyyy-MM-dd')
-          const dayEvents = eventsByDay.get(dayKey) || []
-          const visibleEvents = dayEvents.slice(0, MAX_VISIBLE_EVENTS)
-          const hiddenCount = Math.max(dayEvents.length - MAX_VISIBLE_EVENTS, 0)
-          const isCurrentMonth = isSameMonth(day, currentDate)
-          const isToday = isSameDay(day, new Date())
+      {/* Grade: uma linha por semana */}
+      <div className="flex flex-col flex-1">
+        {weekLayouts.map(({ week, bars, minHeight }, weekIdx) => (
+          <div
+            key={weekIdx}
+            className="relative grid grid-cols-7 border-b last:border-b-0 flex-1"
+            style={{ minHeight }}
+          >
+            {/* Fundo: células dos dias */}
+            {week.map((day) => {
+              const isCurrentMonth = isSameMonth(day, currentDate)
+              const isToday = isSameDay(day, new Date())
+              const isFirstOfMonth = day.getDate() === 1
 
-          return (
-            <div
-              key={dayKey}
-              className={cn(
-                'min-h-[170px] border-r border-b p-2 relative',
-                !isCurrentMonth && 'bg-muted/20',
-              )}
-            >
-              {/* Número do dia */}
-              <div
-                className={cn(
-                  'inline-flex h-7 min-w-7 items-center justify-center rounded-full px-2 text-sm font-semibold',
-                  isToday
-                    ? 'bg-orange-500 text-white'
-                    : isCurrentMonth
-                      ? 'text-foreground'
-                      : 'text-muted-foreground',
-                )}
-              >
-                {format(day, 'd', { locale: ptBR })}
-              </div>
-
-              {/* Lista de hospedagens ativas no dia */}
-              <div className="mt-2 space-y-1.5">
-                {visibleEvents.map((evt) => renderBoardingCard(evt, day))}
-
-                {hiddenCount > 0 && (
-                  <div className="rounded-lg px-2 py-1 text-[11px] font-medium text-orange-600 bg-orange-50 border border-orange-100">
-                    +{hiddenCount} hospedagem{hiddenCount > 1 ? 'ens' : ''}
+              return (
+                <div
+                  key={format(day, 'yyyy-MM-dd')}
+                  className={cn(
+                    'border-r last:border-r-0 p-1.5',
+                    !isCurrentMonth && 'bg-muted/20',
+                  )}
+                >
+                  <div className="flex items-center gap-1.5">
+                    <div
+                      className={cn(
+                        'inline-flex h-7 min-w-7 items-center justify-center rounded-full px-2 text-sm font-semibold',
+                        isToday
+                          ? 'bg-orange-500 text-white'
+                          : isCurrentMonth
+                            ? 'text-foreground'
+                            : 'text-muted-foreground',
+                      )}
+                    >
+                      {format(day, 'd')}
+                    </div>
+                    {isFirstOfMonth && (
+                      <span className={cn(
+                        'text-xs font-semibold capitalize',
+                        isCurrentMonth ? 'text-muted-foreground' : 'text-muted-foreground/60',
+                      )}>
+                        {format(day, 'MMM', { locale: ptBR })}
+                      </span>
+                    )}
                   </div>
-                )}
+                </div>
+              )
+            })}
 
-                {dayEvents.length === 0 && (
-                  <div className="h-6 rounded-md border border-dashed border-transparent" />
-                )}
-              </div>
-            </div>
-          )
-        })}
+            {/* Barras contínuas absolutas sobrepostas */}
+            {bars.map(({ evt, colStart, colSpan, isStart, isEnd, row }) => {
+              const { checkIn, checkOut } = getBoardingDates(evt)
+              const meta = getBoardingStatusMeta(evt.status)
+              const pet = pets.find((p) => p.id === evt.petId)
+              const client = pet ? clients.find((c) => c.id === pet.clientId) : undefined
+              const top = DAY_HEADER_H + BAR_TOP_PAD + row * (BAR_H + BAR_GAP)
+
+              const bar = (
+                <div
+                  className="absolute cursor-pointer"
+                  style={{
+                    top,
+                    height: BAR_H,
+                    left: `calc(${colStart} / 7 * 100% + ${CELL_PAD}px)`,
+                    right: `calc(${7 - colStart - colSpan} / 7 * 100% + ${CELL_PAD}px)`,
+                  }}
+                  onClick={() => onEventClick(evt)}
+                  title={[
+                    `Pet: ${pet?.name || 'Pet'}`,
+                    client ? `Tutor: ${client.name}` : '',
+                    `Check-in: ${format(checkIn, 'dd/MM/yyyy', { locale: ptBR })}`,
+                    `Check-out: ${format(checkOut, 'dd/MM/yyyy', { locale: ptBR })}`,
+                    `Status: ${meta.label}`,
+                  ].filter(Boolean).join('\n')}
+                >
+                  <div
+                    className={cn(
+                      'h-full flex items-center border text-[10px] font-semibold px-2 gap-1.5 overflow-hidden',
+                      meta.bar,
+                      isStart ? 'rounded-l-full pl-2.5' : 'rounded-l-none',
+                      isEnd ? 'rounded-r-full pr-2.5' : 'rounded-r-none',
+                    )}
+                  >
+                    {isStart && (
+                      <span className="shrink-0 font-bold opacity-75">
+                        {format(checkIn, 'dd/MM', { locale: ptBR })}
+                      </span>
+                    )}
+                    <span className="truncate">
+                      {pet?.name || 'Pet'}
+                      {client?.name ? ` · ${client.name}` : ''}
+                    </span>
+                    {isEnd && (
+                      <span className="shrink-0 font-bold opacity-75 ml-auto">
+                        {format(checkOut, 'dd/MM', { locale: ptBR })}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )
+
+              return renderContextMenu(evt, bar)
+            })}
+          </div>
+        ))}
       </div>
 
       <Dialog open={!!confirmCancel} onOpenChange={() => setConfirmCancel(null)}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Cancelar Hospedagem</DialogTitle>
-            <DialogDescription>
-              Tem certeza que deseja cancelar esta hospedagem?
-            </DialogDescription>
+            <DialogDescription>Tem certeza que deseja cancelar esta hospedagem?</DialogDescription>
           </DialogHeader>
-
           <DialogFooter>
-            <Button variant="outline" onClick={() => setConfirmCancel(null)}>
-              Voltar
-            </Button>
+            <Button variant="outline" onClick={() => setConfirmCancel(null)}>Voltar</Button>
             <Button
               variant="destructive"
-              onClick={() => {
-                if (confirmCancel) onCancelAppointment(confirmCancel)
-                setConfirmCancel(null)
-              }}
+              onClick={() => { if (confirmCancel) onCancelAppointment(confirmCancel); setConfirmCancel(null) }}
             >
               Confirmar Cancelamento
             </Button>
@@ -438,21 +395,13 @@ export function BoardingMonthView({
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Excluir Agendamento</DialogTitle>
-            <DialogDescription>
-              Tem certeza que deseja excluir o agendamento? Esta ação não pode ser desfeita.
-            </DialogDescription>
+            <DialogDescription>Tem certeza que deseja excluir o agendamento? Esta ação não pode ser desfeita.</DialogDescription>
           </DialogHeader>
-
           <DialogFooter>
-            <Button variant="outline" onClick={() => setConfirmDelete(null)}>
-              Voltar
-            </Button>
+            <Button variant="outline" onClick={() => setConfirmDelete(null)}>Voltar</Button>
             <Button
               variant="destructive"
-              onClick={() => {
-                if (confirmDelete) onDeleteAppointment(confirmDelete)
-                setConfirmDelete(null)
-              }}
+              onClick={() => { if (confirmDelete) onDeleteAppointment(confirmDelete); setConfirmDelete(null) }}
             >
               Sim, Excluir
             </Button>

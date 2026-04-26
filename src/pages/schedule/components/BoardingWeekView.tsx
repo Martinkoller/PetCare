@@ -55,6 +55,8 @@ function getBoardingDates(evt: Appointment) {
   const eventAny = evt as any
 
   const rawCheckOut =
+    eventAny.boardingStay?.checkOut ??
+    eventAny.returnDate ??
     eventAny.endDate ??
     eventAny.checkoutDate ??
     eventAny.checkOutDate ??
@@ -211,78 +213,75 @@ export function BoardingWeekView({
     const { checkIn, checkOut } = getBoardingDates(evt)
     const statusMeta = getBoardingStatusMeta(evt.status)
 
+    // Índices das colunas visíveis na semana
+    const firstCol = weekDays.findIndex((d) => isBoardingActiveOnDay(evt, d))
+    const lastCol = weekDays.reduce((acc, d, i) => isBoardingActiveOnDay(evt, d) ? i : acc, -1)
+
+    const colStart = firstCol === -1 ? 0 : firstCol
+    const colSpan = lastCol === -1 ? 0 : lastCol - firstCol + 1
+    const checkInDay = weekDays.find((d) => getDayState(evt, d) === 'checkin')
+    const checkOutDay = weekDays.find((d) => getDayState(evt, d) === 'checkout')
+
     return (
       <ContextMenu key={evt.id}>
         <ContextMenuTrigger asChild>
-          <div
-            className={cn(
-              'grid grid-cols-7 border-b hover:bg-muted/20 transition-colors',
-              statusMeta.row,
-            )}
-          >
-            {/* 7 dias da semana */}
-            {weekDays.map((day, index) => {
-              const active = isBoardingActiveOnDay(evt, day)
+          <div className="relative border-b" style={{ minHeight: '64px' }}>
+            {/* Grade de fundo para manter bordas dos dias */}
+            <div className="grid grid-cols-7 h-full absolute inset-0 pointer-events-none">
+              {weekDays.map((_, i) => (
+                <div key={i} className="border-r last:border-r-0 h-full" />
+              ))}
+            </div>
 
-              if (!active) {
-                return (
-                  <div
-                    key={`${evt.id}-${index}`}
-                    className="border-r last:border-r-0 min-h-[78px] bg-background/70"
-                  />
-                )
-              }
-
-              const dayState = getDayState(evt, day)
-              const dayStateLabel = getDayStateLabel(dayState)
-
-              const roundedClass =
-                dayState === 'checkin'
-                  ? 'rounded-l-xl'
-                  : dayState === 'checkout'
-                    ? 'rounded-r-xl'
-                    : ''
-
-              return (
+            {/* Barra contínua */}
+            {colSpan > 0 && (
+              <div
+                className="absolute inset-y-2 cursor-pointer"
+                style={{
+                  left: `calc(${colStart} / 7 * 100% + 6px)`,
+                  right: `calc(${6 - lastCol} / 7 * 100% + 6px)`,
+                }}
+                onClick={() => onEventClick(evt)}
+                title={[
+                  `Pet: ${pet?.name || 'Pet'}`,
+                  client ? `Tutor: ${client.name}` : '',
+                  `Check-in: ${format(checkIn, 'dd/MM/yyyy', { locale: ptBR })}`,
+                  `Check-out: ${format(checkOut, 'dd/MM/yyyy', { locale: ptBR })}`,
+                  `Status: ${statusMeta.label}`,
+                ].filter(Boolean).join('\n')}
+              >
                 <div
-                  key={`${evt.id}-${index}`}
-                  className="border-r last:border-r-0 p-2 min-h-[78px] cursor-pointer"
-                  onClick={() => onEventClick(evt)}
+                  className={cn(
+                    'h-full flex items-center border shadow-sm transition-all hover:shadow-md px-3 gap-3',
+                    statusMeta.cell,
+                    getDayState(evt, weekDays[firstCol]) === 'checkin' ? 'rounded-l-xl' : '',
+                    getDayState(evt, weekDays[lastCol]) === 'checkout' ? 'rounded-r-xl' : '',
+                  )}
                 >
-                  <div
-                    className={cn(
-                      'h-full min-h-[60px] rounded-md border px-2 py-2 shadow-sm transition-all hover:shadow-md',
-                      statusMeta.cell,
-                      roundedClass,
-                    )}
-                  >
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-[10px] font-semibold uppercase tracking-wide opacity-80">
-                        {dayStateLabel}
-                      </span>
-
-                      {(dayState === 'checkin' || dayState === 'checkout') && (
-                        <span className="text-[10px] font-bold">
-                          {format(
-                            dayState === 'checkin' ? checkIn : checkOut,
-                            'dd/MM',
-                            { locale: ptBR },
-                          )}
-                        </span>
-                      )}
+                  {/* Check-in badge */}
+                  {checkInDay && (
+                    <div className="flex flex-col shrink-0">
+                      <span className="text-[9px] font-semibold uppercase tracking-wide opacity-70">Check-in</span>
+                      <span className="text-[10px] font-bold">{format(checkIn, 'dd/MM', { locale: ptBR })}</span>
                     </div>
+                  )}
 
-                    <div className="mt-1 text-[11px] font-semibold truncate">
-                      {pet?.name || 'Pet'}
-                    </div>
-
-                    <div className="mt-0.5 text-[10px] truncate opacity-80">
-                      {client?.name || 'Sem tutor'}
-                    </div>
+                  {/* Info central */}
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[11px] font-semibold truncate">{pet?.name || 'Pet'}</div>
+                    <div className="text-[10px] truncate opacity-75">{client?.name || 'Sem tutor'}</div>
                   </div>
+
+                  {/* Check-out badge */}
+                  {checkOutDay && (
+                    <div className="flex flex-col items-end shrink-0">
+                      <span className="text-[9px] font-semibold uppercase tracking-wide opacity-70">Check-out</span>
+                      <span className="text-[10px] font-bold">{format(checkOut, 'dd/MM', { locale: ptBR })}</span>
+                    </div>
+                  )}
                 </div>
-              )
-            })}
+              </div>
+            )}
           </div>
         </ContextMenuTrigger>
 

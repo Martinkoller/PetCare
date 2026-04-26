@@ -25,9 +25,11 @@ const pickClientData = (body: any) => ({
     ...(body.origin !== undefined ? { origin: body.origin || null } : {}),
 });
 
-export const getClients = async (_req: AuthRequest, res: Response) => {
+export const getClients = async (req: AuthRequest, res: Response) => {
     try {
+        const organizationId = req.user!.organizationId!
         const clients = await prisma.client.findMany({
+            where: { organizationId },
             orderBy: { createdAt: 'desc' },
             include: { pets: true },
         });
@@ -39,11 +41,14 @@ export const getClients = async (_req: AuthRequest, res: Response) => {
 
 export const createClient = async (req: AuthRequest, res: Response) => {
     try {
-        const data = pickClientData(req.body) as any;
+        if (!req.body.name) {
+            return res.status(400).json({ error: 'Nome é obrigatório' });
+        }
+        const organizationId = req.user!.organizationId!
+        const data = { ...pickClientData(req.body), organizationId } as any;
         const client = await prisma.client.create({ data });
         res.status(201).json(client);
-    } catch (error) {
-        console.error(error);
+    } catch (_error) {
         res.status(500).json({ error: 'Failed to create client' });
     }
 };
@@ -51,9 +56,10 @@ export const createClient = async (req: AuthRequest, res: Response) => {
 export const updateClient = async (req: AuthRequest, res: Response) => {
     const { id } = req.params;
     try {
+        const organizationId = req.user!.organizationId!
         const data = pickClientData(req.body) as any;
         const client = await prisma.client.update({
-            where: { id: id as string },
+            where: { id: id as string, organizationId },
             data,
         });
         res.json(client);
@@ -65,8 +71,9 @@ export const updateClient = async (req: AuthRequest, res: Response) => {
 export const deleteClient = async (req: AuthRequest, res: Response) => {
     const { id } = req.params;
     try {
-        await prisma.client.delete({ where: { id: id as string } });
-        res.status(204).send();
+        const organizationId = req.user!.organizationId!
+        const client = await prisma.client.delete({ where: { id: id as string, organizationId } });
+        res.json(client);
     } catch (_error) {
         res.status(500).json({ error: 'Failed to delete client' });
     }

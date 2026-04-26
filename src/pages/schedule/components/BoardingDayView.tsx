@@ -91,6 +91,8 @@ function getBoardingDates(evt: Appointment) {
   const eventAny = evt as any
 
   const rawCheckOut =
+    eventAny.boardingStay?.checkOut ??
+    eventAny.returnDate ??
     eventAny.endDate ??
     eventAny.checkoutDate ??
     eventAny.checkOutDate ??

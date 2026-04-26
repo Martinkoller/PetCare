@@ -1,5 +1,49 @@
 [
   {
+    "id": "1777209360874-6buyrqbw",
+    "clientId": "8e10d862-8c60-4bb8-b908-bf2015637a19",
+    "clientName": "Luan Correia",
+    "petName": "Thor II",
+    "type": "agendamento_confirmacao",
+    "message": "Olá Luan Correia! 🐾💛\nSeu agendamento de Hospedagem para Thor II está confirmado para 26/04/2026 às 09:15! ✨\n\nAgora é só aguardar esse momento especial\nEm breve, Thor II vai receber todo o carinho, cuidado e aquele toque especial que faz a diferença! 😍\n\nEstamos ansiosos para receber vocês!",
+    "sentAt": "2026-04-26T13:16:00.874Z",
+    "status": "sent",
+    "manual": false
+  },
+  {
+    "id": "1777208709363-bxajmv2s",
+    "clientId": "8e10d862-8c60-4bb8-b908-bf2015637a19",
+    "clientName": "Luan Correia",
+    "petName": "Thor II",
+    "type": "agendamento_solicitacao",
+    "message": "Olá Luan Correia! 🐾💛\nRecebemos a solicitação de agendamento de Consulta para Thor II no dia 26/04/2026 às 08:30. ✨\n\nNossa equipe já vai analisar sua solicitação e em breve confirmaremos tudo para você\n\nSerá um prazer receber Thor II para mais um momento de cuidado, carinho e bem-estar! 😍\n\nQualquer dúvida, estamos à disposição.",
+    "sentAt": "2026-04-26T13:05:09.363Z",
+    "status": "sent",
+    "manual": false
+  },
+  {
+    "id": "1777207514651-z12s0y1",
+    "clientId": "1fde944c-fe1d-4379-9d81-6cd92453145a",
+    "clientName": "Elena Rodrigues",
+    "petName": "Fred",
+    "type": "agendamento_lembrete",
+    "message": "Olá Elena Rodrigues! 🐾💛\nLembramos que Fred tem agendamento de Banho e Tosa, dia 26/04/2026 às 10:00. ✨\n\nEstamos ansiosos para receber vocês!",
+    "sentAt": "2026-04-26T12:45:14.651Z",
+    "status": "sent",
+    "manual": false
+  },
+  {
+    "id": "1777207033860-7lqzx3l",
+    "clientId": "1fde944c-fe1d-4379-9d81-6cd92453145a",
+    "clientName": "Elena Rodrigues",
+    "petName": "Fred",
+    "type": "agendamento_confirmacao_pendente",
+    "message": "Olá Elena Rodrigues! 🐾\nDeseja confirmar o agendamento de Banho e Tosa para Fred no dia 26/04/2026 às 10:00?\n\nResponda:\n*1* - Para confirmar ✅\n*2* - Para remarcar 🔄\n*3* - Para cancelar ❌",
+    "sentAt": "2026-04-26T12:37:13.860Z",
+    "status": "sent",
+    "manual": false
+  },
+  {
     "id": "1777205738262-j6f6pmpb",
     "clientId": "8e10d862-8c60-4bb8-b908-bf2015637a19",
     "clientName": "Luan Correia",
