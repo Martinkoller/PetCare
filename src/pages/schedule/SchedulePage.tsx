@@ -97,14 +97,25 @@ export default function SchedulePage() {
   const { businessHours, profiles } = useConfigStore()
 
   const [currentDate, setCurrentDate] = useState(new Date())
-  const [workMode, setWorkMode] = useState<CalendarMode>('week')
-  const [boardingMode, setBoardingMode] = useState<CalendarMode>('month')
-  const [serviceTab, setServiceTab] = useState<ServiceTab>('boarding')
+  const [workMode, setWorkMode] = useState<CalendarMode>(
+    () => (localStorage.getItem('schedule:workMode') as CalendarMode | null) ?? 'week'
+  )
+  const [boardingMode, setBoardingMode] = useState<CalendarMode>(
+    () => (localStorage.getItem('schedule:boardingMode') as CalendarMode | null) ?? 'month'
+  )
+  const [serviceTab, setServiceTab] = useState<ServiceTab>(
+    () => (localStorage.getItem('schedule:tab') as ServiceTab | null) ?? 'boarding'
+  )
 
   const mode = serviceTab === 'work' ? workMode : boardingMode
   const setMode = (m: CalendarMode) => {
-    if (serviceTab === 'work') setWorkMode(m)
-    else setBoardingMode(m)
+    if (serviceTab === 'work') {
+      setWorkMode(m)
+      localStorage.setItem('schedule:workMode', m)
+    } else {
+      setBoardingMode(m)
+      localStorage.setItem('schedule:boardingMode', m)
+    }
   }
 
   const [activeProfiles, setActiveProfiles] = useState<string[]>([])
@@ -461,6 +472,7 @@ export default function SchedulePage() {
                 className={viewButtonClass(serviceTab === 'work')}
                 onClick={() => {
                   setServiceTab('work')
+                  localStorage.setItem('schedule:tab', 'work')
                   setActiveStatuses([])
                 }}
               >
@@ -470,6 +482,7 @@ export default function SchedulePage() {
                 className={viewButtonClass(serviceTab === 'boarding')}
                 onClick={() => {
                   setServiceTab('boarding')
+                  localStorage.setItem('schedule:tab', 'boarding')
                   setActiveStatuses([])
                 }}
               >
@@ -658,7 +671,6 @@ export default function SchedulePage() {
         className="fixed bottom-6 right-6 z-50 flex items-center gap-2 rounded-full bg-orange-500 px-5 py-3 text-sm font-semibold text-white shadow-lg transition-all hover:bg-orange-600 hover:shadow-xl active:scale-95"
       >
         <Plus className="h-5 w-5" />
-        Novo Agendamento
       </button>
     </div>
   )

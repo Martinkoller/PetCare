@@ -211,43 +211,32 @@ function BoardingCard({
             <Pencil className="mr-2 h-4 w-4" /> Editar
           </ContextMenuItem>
 
-          <ContextMenuSub>
-            <ContextMenuSubTrigger disabled={evt.status === 'checked_out'}>
-              <span className="flex items-center">
-                <Plus className="mr-2 h-4 w-4" />
-                Ações
-              </span>
-            </ContextMenuSubTrigger>
-            <ContextMenuSubContent className="w-56">
-              {evt.status === 'scheduled' && (
-                <ContextMenuItem onClick={() => onUpdateStatus?.(evt.id, 'confirmed')}>
-                  <Badge className="mr-2 h-2 w-2 rounded-full bg-emerald-500 p-0" />
-                  Confirmar Reserva
-                </ContextMenuItem>
-              )}
+          <ContextMenuSeparator />
 
-              {evt.status !== 'cancelled' && evt.status !== 'checked_out' && (
-                <>
-                  {evt.status === 'scheduled' && <ContextMenuSeparator />}
-                  <ContextMenuItem
-                    className="text-destructive focus:text-destructive"
-                    onClick={() => setConfirmCancel(true)}
-                  >
-                    <XCircle className="mr-2 h-4 w-4" /> Cancelar Hospedagem
-                  </ContextMenuItem>
-                </>
-              )}
+          {evt.status === 'scheduled' && (
+            <ContextMenuItem onClick={() => onUpdateStatus?.(evt.id, 'confirmed')}>
+              <Badge className="mr-2 h-2 w-2 rounded-full bg-emerald-500 p-0" />
+              Confirmar Reserva
+            </ContextMenuItem>
+          )}
 
-              {evt.status === 'cancelled' && (
-                <ContextMenuItem
-                  className="text-destructive focus:text-destructive"
-                  onClick={() => setConfirmDelete(true)}
-                >
-                  <Trash2 className="mr-2 h-4 w-4" /> Excluir Agendamento
-                </ContextMenuItem>
-              )}
-            </ContextMenuSubContent>
-          </ContextMenuSub>
+          {evt.status !== 'cancelled' && evt.status !== 'checked_out' && (
+            <ContextMenuItem
+              className="text-destructive focus:text-destructive"
+              onClick={() => setConfirmCancel(true)}
+            >
+              <XCircle className="mr-2 h-4 w-4" /> Cancelar Hospedagem
+            </ContextMenuItem>
+          )}
+
+          {evt.status === 'cancelled' && (
+            <ContextMenuItem
+              className="text-destructive focus:text-destructive"
+              onClick={() => setConfirmDelete(true)}
+            >
+              <Trash2 className="mr-2 h-4 w-4" /> Excluir Agendamento
+            </ContextMenuItem>
+          )}
         </ContextMenuContent>
       </ContextMenu>
 
@@ -315,6 +304,7 @@ function BoardingSection({
   onEventClick,
   onCancelAppointment,
   onDeleteAppointment,
+  onUpdateStatus,
   emptyText,
 }: {
   title: string

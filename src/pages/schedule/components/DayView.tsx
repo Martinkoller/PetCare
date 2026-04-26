@@ -371,31 +371,23 @@ export function DayView({
     [filteredEvents],
   )
 
-  const businessBlock = resolveBusinessBlock(businessHours, currentDate)
-
   const disabledBlocks = useMemo(() => {
-    return hourSlots.map((hour, slotIndex) => {
-      const enabled = isWithinBusinessHours(businessHours, currentDate, hour)
+    const results = hourSlots.map((hour) => ({
+      hour,
+      enabled: isWithinBusinessHours(businessHours, currentDate, hour),
+      showOutsideLabel: false,
+    }))
 
-      let showOutsideLabel = false
-
-      if (!enabled) {
-        if (businessBlock.isClosedAllDay) {
-          showOutsideLabel = slotIndex === 0
-        } else {
-          const prevHour = slotIndex > 0 ? hourSlots[slotIndex - 1] : null
-          const prevEnabled =
-            prevHour !== null
-              ? isWithinBusinessHours(businessHours, currentDate, prevHour)
-              : false
-
-          showOutsideLabel = slotIndex === 0 || prevEnabled
-        }
+    // Marca o label apenas no primeiro slot de cada bloco contíguo desabilitado
+    for (let i = 0; i < results.length; i++) {
+      if (!results[i].enabled) {
+        const prevEnabled = i === 0 ? true : results[i - 1].enabled
+        results[i].showOutsideLabel = prevEnabled
       }
+    }
 
-      return { hour, enabled, showOutsideLabel }
-    })
-  }, [hourSlots, businessHours, currentDate, businessBlock])
+    return results
+  }, [hourSlots, businessHours, currentDate])
 
   const currentLine = useMemo(() => {
     if (!isSameDay(currentDate, currentTime)) return null
@@ -519,45 +511,34 @@ export function DayView({
             )}
           </ContextMenuItem>
 
-          <ContextMenuSub>
-            <ContextMenuSubTrigger disabled={evt.status === 'completed'}>
-              <span className="flex items-center">
-                <Plus className="mr-2 h-4 w-4" />
-                Ações
-              </span>
-            </ContextMenuSubTrigger>
-            <ContextMenuSubContent className="w-56">
-              {evt.status === 'scheduled' && (
-                <ContextMenuItem onClick={() => onUpdateStatus?.(evt.id, 'confirmed')}>
-                  <Badge className="mr-2 h-2 w-2 rounded-full bg-blue-500 p-0" />
-                  Confirmar Atendimento
-                </ContextMenuItem>
-              )}
+                    <ContextMenuSeparator />
 
-              {evt.status !== 'cancelled' && evt.status !== 'completed' && (
-                <>
-                  {evt.status === 'scheduled' && <ContextMenuSeparator />}
-                  <ContextMenuItem
-                    className="text-destructive focus:text-destructive"
-                    onClick={() => setConfirmCancel(evt)}
-                  >
-                    <XCircle className="mr-2 h-4 w-4" />
-                    Cancelar Agendamento
-                  </ContextMenuItem>
-                </>
-              )}
+                    {evt.status === 'scheduled' && (
+                      <ContextMenuItem onClick={() => onUpdateStatus?.(evt.id, 'confirmed')}>
+                        <Badge className="mr-2 h-2 w-2 rounded-full bg-blue-500 p-0" />
+                        Confirmar Atendimento
+                      </ContextMenuItem>
+                    )}
 
-              {evt.status === 'cancelled' && (
-                <ContextMenuItem
-                  className="text-destructive focus:text-destructive"
-                  onClick={() => setConfirmDelete(evt)}
-                >
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Excluir Agendamento
-                </ContextMenuItem>
-              )}
-            </ContextMenuSubContent>
-          </ContextMenuSub>
+                    {evt.status !== 'cancelled' && evt.status !== 'completed' && (
+                      <ContextMenuItem
+                        className="text-destructive focus:text-destructive"
+                        onClick={() => setConfirmCancel(evt)}
+                      >
+                        <XCircle className="mr-2 h-4 w-4" />
+                        Cancelar Agendamento
+                      </ContextMenuItem>
+                    )}
+
+                    {evt.status === 'cancelled' && (
+                      <ContextMenuItem
+                        className="text-destructive focus:text-destructive"
+                        onClick={() => setConfirmDelete(evt)}
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Excluir Agendamento
+                      </ContextMenuItem>
+                    )}
         </ContextMenuContent>
       </ContextMenu>
     )
