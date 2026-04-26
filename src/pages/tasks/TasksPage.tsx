@@ -302,14 +302,8 @@ export default function TasksPage() {
   }
 
   return (
-    <div className="space-y-6 animate-fade-in flex flex-col h-[calc(100vh-140px)]">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 shrink-0">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Tarefas</h1>
-          <p className="text-muted-foreground">
-            Gerenciamento de atividades internas da equipe.
-          </p>
-        </div>
+    <div className="space-y-4 animate-fade-in flex flex-col h-[calc(100vh-140px)]">
+      <div className="flex flex-col sm:flex-row justify-between items-center gap-4 shrink-0">
         <div className="flex gap-2">
           <div className="flex bg-muted rounded-lg p-1 border">
             <Button
@@ -329,14 +323,6 @@ export default function TasksPage() {
               <ListIcon className="h-4 w-4 mr-1" /> Lista
             </Button>
           </div>
-          <Button
-            onClick={() => {
-              setEditingTask(null)
-              setIsDialogOpen(true)
-            }}
-          >
-            <Plus className="mr-2 h-4 w-4" /> Nova Tarefa
-          </Button>
         </div>
       </div>
 
@@ -446,6 +432,15 @@ export default function TasksPage() {
         onSave={handleSave}
         task={editingTask}
       />
+
+      <button
+        type="button"
+        onClick={() => { setEditingTask(null); setIsDialogOpen(true) }}
+        title="Nova Tarefa"
+        className="fixed bottom-6 right-6 z-50 flex items-center gap-2 rounded-full bg-orange-500 px-5 py-3 text-sm font-semibold text-white shadow-lg transition-all hover:bg-orange-600 hover:shadow-xl active:scale-95"
+      >
+        <Plus className="h-5 w-5" />
+      </button>
     </div>
   )
 }

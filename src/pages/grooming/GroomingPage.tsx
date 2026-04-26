@@ -11,6 +11,7 @@ import { toast } from 'sonner'
 import { addDays, format, isSameDay, startOfDay, subDays } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { UnifiedAtendimentoDialog } from '@/components/shared/UnifiedAtendimentoDialog'
+import { CheckinData } from './CheckinDialog'
 import { GroomingKanbanCard } from './GroomingKanbanCard'
 import { AgendamentoDiaCard } from './AgendamentoDiaCard'
 import { ChecklistReviewDialog } from './ChecklistReviewDialog'
@@ -126,8 +127,13 @@ export default function GroomingPage() {
 
   const stageTimestamps = (apt: Appointment, newStageId?: string): Partial<Appointment> => {
     const ts = new Date().toLocaleString('sv').replace(' ', 'T')
+    const history = apt.stageHistory ?? []
+    const updatedHistory = newStageId
+      ? [...history.filter((h) => h.stageId !== newStageId), { stageId: newStageId, startedAt: ts }]
+      : history
     return {
       currentStageStartedAt: ts,
+      stageHistory: updatedHistory,
       ...(newStageId === initialStageId && !apt.startedAt ? { startedAt: ts } : {}),
     }
   }
@@ -220,15 +226,15 @@ export default function GroomingPage() {
 
       updateAppointment({
         ...apt,
-        status: 'completed',
+        status: 'in_progress',
         groomingStatus: checklistReview.stageId,
-        completedAt: notifiedAt,
         serviceItems: mergedItems,
         tutorNotified: !!notifiedMessage,
         tutorNotifiedAt: notifiedMessage ? notifiedAt : undefined,
         tutorNotifiedMessage: notifiedMessage,
+        ...stageTimestamps(apt, checklistReview.stageId),
       } as Appointment)
-      toast.success('Atendimento finalizado!')
+      toast.success('Pet pronto! Aguardando entrega.')
       if (pet && client && vars) {
         sendAutoNotification({
           type: 'banho_tosa_pronto',
@@ -271,16 +277,39 @@ export default function GroomingPage() {
 
   // ── Check-in: move agendamento do dia para o primeiro stage do fluxo ────────
 
-  const handleCheckin = (apt: Appointment, newDate?: string) => {
+  const handleCheckin = (apt: Appointment, data: CheckinData) => {
     const firstStage = displayColumns[0]
     if (!firstStage) return
-    if (newDate) setFilterDate(todayISO)
+    if (data.newDate) setFilterDate(todayISO)
+
+    const now = new Date().toLocaleString('sv').replace(' ', 'T')
+    // Stages antes do isInitial recebem checkinArrivalTime; isInitial em diante recebem now
+    const initialIdx = groomingStages.findIndex((s) => s.isInitial)
+    const firstStageIdx = groomingStages.findIndex((s) => s.id === firstStage.id)
+    const splitIdx = initialIdx >= 0 ? initialIdx : firstStageIdx
+    const initialHistory = groomingStages
+      .filter((s) => !s.isDelivery)
+      .map((s, idx) => {
+        const stageIdx = groomingStages.indexOf(s)
+        if (stageIdx < splitIdx) return { stageId: s.id, startedAt: data.checkinArrivalTime }
+        if (stageIdx === splitIdx) return { stageId: s.id, startedAt: now }
+        return null
+      })
+      .filter(Boolean) as Array<{ stageId: string; startedAt: string }>
+
     updateAppointment({
       ...apt,
       groomingStatus: firstStage.id,
       status: 'in_progress',
-      ...(newDate ? { date: newDate } : {}),
-      ...stageTimestamps(apt, firstStage.id),
+      ...(data.newDate ? { date: data.newDate } : {}),
+      checkinArrivalTime: data.checkinArrivalTime,
+      checkinMatting: data.checkinMatting,
+      checkinFleas: data.checkinFleas,
+      checkinBehavior: data.checkinBehavior,
+      checkinNotes: data.checkinNotes,
+      currentStageStartedAt: now,
+      startedAt: now,
+      stageHistory: initialHistory,
     } as Appointment)
     const pet = pets.find((p) => p.id === apt.petId)
     const client = clients.find((c) => c.id === pet?.clientId)
@@ -301,7 +330,14 @@ export default function GroomingPage() {
         },
       })
     }
-    toast.success(`${apt.petId ? 'Pet' : 'Atendimento'} iniciado!`)
+    toast.success(`${pet?.name ?? 'Pet'} recebido!`)
+  }
+
+  // ── No-show ───────────────────────────────────────────────────────────────
+
+  const handleNoShow = (apt: Appointment) => {
+    updateAppointment({ ...apt, status: 'no_show' } as Appointment)
+    toast.info(`Falta registrada para ${pets.find(p => p.id === apt.petId)?.name ?? 'pet'}.`)
   }
 
   // ── Card quick-action handlers ────────────────────────────────────────────
@@ -426,17 +462,7 @@ export default function GroomingPage() {
   return (
     <div className="space-y-6 animate-fade-in flex flex-col h-[calc(100vh-140px)]">
 
-      {/* Page header */}
       <div className="flex justify-between items-center shrink-0">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Banho e Tosa</h1>
-          <p className="text-muted-foreground text-sm">
-            Fluxo de atendimento.
-            <span className="ml-2 text-xs text-muted-foreground/60">
-              Atualizado às {lastRefresh.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-            </span>
-          </p>
-        </div>
         <div className="flex gap-2">
           {/* Filtro de data */}
           <div className="flex items-center gap-1 rounded-xl border bg-white p-1">
@@ -506,9 +532,6 @@ export default function GroomingPage() {
               </div>
             </PopoverContent>
           </Popover>
-          <Button size="sm" onClick={() => setIsCreating(true)}>
-            <Plus className="mr-2 h-4 w-4" /> Novo Atendimento
-          </Button>
         </div>
       </div>
 
@@ -546,8 +569,9 @@ export default function GroomingPage() {
                     pet={pet}
                     client={client}
                     professional={professional}
-                    onCheckin={(newDate) => handleCheckin(apt, newDate)}
+                    onCheckin={(data) => handleCheckin(apt, data)}
                     onNextStage={(e) => handleNextStage(e, apt)}
+                    onNoShow={() => handleNoShow(apt)}
                     onEdit={() => { setEditingAppointment(apt); setViewMode(false) }}
                     onView={() => { setEditingAppointment(apt); setViewMode(true) }}
                   />
@@ -625,6 +649,8 @@ export default function GroomingPage() {
                         isNextStageAvailable={isNextAvailable}
                         isInitialStage={isInitialStage}
                         notificationLogs={notificationLogs}
+                        groomingStages={groomingStages}
+                        stageColor={stage.color}
                         now={now}
                         onOpen={() => { setEditingAppointment(apt); setViewMode(false) }}
                         onView={() => { setEditingAppointment(apt); setViewMode(true) }}
@@ -652,6 +678,7 @@ export default function GroomingPage() {
 
       {/* Appointment dialog (create / edit / read-only) */}
       <UnifiedAtendimentoDialog
+        key={editingAppointment?.id ?? (isCreating ? '__new__' : '__closed__')}
         open={isCreating || !!editingAppointment}
         onOpenChange={(open) => {
           if (!open) {
@@ -685,6 +712,15 @@ export default function GroomingPage() {
         defaultMessage={pendingWA?.message ?? ''}
         onConfirm={handleConfirmWA}
       />
+
+      <button
+        type="button"
+        onClick={() => setIsCreating(true)}
+        title="Novo Atendimento"
+        className="fixed bottom-6 right-6 z-50 flex items-center gap-2 rounded-full bg-orange-500 px-5 py-3 text-sm font-semibold text-white shadow-lg transition-all hover:bg-orange-600 hover:shadow-xl active:scale-95"
+      >
+        <Plus className="h-5 w-5" />
+      </button>
     </div>
   )
 }

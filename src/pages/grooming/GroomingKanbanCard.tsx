@@ -1,4 +1,4 @@
-import { Appointment, Client, NotificationLog, Pet, Profile } from '@/lib/types'
+import { Appointment, Client, GroomingStage, NotificationLog, Pet, Profile } from '@/lib/types'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
@@ -33,6 +33,13 @@ const fmtDuration = (minutes: number) =>
     ? `${Math.floor(minutes / 60)}h${minutes % 60 > 0 ? String(minutes % 60).padStart(2, '0') : ''}`
     : `${minutes}min`
 
+const fmtHHMM = (minutes: number) => {
+  const abs = Math.max(0, minutes)
+  const h = Math.floor(abs / 60)
+  const m = abs % 60
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
+}
+
 const PET_SIZE_LABEL: Record<string, string> = { small: 'P', medium: 'M', large: 'G' }
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -48,6 +55,8 @@ interface Props {
   isNextStageAvailable: boolean
   isInitialStage: boolean
   notificationLogs: NotificationLog[]
+  groomingStages: GroomingStage[]
+  stageColor: string
   now: Date
   onOpen: () => void
   onNextStage: (e: React.MouseEvent) => void
@@ -71,6 +80,8 @@ export function GroomingKanbanCard({
   isNextStageAvailable,
   isInitialStage,
   notificationLogs,
+  groomingStages,
+  stageColor,
   now,
   onOpen,
   onNextStage,
@@ -80,8 +91,9 @@ export function GroomingKanbanCard({
   onView,
   onDragStart,
 }: Props) {
+  const aptDateKey = apt.date.split('T')[0]
   const recentLogs = notificationLogs
-    .filter((l) => l.clientId === client?.id && l.status === 'sent')
+    .filter((l) => l.clientId === client?.id && l.status === 'sent' && l.sentAt.startsWith(aptDateKey))
 
   const items = apt.serviceItems ?? []
   const mainItem = items.find((i) => i.itemType === 'main')
@@ -100,8 +112,13 @@ export function GroomingKanbanCard({
       ? new Date(new Date(apt.startedAt).getTime() + totalDuration * 60000)
       : null
 
+  // Duração real do atendimento (startedAt → completedAt ou agora)
+  const realDurationMinutes = apt.startedAt
+    ? Math.floor(((apt.completedAt ? new Date(apt.completedAt) : now).getTime() - new Date(apt.startedAt).getTime()) / 60000)
+    : null
+
   const minutesInStage = apt.currentStageStartedAt
-    ? Math.floor((now.getTime() - new Date(apt.currentStageStartedAt).getTime()) / 60000)
+    ? Math.max(0, Math.floor((now.getTime() - new Date(apt.currentStageStartedAt).getTime()) / 60000))
     : null
 
   const stageTimeColor =
@@ -127,6 +144,7 @@ export function GroomingKanbanCard({
           <Card
             className={cn(
               'hover:shadow-md transition-all relative overflow-hidden',
+              stageColor.split(' ')[0], // bg-* only
               apt.priority === 'urgent' && 'border-l-4 border-l-red-500',
               apt.priority === 'preferential' && 'border-l-4 border-l-amber-400',
             )}
@@ -240,20 +258,86 @@ export function GroomingKanbanCard({
                       </span>
                     </span>
                   )}
-                  {minutesInStage !== null && (
-                    <span className={cn('flex items-center gap-0.5', stageTimeColor)}>
-                      {minutesInStage >= 60 && <AlertTriangle className="h-3 w-3" />}
-                      {fmtDuration(minutesInStage)}
-                    </span>
+                  {isDeliveryStage ? (
+                    realDurationMinutes !== null && (
+                      <TooltipProvider delayDuration={200}>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="flex items-center gap-0.5 cursor-default text-muted-foreground font-medium">
+                              {fmtDuration(realDurationMinutes)}
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent side="top">
+                            <p className="text-xs font-semibold">Duração total do Att: {fmtHHMM(realDurationMinutes)}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    )
+                  ) : (
+                    minutesInStage !== null && (
+                      <TooltipProvider delayDuration={200}>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className={cn('flex items-center gap-0.5 cursor-default', stageTimeColor)}>
+                              {minutesInStage >= 60 && <AlertTriangle className="h-3 w-3" />}
+                              {fmtDuration(minutesInStage)}
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent side="top">
+                            <p className="text-xs">Tempo na etapa atual: {fmtHHMM(minutesInStage)}</p>
+                            {totalDuration > 0 && (
+                              <p className="text-xs font-semibold">Duração prevista: {fmtHHMM(totalDuration)}</p>
+                            )}
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    )
                   )}
-                  {exitTime && (
+                  {exitTime && !isDeliveryStage && (
                     <span className="text-muted-foreground">
-                      Saída:{' '}
+                      Saída prev.:{' '}
                       <span className="font-medium text-foreground">
                         {fmtTime(exitTime)}
                       </span>
                     </span>
                   )}
+                </div>
+              )}
+
+              {/* ── Check-in alerts ── */}
+              {(apt.checkinMatting === 'moderate' || apt.checkinMatting === 'severe' || apt.checkinFleas || apt.checkinBehavior === 'aggressive' || apt.checkinExtraAuthorized) && (
+                <div className="flex flex-wrap gap-1 border-t pt-1.5">
+                  {(apt.checkinMatting === 'moderate' || apt.checkinMatting === 'severe') && (
+                    <span className="text-[10px] bg-red-100 text-red-700 px-1.5 py-0.5 rounded-full font-semibold">
+                      Desembolo {apt.checkinMatting === 'severe' ? 'severo' : 'moderado'}
+                    </span>
+                  )}
+                  {apt.checkinFleas && (
+                    <span className="text-[10px] bg-red-100 text-red-700 px-1.5 py-0.5 rounded-full font-semibold">
+                      Pulgas
+                    </span>
+                  )}
+                  {apt.checkinBehavior === 'aggressive' && (
+                    <span className="text-[10px] bg-red-100 text-red-700 px-1.5 py-0.5 rounded-full font-semibold">
+                      Agressivo
+                    </span>
+                  )}
+                  {apt.checkinExtraAuthorized && (
+                    <span className="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full font-semibold">
+                      Extra OK
+                    </span>
+                  )}
+                </div>
+              )}
+
+              {/* ── Grooming preferences ── */}
+              {apt.groomingPreferences && apt.groomingPreferences.length > 0 && (
+                <div className="flex flex-wrap gap-1">
+                  {apt.groomingPreferences.map((pref) => (
+                    <span key={pref} className="text-[10px] bg-violet-100 text-violet-700 px-1.5 py-0.5 rounded-full">
+                      {pref}
+                    </span>
+                  ))}
                 </div>
               )}
 
@@ -281,19 +365,24 @@ export function GroomingKanbanCard({
                     {recentLogs.length > 0 && (
                       <TooltipContent side="bottom" className="p-0 max-w-[280px]">
                         <div className="max-h-48 overflow-y-auto p-3 space-y-3">
-                          {recentLogs.map((log, i) => (
-                            <div key={log.id} className={i > 0 ? 'border-t pt-2 space-y-0.5' : 'space-y-0.5'}>
-                              <div className="flex items-center gap-2">
-                                <span className="text-xs font-bold text-foreground">
-                                  {new Date(log.sentAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-                                </span>
-                                <span className="text-xs font-bold text-foreground">
-                                  {NOTIFICATION_TYPE_LABEL[log.type] ?? log.type}
-                                </span>
+                          {recentLogs.map((log, i) => {
+                            const sentAt = new Date(log.sentAt)
+                            const dateStr = sentAt.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
+                            const timeStr = sentAt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+                            const typeLabel = NOTIFICATION_TYPE_LABEL[log.type] ?? log.type
+                            return (
+                              <div key={log.id} className={i > 0 ? 'border-t pt-2 space-y-0.5' : 'space-y-0.5'}>
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <span className="text-xs font-bold text-foreground">{dateStr}</span>
+                                  <span className="text-xs text-muted-foreground">·</span>
+                                  <span className="text-xs font-bold text-foreground">{timeStr}</span>
+                                  <span className="text-xs text-muted-foreground">·</span>
+                                  <span className="text-xs font-semibold text-green-700">{typeLabel}</span>
+                                </div>
+                                <p className="text-xs text-muted-foreground whitespace-pre-wrap">{log.message}</p>
                               </div>
-                              <p className="text-xs text-muted-foreground whitespace-pre-wrap">{log.message}</p>
-                            </div>
-                          ))}
+                            )
+                          })}
                         </div>
                       </TooltipContent>
                     )}
@@ -336,12 +425,54 @@ export function GroomingKanbanCard({
                   </button>
                 )}
                 {isDeliveryStage && (
-                  <div
-                    title="Entregue"
-                    className="h-8 w-8 shrink-0 rounded-xl bg-gradient-to-b from-violet-500 to-violet-700 text-white flex items-center justify-center shadow-md shadow-violet-200/70 ml-auto"
-                  >
-                    <Car className="h-4 w-4" />
-                  </div>
+                  <TooltipProvider delayDuration={200}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div
+                          className="h-8 w-8 shrink-0 rounded-xl bg-gradient-to-b from-violet-500 to-violet-700 text-white flex items-center justify-center shadow-md shadow-violet-200/70 ml-auto cursor-default"
+                        >
+                          <Car className="h-4 w-4" />
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent side="bottom" className="p-0 max-w-[280px]">
+                        <div className="p-3 space-y-2">
+                          <p className="text-xs font-bold text-foreground border-b pb-1.5">Histórico do atendimento</p>
+                          <div className="space-y-2">
+                            {groomingStages
+                              .filter((s) => !s.isDelivery)
+                              .map((s) => {
+                                const entry = apt.stageHistory?.find((h) => h.stageId === s.id)
+                                if (!entry) return null
+                                return (
+                                  <div key={s.id} className="flex items-start gap-2">
+                                    <span className="mt-0.5 h-2 w-2 rounded-full bg-violet-500 shrink-0" />
+                                    <div>
+                                      <p className="text-xs font-semibold text-foreground">{s.title}</p>
+                                      <p className="text-xs text-muted-foreground">{fmtTime(new Date(entry.startedAt))}</p>
+                                    </div>
+                                  </div>
+                                )
+                              })}
+                            {apt.completedAt && (
+                              <div className="flex items-start gap-2">
+                                <span className="mt-0.5 h-2 w-2 rounded-full bg-emerald-500 shrink-0" />
+                                <div>
+                                  <p className="text-xs font-semibold text-foreground">Entregue</p>
+                                  <p className="text-xs text-muted-foreground">{fmtTime(new Date(apt.completedAt))}</p>
+                                </div>
+                              </div>
+                            )}
+                            {realDurationMinutes !== null && (
+                              <div className="border-t pt-1.5 flex justify-between text-xs">
+                                <span className="text-muted-foreground">Duração total</span>
+                                <span className="font-semibold text-foreground">{fmtHHMM(realDurationMinutes)}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 )}
               </div>
 

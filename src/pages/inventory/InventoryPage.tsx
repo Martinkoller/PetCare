@@ -150,23 +150,7 @@ export default function InventoryPage() {
   }
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Estoque</h1>
-          <p className="text-muted-foreground">
-            Gestão de produtos, lotes e validades.
-          </p>
-        </div>
-        <Button
-          onClick={() => {
-            setEditingProduct(null)
-            setIsDialogOpen(true)
-          }}
-        >
-          <Plus className="mr-2 h-4 w-4" /> Novo Item
-        </Button>
-      </div>
+    <div className="space-y-4 animate-fade-in">
 
       <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
         <Card
@@ -431,6 +415,15 @@ export default function InventoryPage() {
         product={adjustingProduct}
         onSave={handleStockAdjustment}
       />
+
+      <button
+        type="button"
+        onClick={() => { setEditingProduct(null); setIsDialogOpen(true) }}
+        title="Novo Item"
+        className="fixed bottom-6 right-6 z-50 flex items-center gap-2 rounded-full bg-orange-500 px-5 py-3 text-sm font-semibold text-white shadow-lg transition-all hover:bg-orange-600 hover:shadow-xl active:scale-95"
+      >
+        <Plus className="h-5 w-5" />
+      </button>
     </div>
   )
 }

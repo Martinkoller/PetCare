@@ -1,15 +1,6 @@
 import { useState } from 'react'
 import { Appointment, Client, Pet, Profile } from '@/lib/types'
-import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
 import {
   Tooltip,
   TooltipContent,
@@ -20,11 +11,13 @@ import {
   ContextMenu,
   ContextMenuContent,
   ContextMenuItem,
+  ContextMenuSeparator,
   ContextMenuTrigger,
 } from '@/components/ui/context-menu'
 import { format, isSameDay } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { Eye, Edit, ArrowRight, ChevronRight, Stethoscope } from 'lucide-react'
+import { Eye, Edit, ArrowRight, ChevronRight, Stethoscope, UserX } from 'lucide-react'
+import { CheckinDialog, CheckinData } from './CheckinDialog'
 
 const STATUS_META: Record<string, { label: string; dot: string }> = {
   scheduled:   { label: 'Agendado',       dot: 'bg-slate-500' },
@@ -39,8 +32,9 @@ interface Props {
   pet: Pet | undefined
   client: Client | undefined
   professional: Profile | undefined
-  onCheckin: (newDate?: string) => void
+  onCheckin: (data: CheckinData) => void
   onNextStage: (e: React.MouseEvent) => void
+  onNoShow: () => void
   onEdit: () => void
   onView: () => void
 }
@@ -52,10 +46,11 @@ export function AgendamentoDiaCard({
   professional,
   onCheckin,
   onNextStage,
+  onNoShow,
   onEdit,
   onView,
 }: Props) {
-  const [confirmOpen, setConfirmOpen] = useState(false)
+  const [checkinOpen, setCheckinOpen] = useState(false)
 
   const aptDate = apt.date ? new Date(apt.date) : null
   const isDifferentDay = aptDate ? !isSameDay(aptDate, new Date()) : false
@@ -68,23 +63,10 @@ export function AgendamentoDiaCard({
 
   const aptTime = apt.date ? format(new Date(apt.date), 'HH:mm', { locale: ptBR }) : null
   const statusMeta = STATUS_META[apt.status] ?? STATUS_META['scheduled']
-  const needsConfirmation = apt.status !== 'confirmed' || isDifferentDay
 
   const handleCheckinClick = (e: React.MouseEvent) => {
     e.stopPropagation()
-    if (needsConfirmation) {
-      setConfirmOpen(true)
-    } else {
-      onCheckin()
-    }
-  }
-
-  const handleConfirm = () => {
-    setConfirmOpen(false)
-    const newDate = isDifferentDay
-      ? new Date().toLocaleString('sv').replace(' ', 'T')
-      : undefined
-    onCheckin(newDate)
+    setCheckinOpen(true)
   }
 
   const tooltipContent = (
@@ -200,38 +182,26 @@ export function AgendamentoDiaCard({
               <Eye className="mr-2 h-4 w-4" />
               Visualizar
             </ContextMenuItem>
+            <ContextMenuSeparator />
+            <ContextMenuItem onClick={onNoShow} className="text-red-600 focus:text-red-600">
+              <UserX className="mr-2 h-4 w-4" />
+              Marcar como falta
+            </ContextMenuItem>
           </ContextMenuContent>
         </ContextMenu>
       </TooltipProvider>
 
-      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Iniciar Atendimento</DialogTitle>
-            <DialogDescription asChild>
-              <div className="space-y-1">
-                {apt.status !== 'confirmed' && (
-                  <p>Este agendamento está como <strong>{statusMeta.label}</strong>.</p>
-                )}
-                {isDifferentDay && (
-                  <p>Este agendamento é de outro dia. Ao confirmar, a data será atualizada para <strong>agora</strong>.</p>
-                )}
-                <p>Deseja iniciar o atendimento?</p>
-              </div>
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setConfirmOpen(false)}>Cancelar</Button>
-            <Button
-              className="bg-violet-600 hover:bg-violet-700 text-white"
-              onClick={handleConfirm}
-            >
-              <ArrowRight className="mr-2 h-4 w-4" />
-              Iniciar Atendimento
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <CheckinDialog
+        open={checkinOpen}
+        apt={apt}
+        petName={pet?.name}
+        isDifferentDay={isDifferentDay}
+        onConfirm={(data) => {
+          setCheckinOpen(false)
+          onCheckin(data)
+        }}
+        onCancel={() => setCheckinOpen(false)}
+      />
     </>
   )
 }

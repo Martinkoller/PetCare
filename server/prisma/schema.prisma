@@ -173,6 +173,20 @@ model Appointment {
   tutorNotified               Boolean   @default(false)
   tutorNotifiedAt             DateTime?
   tutorNotifiedMessage        String?   @db.Text
+  // Grooming — preferências do serviço
+  groomingPreferences         String?   @db.Text
+  // Grooming — ajuste manual de valor
+  priceAdjustment             Float?    @default(0)
+  priceAdjustmentReason       String?
+  // Grooming — check-in operacional
+  checkinArrivalTime          DateTime?
+  checkinMatting              String?
+  checkinFleas                Boolean?
+  checkinBehavior             String?
+  checkinExtraAuthorized      Boolean?
+  checkinNotes                String?   @db.Text
+  // Grooming — histórico de etapas
+  stageHistory                String?   @db.Text
   whatsappConfirmationStatus  String?
   whatsappConfirmationSentAt  DateTime?
   whatsappConfirmationReplyAt DateTime?

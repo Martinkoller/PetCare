@@ -260,7 +260,7 @@ export default function SchedulePage() {
     }
     await updateAppointment({
       ...event,
-      date: newDate.toISOString(),
+      date: newDate.toLocaleString('sv').replace(' ', 'T'),
     })
   }
 
@@ -654,7 +654,7 @@ export default function SchedulePage() {
       <UnifiedAtendimentoDialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}
-        appointment={selectedAppointment ? selectedAppointment : (selectedDate ? { date: selectedDate.toISOString() } : undefined)}
+        appointment={selectedAppointment ? selectedAppointment : (selectedDate ? { date: selectedDate.toLocaleString('sv').replace(' ', 'T') } : undefined)}
         readOnly={isReadOnly}
         onSave={() => {
           setDialogOpen(false)

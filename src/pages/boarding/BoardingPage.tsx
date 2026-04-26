@@ -15,6 +15,7 @@ import {
   LogIn,
   Info,
   MessageCircle,
+  Plus,
   Settings2,
   PlusCircle,
   Clock,
@@ -154,25 +155,11 @@ export default function BoardingPage() {
   }
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Hospedagem</h1>
-          <p className="text-muted-foreground">
-            Controle de ocupação e diárias do hotel.
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => setIsManagerOpen(true)}>
-            <Settings2 className="mr-2 h-4 w-4" /> Gerenciar Canis
-          </Button>
-          <Button
-            className="bg-orange-600 hover:bg-orange-700 text-white"
-            onClick={() => setIsCheckInOpen(true)}
-          >
-            <LogIn className="mr-2 h-4 w-4" /> Novo Check-in
-          </Button>
-        </div>
+    <div className="space-y-4 animate-fade-in">
+      <div className="flex justify-end">
+        <Button variant="outline" onClick={() => setIsManagerOpen(true)}>
+          <Settings2 className="mr-2 h-4 w-4" /> Gerenciar Canis
+        </Button>
       </div>
 
       <Tabs defaultValue="map" className="space-y-6">
@@ -482,6 +469,15 @@ export default function BoardingPage() {
         defaultMessage={pendingWA?.message ?? ''}
         onConfirm={handleConfirmWA}
       />
+
+      <button
+        type="button"
+        onClick={() => setIsCheckInOpen(true)}
+        title="Novo Check-in"
+        className="fixed bottom-6 right-6 z-50 flex items-center gap-2 rounded-full bg-orange-500 px-5 py-3 text-sm font-semibold text-white shadow-lg transition-all hover:bg-orange-600 hover:shadow-xl active:scale-95"
+      >
+        <Plus className="h-5 w-5" />
+      </button>
     </div>
   )
 }

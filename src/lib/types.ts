@@ -221,7 +221,7 @@ export interface Appointment {
   serviceType: ServiceType
   date: string // ISO String
   duration: number // Duration in minutes
-  status: 'scheduled' |'confirmed'| 'checked_in'| 'in_progress'| 'checked_out'| 'completed'| 'cancelled'  
+  status: 'scheduled' | 'confirmed' | 'checked_in' | 'in_progress' | 'checked_out' | 'completed' | 'cancelled' | 'no_show'
   groomingStatus?: GroomingStatus // Only for grooming
   clinicalStatus?: ClinicalStatus // Only for consultation
   notes?: string
@@ -240,6 +240,16 @@ export interface Appointment {
   tutorNotified?: boolean
   tutorNotifiedAt?: string
   tutorNotifiedMessage?: string
+  groomingPreferences?: string[]
+  priceAdjustment?: number
+  priceAdjustmentReason?: string
+  checkinArrivalTime?: string
+  checkinMatting?: 'none' | 'mild' | 'moderate' | 'severe'
+  checkinFleas?: boolean
+  checkinBehavior?: 'calm' | 'agitated' | 'aggressive'
+  checkinExtraAuthorized?: boolean
+  checkinNotes?: string
+  stageHistory?: Array<{ stageId: string; startedAt: string }>
   hospitalizationStay?: HospitalizationStay
   boardingStay?: BoardingStay
   boardingMode?: 'daily' | 'half_day' | 'overnight' | 'day_care'

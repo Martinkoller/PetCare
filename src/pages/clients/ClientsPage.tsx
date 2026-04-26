@@ -76,23 +76,7 @@ export default function ClientsPage() {
   }
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Clientes</h1>
-          <p className="text-muted-foreground">
-            Gerencie proprietários e visualize seus pets.
-          </p>
-        </div>
-        <Button
-          onClick={() => {
-            setEditingClient(null)
-            setIsAddOpen(true)
-          }}
-        >
-          <Plus className="mr-2 h-4 w-4" /> Novo Cliente
-        </Button>
-      </div>
+    <div className="space-y-4 animate-fade-in">
 
       <div className="flex items-center gap-2">
         <div className="relative flex-1 max-w-sm">
@@ -222,6 +206,15 @@ export default function ClientsPage() {
         onOpenChange={setIsAddOpen}
         client={editingClient}
       />
+
+      <button
+        type="button"
+        onClick={() => { setEditingClient(null); setIsAddOpen(true) }}
+        title="Novo Cliente"
+        className="fixed bottom-6 right-6 z-50 flex items-center gap-2 rounded-full bg-orange-500 px-5 py-3 text-sm font-semibold text-white shadow-lg transition-all hover:bg-orange-600 hover:shadow-xl active:scale-95"
+      >
+        <Plus className="h-5 w-5" />
+      </button>
     </div>
   )
 }

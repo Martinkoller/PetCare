@@ -6,6 +6,7 @@ import React, {
   useCallback,
   useMemo,
   useEffect,
+  useRef,
 } from 'react'
 import {
   NotificationSettings,
@@ -603,14 +604,13 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
     if (isRealUser) loadInitialConfig()
   }, [isRealUser, loadInitialConfig])
 
-  // Trigger global para outros stores
-useEffect(() => {
-  const unregister = registerNotificationTrigger((payload) => {
-    sendAutoNotification(payload)
-  })
+  // Trigger global para outros stores — ref evita re-registro a cada render
+  const sendAutoNotificationRef = useRef(sendAutoNotification)
+  useEffect(() => { sendAutoNotificationRef.current = sendAutoNotification }, [sendAutoNotification])
 
-  return unregister
-}, [sendAutoNotification])
+  useEffect(() => {
+    return registerNotificationTrigger((payload) => sendAutoNotificationRef.current(payload))
+  }, [])
 
   // NOVO: polling automático enquanto estiver aguardando QR / conectando
   useEffect(() => {

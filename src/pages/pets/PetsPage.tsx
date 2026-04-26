@@ -76,23 +76,7 @@ export default function PetsPage() {
   }
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Pets</h1>
-          <p className="text-muted-foreground">
-            Gerencie todos os animais cadastrados na clínica.
-          </p>
-        </div>
-        <Button
-          onClick={() => {
-            setEditingPet(null)
-            setIsDialogOpen(true)
-          }}
-        >
-          <Plus className="mr-2 h-4 w-4" /> Novo Pet
-        </Button>
-      </div>
+    <div className="space-y-4 animate-fade-in">
 
       <div className="flex items-center gap-2">
         <div className="relative flex-1 max-w-sm">
@@ -204,6 +188,15 @@ export default function PetsPage() {
         onSave={handleSave}
         pet={editingPet}
       />
+
+      <button
+        type="button"
+        onClick={() => { setEditingPet(null); setIsDialogOpen(true) }}
+        title="Novo Pet"
+        className="fixed bottom-6 right-6 z-50 flex items-center gap-2 rounded-full bg-orange-500 px-5 py-3 text-sm font-semibold text-white shadow-lg transition-all hover:bg-orange-600 hover:shadow-xl active:scale-95"
+      >
+        <Plus className="h-5 w-5" />
+      </button>
     </div>
   )
 }

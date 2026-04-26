@@ -79,6 +79,16 @@ const normalizeAppointmentResponse = (appointment: any) => {
     tutorNotified: appointment.tutorNotified ?? false,
     tutorNotifiedAt: appointment.tutorNotifiedAt ? toLocalISO(appointment.tutorNotifiedAt) : undefined,
     tutorNotifiedMessage: appointment.tutorNotifiedMessage ?? undefined,
+    groomingPreferences: appointment.groomingPreferences ? JSON.parse(appointment.groomingPreferences) : [],
+    priceAdjustment: appointment.priceAdjustment ?? 0,
+    priceAdjustmentReason: appointment.priceAdjustmentReason ?? undefined,
+    checkinArrivalTime: appointment.checkinArrivalTime ? toLocalISO(appointment.checkinArrivalTime) : undefined,
+    checkinMatting: appointment.checkinMatting ?? undefined,
+    checkinFleas: appointment.checkinFleas ?? undefined,
+    checkinBehavior: appointment.checkinBehavior ?? undefined,
+    checkinExtraAuthorized: appointment.checkinExtraAuthorized ?? undefined,
+    checkinNotes: appointment.checkinNotes ?? undefined,
+    stageHistory: appointment.stageHistory ? JSON.parse(appointment.stageHistory) : [],
   };
 };
 
@@ -120,6 +130,16 @@ const pickAppointmentData = (body: any, currentNotes?: string | null) => {
     ...(body.tutorNotified !== undefined ? { tutorNotified: Boolean(body.tutorNotified) } : {}),
     ...(body.tutorNotifiedAt !== undefined ? { tutorNotifiedAt: body.tutorNotifiedAt ? new Date(body.tutorNotifiedAt) : null } : {}),
     ...(body.tutorNotifiedMessage !== undefined ? { tutorNotifiedMessage: body.tutorNotifiedMessage || null } : {}),
+    ...(body.groomingPreferences !== undefined ? { groomingPreferences: JSON.stringify(body.groomingPreferences) } : {}),
+    ...(body.priceAdjustment !== undefined ? { priceAdjustment: Number(body.priceAdjustment) } : {}),
+    ...(body.priceAdjustmentReason !== undefined ? { priceAdjustmentReason: body.priceAdjustmentReason || null } : {}),
+    ...(body.checkinArrivalTime !== undefined ? { checkinArrivalTime: body.checkinArrivalTime ? new Date(body.checkinArrivalTime) : null } : {}),
+    ...(body.checkinMatting !== undefined ? { checkinMatting: body.checkinMatting || null } : {}),
+    ...(body.checkinFleas !== undefined ? { checkinFleas: Boolean(body.checkinFleas) } : {}),
+    ...(body.checkinBehavior !== undefined ? { checkinBehavior: body.checkinBehavior || null } : {}),
+    ...(body.checkinExtraAuthorized !== undefined ? { checkinExtraAuthorized: Boolean(body.checkinExtraAuthorized) } : {}),
+    ...(body.checkinNotes !== undefined ? { checkinNotes: body.checkinNotes || null } : {}),
+    ...(body.stageHistory !== undefined ? { stageHistory: JSON.stringify(body.stageHistory) } : {}),
     notes: buildNotesWithMeta(noteText, meta),
   };
 
@@ -268,30 +288,74 @@ type ConflictCheckParams = {
   excludeId?: string;
 };
 
-const getBusinessHours = async (organizationId: string): Promise<{ openHour: number; closeHour: number }> => {
+type DaySchedule = {
+  open: boolean
+  start: string  // "HH:mm"
+  end: string    // "HH:mm"
+  breakStart?: string
+  breakEnd?: string
+  end2?: string
+}
+
+const WEEK_DAYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'] as const
+
+// Extrai hora e minuto de uma string ISO local sem sofrer conversão de timezone
+// "2026-04-26T19:30:00" ou "2026-04-26T19:30:00.000Z" → { h: 19, m: 30, weekday: 0-6 }
+const parseLocalDateTime = (isoStr: string) => {
+  // Remove Z para tratar como local; o frontend sempre grava sem Z
+  const s = isoStr.replace('Z', '')
+  const [datePart, timePart] = s.split('T')
+  const [year, month, day] = datePart.split('-').map(Number)
+  const [h, m] = (timePart ?? '00:00').split(':').map(Number)
+  // weekday sem timezone: usar Date.UTC para obter o dia correto
+  const weekday = new Date(Date.UTC(year, month - 1, day)).getUTCDay()
+  return { h, m, weekday }
+}
+
+const toMinutes = (hhmm: string): number => {
+  const [h, m] = hhmm.split(':').map(Number)
+  return h * 60 + m
+}
+
+const getOrgBusinessHours = async (organizationId: string): Promise<Record<string, DaySchedule> | null> => {
   try {
     const org = await prisma.organization.findUnique({ where: { id: organizationId } });
     const settings = org?.settings ? JSON.parse(org.settings) : {};
-    const openHour = settings.businessHours?.openHour ?? 8;
-    const closeHour = settings.businessHours?.closeHour ?? 18;
-    return { openHour, closeHour };
+    return settings.businessHours ?? null;
   } catch {
-    return { openHour: 8, closeHour: 18 };
+    return null;
   }
 };
 
-const validateConflict = async (params: ConflictCheckParams): Promise<string | null> => {
-  const { organizationId, professionalId, startAt, durationMinutes, excludeId } = params;
+const validateConflict = async (params: ConflictCheckParams & { checkBusinessHours?: boolean; rawDateStr?: string }): Promise<string | null> => {
+  const { organizationId, professionalId, startAt, durationMinutes, excludeId, checkBusinessHours = true, rawDateStr } = params;
   const endAt = new Date(startAt.getTime() + durationMinutes * 60_000);
 
-  const { openHour, closeHour } = await getBusinessHours(organizationId);
-  const openMin = openHour * 60;
-  const closeMin = closeHour * 60;
-  const startMin = startAt.getHours() * 60 + startAt.getMinutes();
-  const endMin = endAt.getHours() * 60 + endAt.getMinutes();
+  if (checkBusinessHours) {
+    const businessHours = await getOrgBusinessHours(organizationId);
 
-  if (startMin < openMin || endMin > closeMin) {
-    return `Horário fora do expediente (${openHour}h–${closeHour}h).`;
+    if (businessHours) {
+      // Usa a string ISO original para extrair hora local sem conversão de timezone
+      const isoStr = rawDateStr ?? startAt.toISOString()
+      const { h, m, weekday } = parseLocalDateTime(isoStr)
+      const dayKey = WEEK_DAYS[weekday]
+      const day: DaySchedule | undefined = businessHours[dayKey]
+
+      if (!day || !day.open) {
+        return `Estabelecimento fechado neste dia da semana.`
+      }
+
+      const startMin = h * 60 + m
+      const endMin = startMin + durationMinutes
+
+      const periodStart = toMinutes(day.start)
+      const periodEnd = toMinutes(day.end2 ?? day.end)
+
+      if (startMin < periodStart || endMin > periodEnd) {
+        return `Horário fora do expediente (${day.start}–${day.end2 ?? day.end}).`
+      }
+    }
+    // Se não há businessHours configurado, não bloqueia
   }
 
   // Only check conflict by professional when one is assigned
@@ -339,6 +403,7 @@ export const createAppointment = async (req: AuthRequest, res: Response) => {
         professionalId: data.professionalId,
         startAt: new Date(data.date),
         durationMinutes: data.duration ?? 30,
+        rawDateStr: body.date,
       });
       if (conflict) return res.status(409).json({ error: conflict });
     }
@@ -361,19 +426,26 @@ export const updateAppointment = async (req: AuthRequest, res: Response) => {
 
     const data = pickAppointmentData(req.body, existing.notes);
 
-    const startAt = data.date ? new Date(data.date) : existing.date;
-    const duration = data.duration ?? existing.duration ?? 30;
-    const professionalId = 'professionalId' in data ? data.professionalId : existing.professionalId;
-    const organizationId = existing.organizationId;
+    // Only validate scheduling conflicts when date, duration or professional actually differ from existing
+    const newDate = data.date ? new Date(data.date) : null;
+    const newDuration = data.duration ?? existing.duration ?? 30;
+    const newProfessionalId = 'professionalId' in data ? data.professionalId : existing.professionalId;
 
-    const conflict = await validateConflict({
-      organizationId,
-      professionalId,
-      startAt,
-      durationMinutes: duration,
-      excludeId: id,
-    });
-    if (conflict) return res.status(409).json({ error: conflict });
+    const dateChanged = newDate && Math.abs(newDate.getTime() - existing.date.getTime()) > 60_000;
+    const durationChanged = newDuration !== (existing.duration ?? 30);
+    const professionalChanged = newProfessionalId !== existing.professionalId;
+
+    if (dateChanged || durationChanged || professionalChanged) {
+      const conflict = await validateConflict({
+        organizationId: existing.organizationId,
+        professionalId: newProfessionalId,
+        startAt: newDate ?? existing.date,
+        durationMinutes: newDuration,
+        excludeId: id,
+        checkBusinessHours: false,
+      });
+      if (conflict) return res.status(409).json({ error: conflict });
+    }
 
     const appointment = await prisma.appointment.update({ where: { id }, data });
     await syncRelatedStays(appointment);

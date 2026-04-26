@@ -309,14 +309,8 @@ export default function ClinicPage() {
   }
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Clinica Veterinaria</h1>
-          <p className="text-muted-foreground">
-            Rotina assistencial com fila, triagem, consulta e prontuario.
-          </p>
-        </div>
+    <div className="space-y-4 animate-fade-in">
+      <div className="flex flex-col sm:flex-row justify-end items-center gap-4">
         <div className="flex flex-col sm:flex-row gap-2">
           {user && (
             <Select
@@ -339,14 +333,6 @@ export default function ClinicPage() {
               </SelectContent>
             </Select>
           )}
-          <Button
-            onClick={() => {
-              setEditingAppointment(null)
-              setIsNewConsultationOpen(true)
-            }}
-          >
-            <Plus className="mr-2 h-4 w-4" /> Nova Consulta
-          </Button>
         </div>
       </div>
 
@@ -882,6 +868,15 @@ export default function ClinicPage() {
         defaultMessage={pendingWA?.message ?? ''}
         onConfirm={handleConfirmWA}
       />
+
+      <button
+        type="button"
+        onClick={() => { setEditingAppointment(null); setIsNewConsultationOpen(true) }}
+        title="Nova Consulta"
+        className="fixed bottom-6 right-6 z-50 flex items-center gap-2 rounded-full bg-orange-500 px-5 py-3 text-sm font-semibold text-white shadow-lg transition-all hover:bg-orange-600 hover:shadow-xl active:scale-95"
+      >
+        <Plus className="h-5 w-5" />
+      </button>
     </div>
   )
 }
