@@ -1,12 +1,15 @@
-import { Request, Response } from 'express'
+import { Response } from 'express'
 import { prisma } from '../index'
+import { AuthRequest } from '../middlewares/auth.middleware'
 
 const ROLE_LABELS = ['admin', 'veterinarian', 'groomer', 'attendant']
 
-export const getProfessionals = async (_req: Request, res: Response) => {
+export const getProfessionals = async (req: AuthRequest, res: Response) => {
   try {
+    const organizationId = req.user!.organizationId!
     const users = await prisma.user.findMany({
-      select: { id: true, name: true, email: true, phone: true, role: true, organizationId: true },
+      where: { organizationId },
+      select: { id: true, name: true, email: true, phone: true, role: true, color: true },
       orderBy: { name: 'asc' },
     })
     res.json(users)
@@ -15,7 +18,7 @@ export const getProfessionals = async (_req: Request, res: Response) => {
   }
 }
 
-export const createProfessional = async (req: Request, res: Response) => {
+export const createProfessional = async (req: AuthRequest, res: Response) => {
   try {
     const { name, email, role, phone, color } = req.body
     if (!name || !email) {
@@ -34,10 +37,11 @@ export const createProfessional = async (req: Request, res: Response) => {
         email,
         role: role ?? 'attendant',
         passwordHash: '',
-        organizationId: color ?? null, // repurpose field for color until migration
+        organizationId: req.user!.organizationId!,
         phone: phone ?? null,
+        color: color ?? null,
       },
-      select: { id: true, name: true, email: true, phone: true, role: true, organizationId: true },
+      select: { id: true, name: true, email: true, phone: true, role: true, color: true },
     })
     res.status(201).json(user)
   } catch (error: any) {
@@ -45,7 +49,7 @@ export const createProfessional = async (req: Request, res: Response) => {
   }
 }
 
-export const updateProfessional = async (req: Request, res: Response) => {
+export const updateProfessional = async (req: AuthRequest, res: Response) => {
   const id = String(req.params.id)
   try {
     const { name, email, role, phone, color } = req.body
@@ -59,9 +63,9 @@ export const updateProfessional = async (req: Request, res: Response) => {
         ...(email !== undefined ? { email } : {}),
         ...(role !== undefined ? { role } : {}),
         ...(phone !== undefined ? { phone } : {}),
-        ...(color !== undefined ? { organizationId: color } : {}),
+        ...(color !== undefined ? { color } : {}),
       },
-      select: { id: true, name: true, email: true, phone: true, role: true, organizationId: true },
+      select: { id: true, name: true, email: true, phone: true, role: true, color: true },
     })
     res.json(user)
   } catch (error: any) {
@@ -69,7 +73,7 @@ export const updateProfessional = async (req: Request, res: Response) => {
   }
 }
 
-export const deleteProfessional = async (req: Request, res: Response) => {
+export const deleteProfessional = async (req: AuthRequest, res: Response) => {
   const id = String(req.params.id)
   try {
     await prisma.user.delete({ where: { id } })

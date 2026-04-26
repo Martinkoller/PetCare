@@ -2,6 +2,7 @@ import { useState } from 'react'
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
@@ -58,6 +59,7 @@ export function EvolutionModal({ open, onOpenChange, stay }: EvolutionModalProps
           <DialogTitle className="flex items-center gap-2">
             Evolução Clínica: {stay.pet?.name}
           </DialogTitle>
+          <DialogDescription>Registre e visualize as evoluções clínicas da internação.</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6 py-4">

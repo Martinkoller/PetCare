@@ -49,19 +49,19 @@ type CalendarMode = 'day' | 'week' | 'month'
 type ServiceTab = 'work' | 'boarding'
 
 const workLegend = [
-  { color: 'bg-slate-500', label: 'Agendado' },
-  { color: 'bg-blue-500', label: 'Confirmado' },
-  { color: 'bg-amber-500', label: 'Em Atendimento' },
-  { color: 'bg-green-500', label: 'Finalizado' },
-  { color: 'bg-red-500', label: 'Cancelado' },
+  { color: 'bg-slate-200 border border-slate-400', label: 'Agendado' },
+  { color: 'bg-blue-200 border border-blue-400', label: 'Confirmado' },
+  { color: 'bg-amber-200 border border-amber-400', label: 'Em Atendimento' },
+  { color: 'bg-green-200 border border-green-400', label: 'Finalizado' },
+  { color: 'bg-red-200 border border-red-400', label: 'Cancelado' },
 ]
 
 const boardingLegend = [
-  { color: 'bg-orange-500', label: 'Reservado' },
-  { color: 'bg-emerald-500', label: 'Confirmado' },
-  { color: 'bg-blue-500', label: 'Hospedado' },
-  { color: 'bg-slate-500', label: 'Encerrado' },
-  { color: 'bg-red-500', label: 'Cancelado' },
+  { color: 'bg-orange-200 border border-orange-400', label: 'Reservado' },
+  { color: 'bg-emerald-200 border border-emerald-400', label: 'Confirmado' },
+  { color: 'bg-blue-200 border border-blue-400', label: 'Hospedado' },
+  { color: 'bg-slate-200 border border-slate-400', label: 'Encerrado' },
+  { color: 'bg-red-200 border border-red-400', label: 'Cancelado' },
 ]
 
 const workStatusOptions = [
@@ -132,6 +132,33 @@ export default function SchedulePage() {
 
   const legendItems =
     serviceTab === 'boarding' ? boardingLegend : workLegend
+
+  const { startHour, endHour } = useMemo(() => {
+    const timeToMin = (t: string) => {
+      const [h, m] = t.split(':').map(Number)
+      return h * 60 + (m || 0)
+    }
+    let minMin = 7 * 60
+    let maxMin = 19 * 60
+    if (businessHours && !('openHour' in businessHours) && !('closeHour' in businessHours)) {
+      Object.values(businessHours).forEach((day: any) => {
+        if (!day?.open) return
+        if (day.start) {
+          const m = timeToMin(day.start)
+          if (m < minMin) minMin = m
+        }
+        const ends = [day.end, day.end2].filter(Boolean)
+        ends.forEach((t: string) => {
+          const m = timeToMin(t)
+          if (m > maxMin) maxMin = m
+        })
+      })
+    }
+    return {
+      startHour: Math.floor(minMin / 60),
+      endHour: Math.ceil(maxMin / 60),
+    }
+  }, [businessHours])
 
   const filteredEvents = useMemo(() => {
     return appointments.filter((evt) => {
@@ -321,8 +348,8 @@ export default function SchedulePage() {
           onTimeClick={handleTimeClick}
           onEventDrop={handleEventDrop}
           onUpdateStatus={(id, status) => updateAppointmentStatus(id, status)}
-          startHour={7}
-          endHour={19}
+          startHour={startHour}
+          endHour={endHour}
           businessHours={businessHours}
           activeProfiles={activeProfiles}
         />
@@ -344,8 +371,8 @@ export default function SchedulePage() {
           onEventDrop={handleEventDrop}
           onUpdateStatus={(id, status) => updateAppointmentStatus(id, status)}
           mode={mode}
-          startHour={7}
-          endHour={19}
+          startHour={startHour}
+          endHour={endHour}
           businessHours={businessHours}
           activeProfiles={activeProfiles}
         />

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -175,6 +176,7 @@ export function OfficialDocuments({ pet, prescriptions }: OfficialDocumentsProps
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Documentos Oficiais</DialogTitle>
+          <DialogDescription>Geração de prescrições e documentos clínicos do paciente.</DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-4">
           <div className="flex flex-col gap-2">

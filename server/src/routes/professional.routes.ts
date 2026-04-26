@@ -5,8 +5,11 @@ import {
   updateProfessional,
   deleteProfessional,
 } from '../controllers/professional.controller'
+import { authenticate } from '../middlewares/auth.middleware'
 
 const router = Router()
+
+router.use(authenticate)
 
 router.get('/', getProfessionals)
 router.post('/', createProfessional)

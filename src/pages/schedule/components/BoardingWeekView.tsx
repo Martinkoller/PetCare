@@ -82,16 +82,16 @@ function getBoardingStatusMeta(status: string) {
   switch (status) {
     case 'scheduled':
       return {
-        row: 'border-orange-200 bg-orange-50/70',
-        cell: 'bg-orange-50 border-orange-200 text-orange-900',
+        row: 'border-orange-400 bg-orange-200/70',
+        cell: 'bg-orange-200 border-orange-400 text-orange-900',
         dot: 'bg-orange-500',
         label: 'Reservado',
       }
 
     case 'confirmed':
       return {
-        row: 'border-emerald-200 bg-emerald-50/70',
-        cell: 'bg-emerald-50 border-emerald-200 text-emerald-900',
+        row: 'border-emerald-400 bg-emerald-200/70',
+        cell: 'bg-emerald-200 border-emerald-400 text-emerald-900',
         dot: 'bg-emerald-500',
         label: 'Confirmado',
       }
@@ -99,8 +99,8 @@ function getBoardingStatusMeta(status: string) {
     case 'checked_in':
     case 'in_progress':
       return {
-        row: 'border-blue-200 bg-blue-50/70',
-        cell: 'bg-blue-50 border-blue-200 text-blue-900',
+        row: 'border-blue-400 bg-blue-200/70',
+        cell: 'bg-blue-200 border-blue-400 text-blue-900',
         dot: 'bg-blue-500',
         label: 'Hospedado',
       }
@@ -108,24 +108,24 @@ function getBoardingStatusMeta(status: string) {
     case 'checked_out':
     case 'completed':
       return {
-        row: 'border-slate-200 bg-slate-50/70',
-        cell: 'bg-slate-50 border-slate-200 text-slate-800',
+        row: 'border-slate-400 bg-slate-200/70',
+        cell: 'bg-slate-200 border-slate-400 text-slate-800',
         dot: 'bg-slate-500',
         label: 'Encerrado',
       }
 
     case 'cancelled':
       return {
-        row: 'border-red-200 bg-red-50/70',
-        cell: 'bg-red-50 border-red-200 text-red-900',
+        row: 'border-red-400 bg-red-200/70',
+        cell: 'bg-red-200 border-red-400 text-red-900',
         dot: 'bg-red-500',
         label: 'Cancelado',
       }
 
     default:
       return {
-        row: 'border-slate-200 bg-slate-50/70',
-        cell: 'bg-slate-50 border-slate-200 text-slate-800',
+        row: 'border-slate-400 bg-slate-200/70',
+        cell: 'bg-slate-200 border-slate-400 text-slate-800',
         dot: 'bg-slate-400',
         label: 'Hospedagem',
       }

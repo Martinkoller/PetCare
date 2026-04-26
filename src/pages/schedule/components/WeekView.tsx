@@ -129,16 +129,8 @@ function getServiceLabel(type: string) {
 }
 
 function resolveBusinessBlock(businessHours: any, day: Date): DayBusinessBlock {
-    if (!businessHours) {
-        return {
-            isOpenAllDay: true,
-            isClosedAllDay: false,
-            firstStart: null,
-            firstEnd: null,
-            secondStart: null,
-            secondEnd: null,
-        }
-    }
+    const openAllDay = { isOpenAllDay: true, isClosedAllDay: false, firstStart: null, firstEnd: null, secondStart: null, secondEnd: null }
+    if (!businessHours || 'openHour' in businessHours || 'closeHour' in businessHours) return openAllDay
 
     const dayKey = DAY_KEYS[day.getDay()]
     const config = businessHours?.[dayKey]
@@ -468,11 +460,11 @@ export function WeekView({
                     <div
                         className={cn(
                             'absolute rounded-lg border shadow-sm cursor-pointer overflow-hidden transition-all hover:shadow-md z-20 hover:z-30',
-                            evt.status === 'scheduled' && 'bg-slate-50 border-slate-200 text-slate-800',
-                            evt.status === 'confirmed' && 'bg-blue-50 border-blue-200 text-blue-900',
-                            evt.status === 'in_progress' && 'bg-amber-50 border-amber-200 text-amber-900',
-                            evt.status === 'completed' && 'bg-green-50 border-green-200 text-green-900',
-                            evt.status === 'cancelled' && 'bg-red-50 border-red-200 text-red-900',
+                            evt.status === 'scheduled' && 'bg-slate-200 border-slate-400 text-slate-800',
+                            evt.status === 'confirmed' && 'bg-blue-200 border-blue-400 text-blue-900',
+                            evt.status === 'in_progress' && 'bg-amber-200 border-amber-400 text-amber-900',
+                            evt.status === 'completed' && 'bg-green-200 border-green-400 text-green-900',
+                            evt.status === 'cancelled' && 'bg-red-200 border-red-400 text-red-900',
                             evt.serviceType === 'hospitalization' && 'border-l-red-500 border-l-4',
                         )}
                         style={style}

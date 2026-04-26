@@ -26,6 +26,7 @@ import { taskService } from '@/services/task-service'
 import { whatsappService } from '@/services/whatsapp-service'
 import { employeeService } from '@/services/employee-service'
 import { registerNotificationTrigger } from '@/services/notification-trigger'
+import { useAuthStore } from '@/stores/useAuthStore'
 import { toast } from 'sonner'
 
 interface ConfigContextType {
@@ -123,6 +124,8 @@ const DEFAULT_GROOMING_STAGES: GroomingStage[] = [
 ]
 
 export function ConfigProvider({ children }: { children: ReactNode }) {
+  const { isRealUser } = useAuthStore()
+
   const [notificationSettings, setNotificationSettings] =
     useState<NotificationSettings>({
       enabled: true,
@@ -595,8 +598,8 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
   }, [])
 
   useEffect(() => {
-    loadInitialConfig()
-  }, [loadInitialConfig])
+    if (isRealUser) loadInitialConfig()
+  }, [isRealUser, loadInitialConfig])
 
   // Trigger global para outros stores
 useEffect(() => {

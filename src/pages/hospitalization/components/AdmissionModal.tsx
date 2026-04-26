@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react'
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
@@ -65,6 +66,7 @@ export function AdmissionModal({ open, onOpenChange }: AdmissionModalProps) {
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Admitir Paciente na Internação</DialogTitle>
+          <DialogDescription>Preencha os dados para iniciar a internação do paciente.</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
