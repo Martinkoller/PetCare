@@ -204,30 +204,27 @@ const syncRelatedStays = async (appointment: any) => {
 
 export const getAppointments = async (req: AuthRequest, res: Response) => {
   try {
-    const { start, end } = req.query;
-    
+    const { start, end, overlap } = req.query;
+
     const where: any = {
       status: { not: 'archived' }
     };
 
-    if (start || end) {
+    const startDate = start && start !== 'undefined' && start !== 'null' ? new Date(start as string) : null;
+    const endDate = end && end !== 'undefined' && end !== 'null' ? new Date(end as string) : null;
+
+    if (overlap === 'true' && startDate && endDate) {
+      // For boarding: fetch appointments whose date <= end AND (returnDate >= start OR returnDate is null)
+      where.date = { lte: endDate };
+      where.OR = [
+        { returnDate: { gte: startDate } },
+        { returnDate: null },
+      ];
+    } else if (startDate || endDate) {
       where.date = {};
-      if (start && start !== 'undefined' && start !== 'null') {
-        const startDate = new Date(start as string);
-        if (!isNaN(startDate.getTime())) {
-          where.date.gte = startDate;
-        }
-      }
-      if (end && end !== 'undefined' && end !== 'null') {
-        const endDate = new Date(end as string);
-        if (!isNaN(endDate.getTime())) {
-          where.date.lte = endDate;
-        }
-      }
-      // If no valid dates were provided, remove the empty date object
-      if (Object.keys(where.date).length === 0) {
-        delete where.date;
-      }
+      if (startDate && !isNaN(startDate.getTime())) where.date.gte = startDate;
+      if (endDate && !isNaN(endDate.getTime())) where.date.lte = endDate;
+      if (Object.keys(where.date).length === 0) delete where.date;
     }
 
     const appointments = await prisma.appointment.findMany({

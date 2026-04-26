@@ -1,27 +1,63 @@
-# ambiente
+# =========================
+# Ambiente / variáveis
+# =========================
 .env
 .env.*
+!.env.example
+
+# =========================
+# Dependências
+# =========================
 node_modules/
 
-# build frontend
+# =========================
+# Build / distribuição
+# =========================
 dist/
+build/
 
-# configs locais
+# =========================
+# Ferramentas locais / contexto
+# =========================
 .claude/
+contexto/
 
-# arquivos temporários / testes locais
+# =========================
+# Arquivos temporários do backend
+# =========================
 server/scratch/
 server/*.sql
 
-# IDE / editores
-.vscode/
-
-# pastas externas de referência (não fazem parte do projeto)
-Model-Vue-Site-main/
-vue-typescript-admin-template-master/
-contexto/
-
-# Playwright / E2E artifacts
+# =========================
+# Testes E2E / Playwright
+# =========================
 test-results/
 playwright-report/
 e2e/report/
+coverage/
+
+# =========================
+# IDE / editores
+# =========================
+.vscode/
+.idea/
+
+# =========================
+# Sistema operacional
+# =========================
+.DS_Store
+Thumbs.db
+
+# =========================
+# Logs
+# =========================
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# =========================
+# Pastas externas de referência
+# =========================
+Model-Vue-Site-main/
+vue-typescript-admin-template-master/

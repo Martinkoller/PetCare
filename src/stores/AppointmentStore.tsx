@@ -30,7 +30,7 @@ import { toast } from 'sonner'
 interface AppointmentContextType {
   appointments: Appointment[]
   setAppointments: React.Dispatch<React.SetStateAction<Appointment[]>>
-  refreshAppointments: (start?: string, end?: string) => Promise<void>
+  refreshAppointments: (start?: string, end?: string, overlap?: boolean) => Promise<void>
   addAppointment: (apt: Appointment) => Promise<void>
   updateAppointment: (updatedApt: Appointment) => Promise<void>
   deleteAppointment: (id: string) => Promise<void>
@@ -65,10 +65,10 @@ export function AppointmentProvider({ children }: { children: ReactNode }) {
   const { pets, setPets } = usePetStore()
   const { clients } = useClientStore()
 
-  const loadAppointmentData = useCallback(async (start?: string, end?: string) => {
+  const loadAppointmentData = useCallback(async (start?: string, end?: string, overlap?: boolean) => {
     try {
       const [appointmentsData, servicesData] = await Promise.all([
-        appointmentService.getAppointments(start, end),
+        appointmentService.getAppointments(start, end, overlap),
         serviceCatalogService.getServices(),
       ])
       setAppointments(appointmentsData)
@@ -78,8 +78,8 @@ export function AppointmentProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  const refreshAppointments = useCallback(async (start?: string, end?: string) => {
-    await loadAppointmentData(start, end);
+  const refreshAppointments = useCallback(async (start?: string, end?: string, overlap?: boolean) => {
+    await loadAppointmentData(start, end, overlap);
   }, [loadAppointmentData]);
 
   useEffect(() => {

@@ -65,21 +65,19 @@ const boardingLegend = [
 ]
 
 const workStatusOptions = [
-  { value: 'scheduled', label: 'Agendado' },
-  { value: 'confirmed', label: 'Confirmado' },
-  { value: 'in_progress', label: 'Em Atendimento' },
-  { value: 'completed', label: 'Finalizado' },
-  { value: 'cancelled', label: 'Cancelado' },
+  { values: ['scheduled'], label: 'Agendado' },
+  { values: ['confirmed'], label: 'Confirmado' },
+  { values: ['in_progress'], label: 'Em Atendimento' },
+  { values: ['completed'], label: 'Finalizado' },
+  { values: ['cancelled'], label: 'Cancelado' },
 ]
 
 const boardingStatusOptions = [
-  { value: 'scheduled', label: 'Reservado' },
-  { value: 'confirmed', label: 'Confirmado' },
-  { value: 'checked_in', label: 'Hospedado' },
-  { value: 'in_progress', label: 'Hospedado' },
-  { value: 'checked_out', label: 'Encerrado' },
-  { value: 'completed', label: 'Encerrado' },
-  { value: 'cancelled', label: 'Cancelado' },
+  { values: ['scheduled'], label: 'Reservado' },
+  { values: ['confirmed'], label: 'Confirmado' },
+  { values: ['checked_in', 'in_progress'], label: 'Hospedado' },
+  { values: ['checked_out', 'completed'], label: 'Encerrado' },
+  { values: ['cancelled'], label: 'Cancelado' },
 ]
 
 const viewButtonClass = (active: boolean) =>
@@ -142,8 +140,10 @@ export default function SchedulePage() {
       start = format(s, 'yyyy-MM-ddT00:00:00');
       end = format(e, 'yyyy-MM-ddT23:59:59');
     }
-    refreshAppointments(start, end)
-  }, [refreshAppointments, currentDate, mode])
+    // Hospedagem: usa overlap=true para buscar estadias que cruzam o período (não só as que iniciam nele)
+    const overlap = serviceTab === 'boarding';
+    refreshAppointments(start, end, overlap)
+  }, [refreshAppointments, currentDate, mode, serviceTab])
 
   const statusOptions =
     serviceTab === 'boarding' ? boardingStatusOptions : workStatusOptions
@@ -282,12 +282,13 @@ export default function SchedulePage() {
     )
   }
 
-  const toggleStatus = (status: string) => {
-    setActiveStatuses((prev) =>
-      prev.includes(status)
-        ? prev.filter((id) => id !== status)
-        : [...prev, status],
-    )
+  const toggleStatus = (values: string[]) => {
+    setActiveStatuses((prev) => {
+      const allActive = values.every((v) => prev.includes(v))
+      return allActive
+        ? prev.filter((id) => !values.includes(id))
+        : [...prev.filter((id) => !values.includes(id)), ...values]
+    })
   }
 
   const clearFilters = () => {
@@ -560,12 +561,12 @@ export default function SchedulePage() {
                   <div className="space-y-2">
                     {statusOptions.map((status) => (
                       <label
-                        key={`${status.value}-${status.label}`}
+                        key={status.label}
                         className="flex items-center gap-3 rounded-lg border p-2 cursor-pointer hover:bg-muted/40"
                       >
                         <Checkbox
-                          checked={activeStatuses.includes(status.value)}
-                          onCheckedChange={() => toggleStatus(status.value)}
+                          checked={status.values.some((v) => activeStatuses.includes(v))}
+                          onCheckedChange={() => toggleStatus(status.values)}
                         />
                         <div className="text-sm font-medium">{status.label}</div>
                       </label>
@@ -629,19 +630,17 @@ export default function SchedulePage() {
               )
             })}
 
-            {activeStatuses.map((statusId) => {
-              const status = statusOptions.find((s) => s.value === statusId)
-
-              return (
+            {statusOptions
+              .filter((s) => s.values.some((v) => activeStatuses.includes(v)))
+              .map((status) => (
                 <Badge
-                  key={statusId}
+                  key={status.label}
                   variant="secondary"
                   className="rounded-full px-3 py-1 bg-blue-50 text-blue-700 border border-blue-200"
                 >
-                  Status: {status?.label || statusId}
+                  Status: {status.label}
                 </Badge>
-              )
-            })}
+              ))}
           </div>
         )}
       </div>
