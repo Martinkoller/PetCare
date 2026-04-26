@@ -66,15 +66,15 @@ function getStatusDotClass(status: string) {
     case 'scheduled':
       return 'bg-slate-500'
     case 'confirmed':
-      return 'bg-blue-500'
+      return 'bg-blue-600'
     case 'in_progress':
       return 'bg-amber-500'
     case 'completed':
-      return 'bg-green-500'
+      return 'bg-green-600'
     case 'cancelled':
-      return 'bg-red-500'
+      return 'bg-red-600'
     default:
-      return 'bg-slate-400'
+      return 'bg-slate-500'
   }
 }
 
@@ -84,7 +84,7 @@ function getStatusBadge(status: string) {
       return (
         <Badge
           variant="outline"
-          className="bg-slate-50 text-slate-700 border-slate-200 text-[9px] h-4 px-1.5"
+          className="bg-slate-50 text-slate-600 border-slate-400 text-[9px] h-4 px-1.5"
         >
           Agendado
         </Badge>
@@ -93,7 +93,7 @@ function getStatusBadge(status: string) {
       return (
         <Badge
           variant="secondary"
-          className="bg-blue-100 text-blue-800 border-blue-200 text-[9px] h-4 px-1.5"
+          className="bg-blue-100 text-blue-700 border-blue-500 text-[9px] h-4 px-1.5"
         >
           Confirmado
         </Badge>
@@ -102,7 +102,7 @@ function getStatusBadge(status: string) {
       return (
         <Badge
           variant="secondary"
-          className="bg-amber-100 text-amber-800 border-amber-200 text-[9px] h-4 px-1.5"
+          className="bg-amber-100 text-amber-700 border-amber-400 text-[9px] h-4 px-1.5"
         >
           Em Atendimento
         </Badge>
@@ -111,7 +111,7 @@ function getStatusBadge(status: string) {
       return (
         <Badge
           variant="secondary"
-          className="bg-green-100 text-green-800 border-green-200 text-[9px] h-4 px-1.5"
+          className="bg-green-100 text-green-700 border-green-500 text-[9px] h-4 px-1.5"
         >
           Finalizado
         </Badge>
@@ -120,7 +120,7 @@ function getStatusBadge(status: string) {
       return (
         <Badge
           variant="secondary"
-          className="bg-red-100 text-red-800 border-red-200 text-[9px] h-4 px-1.5"
+          className="bg-red-100 text-red-700 border-red-500 text-[9px] h-4 px-1.5"
         >
           Cancelado
         </Badge>

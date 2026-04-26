@@ -49,19 +49,19 @@ type CalendarMode = 'day' | 'week' | 'month'
 type ServiceTab = 'work' | 'boarding'
 
 const workLegend = [
-  { color: 'bg-slate-200 border border-slate-400', label: 'Agendado' },
-  { color: 'bg-blue-200 border border-blue-400', label: 'Confirmado' },
-  { color: 'bg-amber-200 border border-amber-400', label: 'Em Atendimento' },
-  { color: 'bg-green-200 border border-green-400', label: 'Finalizado' },
-  { color: 'bg-red-200 border border-red-400', label: 'Cancelado' },
+  { color: 'bg-slate-500', label: 'Agendado' },
+  { color: 'bg-blue-600', label: 'Confirmado' },
+  { color: 'bg-amber-500', label: 'Em Atendimento' },
+  { color: 'bg-green-600', label: 'Finalizado' },
+  { color: 'bg-red-600', label: 'Cancelado' },
 ]
 
 const boardingLegend = [
-  { color: 'bg-orange-200 border border-orange-400', label: 'Reservado' },
-  { color: 'bg-emerald-200 border border-emerald-400', label: 'Confirmado' },
-  { color: 'bg-blue-200 border border-blue-400', label: 'Hospedado' },
-  { color: 'bg-slate-200 border border-slate-400', label: 'Encerrado' },
-  { color: 'bg-red-200 border border-red-400', label: 'Cancelado' },
+  { color: 'bg-slate-500', label: 'Reservado' },
+  { color: 'bg-blue-600', label: 'Confirmado' },
+  { color: 'bg-amber-500', label: 'Em Hospedagem' },
+  { color: 'bg-green-600', label: 'Finalizado' },
+  { color: 'bg-red-600', label: 'Cancelado' },
 ]
 
 const workStatusOptions = [
@@ -75,8 +75,8 @@ const workStatusOptions = [
 const boardingStatusOptions = [
   { values: ['scheduled'], label: 'Reservado' },
   { values: ['confirmed'], label: 'Confirmado' },
-  { values: ['checked_in', 'in_progress'], label: 'Hospedado' },
-  { values: ['checked_out', 'completed'], label: 'Encerrado' },
+  { values: ['checked_in', 'in_progress'], label: 'Em Hospedagem' },
+  { values: ['checked_out', 'completed'], label: 'Finalizado' },
   { values: ['cancelled'], label: 'Cancelado' },
 ]
 
@@ -127,18 +127,18 @@ export default function SchedulePage() {
   useEffect(() => {
     let start, end;
     if (mode === 'day') {
-      start = format(currentDate, 'yyyy-MM-ddT00:00:00');
-      end = format(currentDate, 'yyyy-MM-ddT23:59:59');
+      start = format(currentDate, "yyyy-MM-dd'T'00:00:00");
+      end = format(currentDate, "yyyy-MM-dd'T'23:59:59");
     } else if (mode === 'week') {
       const s = startOfWeek(currentDate, { weekStartsOn: 0 });
       const e = endOfWeek(currentDate, { weekStartsOn: 0 });
-      start = format(s, 'yyyy-MM-ddT00:00:00');
-      end = format(e, 'yyyy-MM-ddT23:59:59');
+      start = format(s, "yyyy-MM-dd'T'00:00:00");
+      end = format(e, "yyyy-MM-dd'T'23:59:59");
     } else {
       const s = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
       const e = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
-      start = format(s, 'yyyy-MM-ddT00:00:00');
-      end = format(e, 'yyyy-MM-ddT23:59:59');
+      start = format(s, "yyyy-MM-dd'T'00:00:00");
+      end = format(e, "yyyy-MM-dd'T'23:59:59");
     }
     // Hospedagem: usa overlap=true para buscar estadias que cruzam o período (não só as que iniciam nele)
     const overlap = serviceTab === 'boarding';
@@ -201,16 +201,17 @@ export default function SchedulePage() {
   const prevTitle = mode === 'day' ? 'Dia anterior' : mode === 'week' ? 'Semana anterior' : 'Mês anterior'
   const nextTitle = mode === 'day' ? 'Próximo dia' : mode === 'week' ? 'Próxima semana' : 'Próximo mês'
 
-  const todayLabel = useMemo(() => {
-    const today = new Date()
-    if (mode === 'day') return format(today, "dd 'de' MMM", { locale: ptBR })
+  const currentLabel = useMemo(() => {
+    if (mode === 'day') return format(currentDate, "dd 'de' MMM", { locale: ptBR })
     if (mode === 'week') {
-      const s = startOfWeek(today, { weekStartsOn: 0 })
-      const e = endOfWeek(today, { weekStartsOn: 0 })
+      const s = startOfWeek(currentDate, { weekStartsOn: 0 })
+      const e = endOfWeek(currentDate, { weekStartsOn: 0 })
       return `${format(s, 'dd/MM', { locale: ptBR })} a ${format(e, 'dd/MM', { locale: ptBR })}`
     }
-    return format(today, 'MMMM', { locale: ptBR })
-  }, [mode])
+    return format(currentDate, "MMMM 'de' yyyy", { locale: ptBR })
+  }, [mode, currentDate])
+
+  const todayTitle = mode === 'day' ? 'Ir para hoje' : mode === 'week' ? 'Ir para semana atual' : 'Ir para mês atual'
 
   const handlePrev = () => {
     if (mode === 'day') setCurrentDate((prev) => subDays(prev, 1))
@@ -427,9 +428,9 @@ export default function SchedulePage() {
                 variant="ghost"
                 className="h-8 px-3 rounded-lg font-medium"
                 onClick={handleToday}
-                title="Ir para hoje"
+                title={todayTitle}
               >
-                {todayLabel}
+                {currentLabel}
               </Button>
 
               <Button

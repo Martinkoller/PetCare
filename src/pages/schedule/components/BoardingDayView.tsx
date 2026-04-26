@@ -46,40 +46,40 @@ function getBoardingStatusMeta(status?: string) {
   switch (status) {
     case 'scheduled':
       return {
-        dot: 'bg-orange-500',
-        card: 'bg-orange-200 border-orange-400 text-orange-900',
+        dot: 'bg-slate-500',
+        card: 'bg-slate-100 border-slate-400 text-slate-700',
         label: 'Reservado',
       }
     case 'confirmed':
       return {
-        dot: 'bg-emerald-500',
-        card: 'bg-emerald-200 border-emerald-400 text-emerald-900',
+        dot: 'bg-blue-600',
+        card: 'bg-blue-100 border-blue-500 text-blue-800',
         label: 'Confirmado',
       }
     case 'checked_in':
     case 'in_progress':
       return {
-        dot: 'bg-blue-500',
-        card: 'bg-blue-200 border-blue-400 text-blue-900',
-        label: 'Hospedado',
+        dot: 'bg-amber-500',
+        card: 'bg-amber-100 border-amber-400 text-amber-800',
+        label: 'Em Hospedagem',
       }
     case 'checked_out':
     case 'completed':
       return {
-        dot: 'bg-slate-500',
-        card: 'bg-slate-200 border-slate-400 text-slate-800',
-        label: 'Encerrado',
+        dot: 'bg-green-600',
+        card: 'bg-green-100 border-green-500 text-green-800',
+        label: 'Finalizado',
       }
     case 'cancelled':
       return {
-        dot: 'bg-red-500',
-        card: 'bg-red-200 border-red-400 text-red-900',
+        dot: 'bg-red-600',
+        card: 'bg-red-100 border-red-500 text-red-800',
         label: 'Cancelado',
       }
     default:
       return {
-        dot: 'bg-orange-500',
-        card: 'bg-orange-200 border-orange-400 text-orange-900',
+        dot: 'bg-slate-500',
+        card: 'bg-slate-100 border-slate-400 text-slate-700',
         label: 'Reservado',
       }
   }

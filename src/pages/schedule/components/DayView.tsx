@@ -428,11 +428,11 @@ export function DayView({
 
     const eventClasses = cn(
       'absolute rounded-xl border shadow-sm overflow-hidden z-20 hover:z-30 cursor-pointer transition-shadow',
-      evt.status === 'scheduled' && 'bg-slate-200 border-slate-400 text-slate-800',
-      evt.status === 'confirmed' && 'bg-blue-200 border-blue-400 text-blue-900',
-      evt.status === 'in_progress' && 'bg-amber-200 border-amber-400 text-amber-900',
-      evt.status === 'completed' && 'bg-green-200 border-green-400 text-green-900',
-      evt.status === 'cancelled' && 'bg-red-200 border-red-400 text-red-900',
+      evt.status === 'scheduled' && 'bg-slate-100 border-slate-400 text-slate-700',
+      evt.status === 'confirmed' && 'bg-blue-100 border-blue-500 text-blue-800',
+      evt.status === 'in_progress' && 'bg-amber-100 border-amber-400 text-amber-800',
+      evt.status === 'completed' && 'bg-green-100 border-green-500 text-green-800',
+      evt.status === 'cancelled' && 'bg-red-100 border-red-500 text-red-800',
       evt.serviceType === 'hospitalization' && 'border-l-red-500 border-l-4',
     )
 

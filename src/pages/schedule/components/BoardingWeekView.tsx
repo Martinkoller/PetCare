@@ -84,52 +84,52 @@ function getBoardingStatusMeta(status: string) {
   switch (status) {
     case 'scheduled':
       return {
-        row: 'border-orange-400 bg-orange-200/70',
-        cell: 'bg-orange-200 border-orange-400 text-orange-900',
-        dot: 'bg-orange-500',
+        row: 'border-slate-400 bg-slate-100/70',
+        cell: 'bg-slate-100 border-slate-400 text-slate-700',
+        dot: 'bg-slate-500',
         label: 'Reservado',
       }
 
     case 'confirmed':
       return {
-        row: 'border-emerald-400 bg-emerald-200/70',
-        cell: 'bg-emerald-200 border-emerald-400 text-emerald-900',
-        dot: 'bg-emerald-500',
+        row: 'border-blue-500 bg-blue-100/70',
+        cell: 'bg-blue-100 border-blue-500 text-blue-800',
+        dot: 'bg-blue-600',
         label: 'Confirmado',
       }
 
     case 'checked_in':
     case 'in_progress':
       return {
-        row: 'border-blue-400 bg-blue-200/70',
-        cell: 'bg-blue-200 border-blue-400 text-blue-900',
-        dot: 'bg-blue-500',
-        label: 'Hospedado',
+        row: 'border-amber-400 bg-amber-100/70',
+        cell: 'bg-amber-100 border-amber-400 text-amber-800',
+        dot: 'bg-amber-500',
+        label: 'Em Hospedagem',
       }
 
     case 'checked_out':
     case 'completed':
       return {
-        row: 'border-slate-400 bg-slate-200/70',
-        cell: 'bg-slate-200 border-slate-400 text-slate-800',
-        dot: 'bg-slate-500',
-        label: 'Encerrado',
+        row: 'border-green-500 bg-green-100/70',
+        cell: 'bg-green-100 border-green-500 text-green-800',
+        dot: 'bg-green-600',
+        label: 'Finalizado',
       }
 
     case 'cancelled':
       return {
-        row: 'border-red-400 bg-red-200/70',
-        cell: 'bg-red-200 border-red-400 text-red-900',
-        dot: 'bg-red-500',
+        row: 'border-red-500 bg-red-100/70',
+        cell: 'bg-red-100 border-red-500 text-red-800',
+        dot: 'bg-red-600',
         label: 'Cancelado',
       }
 
     default:
       return {
-        row: 'border-slate-400 bg-slate-200/70',
-        cell: 'bg-slate-200 border-slate-400 text-slate-800',
-        dot: 'bg-slate-400',
-        label: 'Hospedagem',
+        row: 'border-slate-400 bg-slate-100/70',
+        cell: 'bg-slate-100 border-slate-400 text-slate-700',
+        dot: 'bg-slate-500',
+        label: 'Reservado',
       }
   }
 }
