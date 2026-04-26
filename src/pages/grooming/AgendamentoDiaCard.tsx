@@ -1,135 +1,237 @@
+import { useState } from 'react'
 import { Appointment, Client, Pet, Profile } from '@/lib/types'
-import { Card, CardContent } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
-import { format } from 'date-fns'
-import { ptBR } from 'date-fns/locale'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import {
   ContextMenu,
   ContextMenuContent,
   ContextMenuItem,
   ContextMenuTrigger,
 } from '@/components/ui/context-menu'
-import { Eye, Edit, LogIn } from 'lucide-react'
+import { format, isSameDay } from 'date-fns'
+import { ptBR } from 'date-fns/locale'
+import { Eye, Edit, ArrowRight, ChevronRight, Stethoscope } from 'lucide-react'
 
-const PET_SIZE_LABEL: Record<string, string> = { small: 'P', medium: 'M', large: 'G' }
+const STATUS_META: Record<string, { label: string; dot: string }> = {
+  scheduled:   { label: 'Agendado',       dot: 'bg-slate-500' },
+  confirmed:   { label: 'Confirmado',     dot: 'bg-blue-600' },
+  in_progress: { label: 'Em Atendimento', dot: 'bg-amber-500' },
+  completed:   { label: 'Finalizado',     dot: 'bg-green-600' },
+  cancelled:   { label: 'Cancelado',      dot: 'bg-red-600' },
+}
 
 interface Props {
   apt: Appointment
   pet: Pet | undefined
   client: Client | undefined
   professional: Profile | undefined
-  onCheckin: () => void
+  onCheckin: (newDate?: string) => void
+  onNextStage: (e: React.MouseEvent) => void
   onEdit: () => void
   onView: () => void
 }
 
-export function AgendamentoDiaCard({ apt, pet, client, professional, onCheckin, onEdit, onView }: Props) {
-  const sizeLabel = pet?.size ? PET_SIZE_LABEL[pet.size] : null
+export function AgendamentoDiaCard({
+  apt,
+  pet,
+  client,
+  professional,
+  onCheckin,
+  onNextStage,
+  onEdit,
+  onView,
+}: Props) {
+  const [confirmOpen, setConfirmOpen] = useState(false)
+
+  const aptDate = apt.date ? new Date(apt.date) : null
+  const isDifferentDay = aptDate ? !isSameDay(aptDate, new Date()) : false
+
   const mainItem = apt.serviceItems?.find((i) => i.itemType === 'main')
   const legacyItems = apt.serviceItems?.filter((i) => !i.itemType) ?? []
+  const serviceItems = mainItem
+    ? [mainItem, ...apt.serviceItems!.filter((i) => i.itemType === 'checklist').slice(0, 1)]
+    : legacyItems.slice(0, 2)
 
   const aptTime = apt.date ? format(new Date(apt.date), 'HH:mm', { locale: ptBR }) : null
+  const statusMeta = STATUS_META[apt.status] ?? STATUS_META['scheduled']
+  const needsConfirmation = apt.status !== 'confirmed' || isDifferentDay
+
+  const handleCheckinClick = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (needsConfirmation) {
+      setConfirmOpen(true)
+    } else {
+      onCheckin()
+    }
+  }
+
+  const handleConfirm = () => {
+    setConfirmOpen(false)
+    const newDate = isDifferentDay
+      ? new Date().toLocaleString('sv').replace(' ', 'T')
+      : undefined
+    onCheckin(newDate)
+  }
+
+  const tooltipContent = (
+    <div className="space-y-1.5 text-xs min-w-[160px]">
+      <div className="font-bold text-sm">{pet?.name ?? '—'}</div>
+      {client && <div className="text-muted-foreground">{client.name}</div>}
+      <div className="flex items-center gap-2 pt-0.5">
+        {aptTime && <span className="font-semibold">{aptTime}</span>}
+        <span className="flex items-center gap-1">
+          <span className={`h-2 w-2 rounded-full shrink-0 ${statusMeta.dot}`} />
+          {statusMeta.label}
+        </span>
+      </div>
+      {serviceItems.length > 0 && (
+        <div className="pt-0.5 space-y-0.5">
+          {serviceItems.map((item) => (
+            <div key={item.id} className="text-muted-foreground truncate">{item.description}</div>
+          ))}
+        </div>
+      )}
+      {professional && (
+        <div className="flex items-center gap-1 pt-0.5 text-muted-foreground">
+          <Stethoscope className="h-3 w-3 shrink-0" />
+          {professional.name}
+        </div>
+      )}
+    </div>
+  )
 
   return (
-    <ContextMenu>
-      <ContextMenuTrigger asChild>
-        <Card className="group relative overflow-hidden border-l-4 border-l-violet-400 hover:shadow-md transition-all">
-          <CardContent className="p-3 space-y-2">
+    <>
+      <TooltipProvider delayDuration={300}>
+        <ContextMenu>
+          <ContextMenuTrigger asChild>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="w-full min-w-0 bg-white border border-violet-200 border-l-[4px] border-l-violet-500 rounded-2xl px-3 py-3 shadow-sm hover:shadow-md transition-all cursor-default space-y-2.5">
 
-            {/* Header: avatar + nome + hora */}
-            <div className="flex items-center gap-2">
-              <Avatar className="h-8 w-8 shrink-0">
-                <AvatarImage src={pet?.avatar} />
-                <AvatarFallback>{pet?.name?.[0]}</AvatarFallback>
-              </Avatar>
+                  {/* TOPO: avatar + nome + bolinha status + horário */}
+                  <div className="flex items-center gap-2">
+                    <Avatar className="h-10 w-10 shrink-0">
+                      <AvatarImage src={pet?.avatar} />
+                      <AvatarFallback className="bg-violet-100 text-violet-700 text-sm font-bold">
+                        {pet?.name?.[0] ?? 'P'}
+                      </AvatarFallback>
+                    </Avatar>
 
-              <div className="flex-1 min-w-0 overflow-hidden">
-                <div className="flex items-center gap-1.5 min-w-0">
-                  <p className="font-bold text-sm truncate leading-tight">{pet?.name}</p>
-                  {apt.priority === 'urgent' && (
-                    <Badge className="text-[9px] px-1 py-0 h-4 bg-red-100 text-red-700 border-red-200 shrink-0">
-                      Urgente
-                    </Badge>
-                  )}
-                  {apt.priority === 'preferential' && (
-                    <Badge className="text-[9px] px-1 py-0 h-4 bg-amber-100 text-amber-700 border-amber-200 shrink-0">
-                      Pref.
-                    </Badge>
-                  )}
-                  {apt.appointmentType === 'walkin' && (
-                    <Badge className="text-[9px] px-1 py-0 h-4 bg-orange-100 text-orange-700 border-orange-200 shrink-0">
-                      Encaixe
-                    </Badge>
-                  )}
+                    <div className="flex-1 min-w-0">
+                      <span className="block text-[15px] font-bold text-slate-900 truncate">
+                        {pet?.name ?? 'Pet sem nome'}
+                      </span>
+                      {client && (
+                        <span className="block text-[12px] text-slate-500 truncate">{client.name}</span>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <span className={`h-2.5 w-2.5 rounded-full ${statusMeta.dot}`} />
+                      {aptTime && (
+                        <span className="bg-violet-50 text-violet-700 text-[12px] font-bold px-2 py-1 rounded-lg">
+                          {aptTime}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* SERVIÇOS + BOTÃO */}
+                  <div className="flex items-end justify-between gap-2">
+                    <div className="flex flex-col gap-1 min-w-0 flex-1">
+                      {serviceItems.slice(0, 2).map((item) => (
+                        <span
+                          key={item.id}
+                          className="inline-flex w-fit max-w-full rounded-md bg-slate-100 px-2 py-1 text-[11px] font-medium text-slate-700 leading-tight truncate"
+                        >
+                          {item.description}
+                        </span>
+                      ))}
+                    </div>
+
+                    {apt.groomingStatus ? (
+                      <button
+                        title="Próxima etapa"
+                        onClick={onNextStage}
+                        className="h-10 w-10 shrink-0 rounded-2xl bg-gradient-to-b from-amber-400 to-amber-600 text-white flex items-center justify-center shadow-md shadow-amber-200/70 hover:-translate-y-px hover:shadow-lg transition-all active:translate-y-0"
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </button>
+                    ) : (
+                      <button
+                        title="Iniciar atendimento"
+                        onClick={handleCheckinClick}
+                        className="h-10 w-10 shrink-0 rounded-2xl bg-gradient-to-b from-violet-500 to-violet-700 text-white flex items-center justify-center shadow-md shadow-violet-200/70 hover:-translate-y-px hover:shadow-lg transition-all active:translate-y-0"
+                      >
+                        <ArrowRight className="h-4 w-4" />
+                      </button>
+                    )}
+                  </div>
+
                 </div>
-                <div className="flex items-center gap-1 text-xs text-muted-foreground leading-tight">
-                  <span className="truncate">{pet?.breed}</span>
-                  {sizeLabel && (
-                    <>
-                      <span>•</span>
-                      <span className="font-medium shrink-0">{sizeLabel}</span>
-                    </>
-                  )}
-                </div>
-              </div>
+              </TooltipTrigger>
+              <TooltipContent side="right" className="p-3">
+                {tooltipContent}
+              </TooltipContent>
+            </Tooltip>
+          </ContextMenuTrigger>
 
-              {aptTime && (
-                <span className="text-xs font-semibold text-violet-700 shrink-0 bg-violet-50 px-1.5 py-0.5 rounded">
-                  {aptTime}
-                </span>
-              )}
-            </div>
+          <ContextMenuContent>
+            <ContextMenuItem onClick={onEdit}>
+              <Edit className="mr-2 h-4 w-4" />
+              Editar
+            </ContextMenuItem>
+            <ContextMenuItem onClick={onView}>
+              <Eye className="mr-2 h-4 w-4" />
+              Visualizar
+            </ContextMenuItem>
+          </ContextMenuContent>
+        </ContextMenu>
+      </TooltipProvider>
 
-            {/* Serviço principal ou legado */}
-            {(mainItem || legacyItems.length > 0) && (
-              <div className="flex flex-wrap gap-1">
-                {mainItem ? (
-                  <span className="text-xs bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded font-medium truncate max-w-full">
-                    {mainItem.description}
-                  </span>
-                ) : (
-                  legacyItems.slice(0, 2).map((i) => (
-                    <span key={i.id} className="text-xs bg-muted px-1.5 py-0.5 rounded truncate max-w-full">
-                      {i.description}
-                    </span>
-                  ))
+      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Iniciar Atendimento</DialogTitle>
+            <DialogDescription asChild>
+              <div className="space-y-1">
+                {apt.status !== 'confirmed' && (
+                  <p>Este agendamento está como <strong>{statusMeta.label}</strong>.</p>
                 )}
+                {isDifferentDay && (
+                  <p>Este agendamento é de outro dia. Ao confirmar, a data será atualizada para <strong>agora</strong>.</p>
+                )}
+                <p>Deseja iniciar o atendimento?</p>
               </div>
-            )}
-
-            {/* Tutor + profissional */}
-            <div className="space-y-0.5">
-              {client && <p className="text-xs font-medium truncate">{client.name}</p>}
-              {professional && (
-                <p className="text-xs text-muted-foreground truncate">{professional.name}</p>
-              )}
-            </div>
-
-            {/* Botão de check-in */}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmOpen(false)}>Cancelar</Button>
             <Button
-              size="sm"
-              className="w-full h-7 text-xs bg-violet-600 hover:bg-violet-700 text-white gap-1"
-              onClick={onCheckin}
+              className="bg-violet-600 hover:bg-violet-700 text-white"
+              onClick={handleConfirm}
             >
-              <LogIn className="h-3 w-3" />
+              <ArrowRight className="mr-2 h-4 w-4" />
               Iniciar Atendimento
             </Button>
-
-          </CardContent>
-        </Card>
-      </ContextMenuTrigger>
-      <ContextMenuContent>
-        <ContextMenuItem onClick={onEdit}>
-          <Edit className="mr-2 h-4 w-4" />
-          Editar
-        </ContextMenuItem>
-        <ContextMenuItem onClick={onView}>
-          <Eye className="mr-2 h-4 w-4" />
-          Visualizar
-        </ContextMenuItem>
-      </ContextMenuContent>
-    </ContextMenu>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   )
 }

@@ -141,13 +141,18 @@ export const whatsappController = {
   },
 
   getLogs(req: Request, res: Response) {
-    const { clientId } = req.query
+    const { clientId, date } = req.query
     let logs = whatsappLogService.getLogs()
-    
+
     if (clientId) {
       logs = logs.filter(l => l.clientId === clientId)
     }
-    
+
+    if (date) {
+      const dateStr = (date as string).slice(0, 10)
+      logs = logs.filter(l => l.sentAt.slice(0, 10) === dateStr)
+    }
+
     return res.json(logs)
   },
 

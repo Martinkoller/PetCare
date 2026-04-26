@@ -50,10 +50,18 @@ const buildNotesWithMeta = (noteText?: string | null, meta?: WorkflowMeta): stri
   return cleanNote ? `${META_PREFIX}${JSON.stringify(cleanMeta)}\n${cleanNote}` : `${META_PREFIX}${JSON.stringify(cleanMeta)}`;
 };
 
+// Serializa Date para string local sem offset (yyyy-MM-ddTHH:mm:ss)
+// O frontend grava sem Z e espera receber sem Z para evitar conversão de timezone
+const toLocalISO = (d: Date): string => {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+};
+
 const normalizeAppointmentResponse = (appointment: any) => {
   const { noteText, meta } = extractWorkflowMeta(appointment.notes);
   return {
     ...appointment,
+    date: appointment.date ? toLocalISO(appointment.date) : appointment.date,
     notes: noteText,
     clinicalStatus: meta.clinicalStatus,
     groomingStatus: meta.groomingStatus,
@@ -63,12 +71,14 @@ const normalizeAppointmentResponse = (appointment: any) => {
     boardingMode: meta.boardingMode,
     criticismLevel: meta.criticismLevel,
     serviceItems: appointment.serviceItems ? JSON.parse(appointment.serviceItems) : [],
-    returnDate: appointment.returnDate ? appointment.returnDate.toISOString() : undefined,
-    startedAt: appointment.startedAt ? appointment.startedAt.toISOString() : undefined,
-    currentStageStartedAt: appointment.currentStageStartedAt ? appointment.currentStageStartedAt.toISOString() : undefined,
+    returnDate: appointment.returnDate ? toLocalISO(appointment.returnDate) : undefined,
+    startedAt: appointment.startedAt ? toLocalISO(appointment.startedAt) : undefined,
+    currentStageStartedAt: appointment.currentStageStartedAt ? toLocalISO(appointment.currentStageStartedAt) : undefined,
     priority: appointment.priority ?? 'normal',
     appointmentType: appointment.appointmentType ?? 'scheduled',
     tutorNotified: appointment.tutorNotified ?? false,
+    tutorNotifiedAt: appointment.tutorNotifiedAt ? toLocalISO(appointment.tutorNotifiedAt) : undefined,
+    tutorNotifiedMessage: appointment.tutorNotifiedMessage ?? undefined,
   };
 };
 
@@ -108,6 +118,8 @@ const pickAppointmentData = (body: any, currentNotes?: string | null) => {
     ...(body.priority !== undefined ? { priority: body.priority } : {}),
     ...(body.appointmentType !== undefined ? { appointmentType: body.appointmentType } : {}),
     ...(body.tutorNotified !== undefined ? { tutorNotified: Boolean(body.tutorNotified) } : {}),
+    ...(body.tutorNotifiedAt !== undefined ? { tutorNotifiedAt: body.tutorNotifiedAt ? new Date(body.tutorNotifiedAt) : null } : {}),
+    ...(body.tutorNotifiedMessage !== undefined ? { tutorNotifiedMessage: body.tutorNotifiedMessage || null } : {}),
     notes: buildNotesWithMeta(noteText, meta),
   };
 

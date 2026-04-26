@@ -1,16 +1,27 @@
-import { Appointment, Client, Pet, Profile } from '@/lib/types'
+import { Appointment, Client, NotificationLog, Pet, Profile } from '@/lib/types'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
-import { Button } from '@/components/ui/button'
-import { AlertTriangle, ChevronRight, Lock, MessageCircle, PackageCheck, Eye, Edit } from 'lucide-react'
+import { AlertTriangle, ChevronRight, Lock, MessageCircle, PackageCheck, Eye, Edit, BellOff, SendHorizontal, Car } from 'lucide-react'
 import {
   ContextMenu,
   ContextMenuContent,
   ContextMenuItem,
   ContextMenuTrigger,
 } from '@/components/ui/context-menu'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
+
+const NOTIFICATION_TYPE_LABEL: Record<string, string> = {
+  banho_tosa_checkin:  'Check-in',
+  banho_tosa_pronto:   'Pronto',
+  banho_tosa_entrega:  'Entregue',
+}
 
 // ─── Formatting helpers ──────────────────────────────────────────────────────
 
@@ -32,8 +43,11 @@ interface Props {
   client: Client | undefined
   professional: Profile | undefined
   isFinal: boolean
+  isDeliveryStage: boolean
   isDeliveryAvailable: boolean
   isNextStageAvailable: boolean
+  isInitialStage: boolean
+  notificationLogs: NotificationLog[]
   now: Date
   onOpen: () => void
   onNextStage: (e: React.MouseEvent) => void
@@ -52,8 +66,11 @@ export function GroomingKanbanCard({
   client,
   professional,
   isFinal,
+  isDeliveryStage,
   isDeliveryAvailable,
   isNextStageAvailable,
+  isInitialStage,
+  notificationLogs,
   now,
   onOpen,
   onNextStage,
@@ -63,6 +80,9 @@ export function GroomingKanbanCard({
   onView,
   onDragStart,
 }: Props) {
+  const recentLogs = notificationLogs
+    .filter((l) => l.clientId === client?.id && l.status === 'sent')
+
   const items = apt.serviceItems ?? []
   const mainItem = items.find((i) => i.itemType === 'main')
   const checklistItems = items.filter((i) => i.itemType === 'checklist')
@@ -106,7 +126,7 @@ export function GroomingKanbanCard({
         >
           <Card
             className={cn(
-              'hover:shadow-md transition-all group relative overflow-hidden',
+              'hover:shadow-md transition-all relative overflow-hidden',
               apt.priority === 'urgent' && 'border-l-4 border-l-red-500',
               apt.priority === 'preferential' && 'border-l-4 border-l-amber-400',
             )}
@@ -245,51 +265,84 @@ export function GroomingKanbanCard({
                 </div>
               )}
 
-              {/* ── Tutor notification status (final stage only) ── */}
-              {isFinal && (
-                <div
-                  className={cn(
-                    'text-xs border-t pt-1.5',
-                    apt.tutorNotified ? 'text-green-600' : 'text-muted-foreground',
-                  )}
-                >
-                  {apt.tutorNotified ? '✓ Tutor notificado' : 'Tutor não notificado'}
-                </div>
-              )}
+              {/* ── Quick actions ── */}
+              <div className="flex items-center justify-between gap-2 pt-0.5">
+                <TooltipProvider delayDuration={200}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        title={isInitialStage ? 'Histórico de notificações' : 'Notificar via WhatsApp'}
+                        onClick={isInitialStage ? undefined : onWhatsApp}
+                        className="h-8 w-8 shrink-0 rounded-xl bg-gradient-to-b from-green-400 to-green-600 text-white flex items-center justify-center shadow-md shadow-green-200/70 hover:-translate-y-px hover:shadow-lg transition-all active:translate-y-0"
+                      >
+                        <MessageCircle className="h-4 w-4" />
+                      </button>
+                    </TooltipTrigger>
+                    {recentLogs.length > 0 && (
+                      <TooltipContent side="bottom" className="p-0 max-w-[280px]">
+                        <div className="max-h-48 overflow-y-auto p-3 space-y-3">
+                          {recentLogs.map((log, i) => (
+                            <div key={log.id} className={i > 0 ? 'border-t pt-2 space-y-0.5' : 'space-y-0.5'}>
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs font-bold text-foreground">
+                                  {new Date(log.sentAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                                </span>
+                                <span className="text-xs font-bold text-foreground">
+                                  {NOTIFICATION_TYPE_LABEL[log.type] ?? log.type}
+                                </span>
+                              </div>
+                              <p className="text-xs text-muted-foreground whitespace-pre-wrap">{log.message}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </TooltipContent>
+                    )}
+                  </Tooltip>
+                </TooltipProvider>
 
-              {/* ── Quick actions (visible on hover) ── */}
-              <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                {isNextStageAvailable && (
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="h-6 w-6 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                    onClick={onNextStage}
-                    title="Próxima etapa"
+                {isFinal && (
+                  <div
+                    className={cn(
+                      'h-8 w-8 shrink-0 rounded-xl flex items-center justify-center',
+                      apt.tutorNotified
+                        ? 'bg-gradient-to-b from-emerald-400 to-emerald-600 text-white shadow-md shadow-emerald-200/70'
+                        : 'bg-slate-100 text-slate-400',
+                    )}
+                    title={apt.tutorNotified ? 'Tutor notificado' : 'Tutor não notificado'}
                   >
-                    <ChevronRight className="h-3 w-3" />
-                  </Button>
+                    {apt.tutorNotified
+                      ? <SendHorizontal className="h-4 w-4" />
+                      : <BellOff className="h-4 w-4" />
+                    }
+                  </div>
+                )}
+
+                {isNextStageAvailable && (
+                  <button
+                    title="Próxima etapa"
+                    onClick={onNextStage}
+                    className="h-8 w-8 shrink-0 rounded-xl bg-gradient-to-b from-amber-400 to-amber-600 text-white flex items-center justify-center shadow-md shadow-amber-200/70 hover:-translate-y-px hover:shadow-lg transition-all active:translate-y-0 ml-auto"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
                 )}
                 {isDeliveryAvailable && (
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="h-6 w-6 text-purple-600 hover:text-purple-700 hover:bg-purple-50"
-                    onClick={onDeliver}
+                  <button
                     title="Entregar Pet"
+                    onClick={onDeliver}
+                    className="h-8 w-8 shrink-0 rounded-xl bg-gradient-to-b from-violet-500 to-violet-700 text-white flex items-center justify-center shadow-md shadow-violet-200/70 hover:-translate-y-px hover:shadow-lg transition-all active:translate-y-0 ml-auto"
                   >
-                    <PackageCheck className="h-3 w-3" />
-                  </Button>
+                    <PackageCheck className="h-4 w-4" />
+                  </button>
                 )}
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  className="h-6 w-6 text-green-600 hover:text-green-700 hover:bg-green-50"
-                  onClick={onWhatsApp}
-                  title="Notificar via WhatsApp"
-                >
-                  <MessageCircle className="h-3 w-3" />
-                </Button>
+                {isDeliveryStage && (
+                  <div
+                    title="Entregue"
+                    className="h-8 w-8 shrink-0 rounded-xl bg-gradient-to-b from-violet-500 to-violet-700 text-white flex items-center justify-center shadow-md shadow-violet-200/70 ml-auto"
+                  >
+                    <Car className="h-4 w-4" />
+                  </div>
+                )}
               </div>
 
             </CardContent>

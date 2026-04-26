@@ -6,9 +6,9 @@ import { useClientStore } from '@/stores/ClientContext'
 import { Appointment, ServiceItem } from '@/lib/types'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Plus, Columns, CalendarClock, X } from 'lucide-react'
+import { Plus, Columns, CalendarClock, ChevronLeft, ChevronRight } from 'lucide-react'
 import { toast } from 'sonner'
-import { format, isSameDay, parseISO, startOfDay } from 'date-fns'
+import { addDays, format, isSameDay, parseISO, startOfDay, subDays } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { UnifiedAtendimentoDialog } from '@/components/shared/UnifiedAtendimentoDialog'
 import { GroomingKanbanCard } from './GroomingKanbanCard'
@@ -23,7 +23,6 @@ import {
 } from '@/components/ui/popover'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
-import { Input } from '@/components/ui/input'
 import WhatsAppConfirmDialog from '@/components/shared/WhatsAppConfirmDialog'
 import { whatsappService } from '@/services/whatsapp-service'
 
@@ -31,7 +30,7 @@ import { whatsappService } from '@/services/whatsapp-service'
 
 export default function GroomingPage() {
   const { appointments, addAppointment, updateAppointment, refreshAppointments } = useAppointmentStore()
-  const { groomingStages, sendAutoNotification, notificationSettings, profiles, requireChecklistOnFinish } = useConfigStore()
+  const { groomingStages, sendAutoNotification, notificationSettings, notificationLogs, profiles, requireChecklistOnFinish } = useConfigStore()
   const { pets } = usePetStore()
   const { clients } = useClientStore()
 
@@ -99,20 +98,14 @@ export default function GroomingPage() {
   const todayISO = format(new Date(), 'yyyy-MM-dd')
   const [filterDate, setFilterDate] = useState<string>(todayISO)
 
-  // Agendamentos do dia: status 'scheduled' ou 'confirmed', respeita filtro de data
+  // Agendamentos do dia: apenas pendentes (sem groomingStatus ainda)
   const todayScheduled = useMemo(() => {
-    const selectedDate = startOfDay(new Date(filterDate + 'T12:00:00'))
     return appointments.filter((a) => {
       if (a.serviceType !== 'grooming') return false
-      // Mostra apenas o que não iniciou o fluxo de banho (sem groomingStatus)
-      // e que não está cancelado
       if (a.status === 'cancelled') return false
       if (a.groomingStatus) return false
-      
-      // Inclui agendados e confirmados que ainda não deram entrada
       const isPending = a.status === 'scheduled' || a.status === 'confirmed'
       if (!isPending) return false
-      
       if (!a.date) return false
       const aptDateKey = a.date.split('T')[0]
       return aptDateKey === filterDate
@@ -134,7 +127,7 @@ export default function GroomingPage() {
   // ── Stage change helpers ──────────────────────────────────────────────────
 
   const stageTimestamps = (apt: Appointment, newStageId?: string): Partial<Appointment> => {
-    const ts = new Date().toISOString()
+    const ts = new Date().toLocaleString('sv').replace(' ', 'T')
     return {
       currentStageStartedAt: ts,
       ...(newStageId === initialStageId && !apt.startedAt ? { startedAt: ts } : {}),
@@ -204,7 +197,7 @@ export default function GroomingPage() {
         ...apt,
         status: 'completed',
         groomingStatus: checklistReview.stageId,
-        completedAt: new Date().toISOString(),
+        completedAt: new Date().toLocaleString('sv').replace(' ', 'T'),
         serviceItems: mergedItems,
         tutorNotified: true,
         ...stageTimestamps(apt, checklistReview.stageId),
@@ -212,31 +205,40 @@ export default function GroomingPage() {
       toast.success('Entregue ao tutor!')
       triggerDeliveryWA(apt)
     } else {
+      const pet = pets.find((p) => p.id === apt.petId)
+      const client = pet ? clients.find((c) => c.id === pet.clientId) : undefined
+      const notifiedAt = new Date().toLocaleString('sv').replace(' ', 'T')
+      const vars = pet && client ? {
+        client_name: client.name,
+        pet_name: pet.name,
+        date: format(new Date(apt.date), 'dd/MM/yyyy', { locale: ptBR }),
+        time: format(new Date(apt.date), 'HH:mm'),
+        service_type: 'Banho e Tosa',
+      } : null
+      const template = vars ? notificationSettings.templates.find(
+        (t) => t.type === 'banho_tosa_pronto' && t.active,
+      ) : null
+      const notifiedMessage = template && vars ? whatsappService.interpolate(template.content, vars) : undefined
+
       updateAppointment({
         ...apt,
         status: 'completed',
         groomingStatus: checklistReview.stageId,
-        completedAt: new Date().toISOString(),
+        completedAt: notifiedAt,
         serviceItems: mergedItems,
+        tutorNotified: !!notifiedMessage,
+        tutorNotifiedAt: notifiedMessage ? notifiedAt : undefined,
+        tutorNotifiedMessage: notifiedMessage,
       } as Appointment)
       toast.success('Atendimento finalizado!')
-      const pet = pets.find((p) => p.id === apt.petId)
-      const client = clients.find((c) => c.id === pet?.clientId)
-      if (pet && client) {
-        const aptDate = new Date(apt.date)
+      if (pet && client && vars) {
         sendAutoNotification({
           type: 'banho_tosa_pronto',
           clientId: client.id,
           clientName: client.name,
           petName: pet.name,
           phone: client.phone,
-          vars: {
-            client_name: client.name,
-            pet_name: pet.name,
-            date: format(aptDate, 'dd/MM/yyyy', { locale: ptBR }),
-            time: format(aptDate, 'HH:mm'),
-            service_type: 'Banho e Tosa',
-          },
+          vars,
         })
       }
     }
@@ -276,7 +278,7 @@ export default function GroomingPage() {
         ...apt,
         status: 'completed',
         groomingStatus: stageId,
-        completedAt: new Date().toISOString(),
+        completedAt: new Date().toLocaleString('sv').replace(' ', 'T'),
       } as Appointment)
     }
     toast.success('Atendimento finalizado!')
@@ -285,13 +287,15 @@ export default function GroomingPage() {
 
   // ── Check-in: move agendamento do dia para o primeiro stage do fluxo ────────
 
-  const handleCheckin = (apt: Appointment) => {
+  const handleCheckin = (apt: Appointment, newDate?: string) => {
     const firstStage = displayColumns[0]
     if (!firstStage) return
+    if (newDate) setFilterDate(todayISO)
     updateAppointment({
       ...apt,
       groomingStatus: firstStage.id,
       status: 'in_progress',
+      ...(newDate ? { date: newDate } : {}),
       ...stageTimestamps(apt, firstStage.id),
     } as Appointment)
     const pet = pets.find((p) => p.id === apt.petId)
@@ -338,8 +342,12 @@ export default function GroomingPage() {
         time: format(aptDate, 'HH:mm'),
         service_type: 'Banho e Tosa',
       }
+      const templateType =
+        apt.groomingStatus === deliveryStageId ? 'banho_tosa_entrega'
+        : apt.groomingStatus === finalStageId  ? 'banho_tosa_pronto'
+        : 'banho_tosa_pronto'
       const template = notificationSettings.templates.find(
-        (t) => t.type === 'banho_tosa_pronto' && t.active,
+        (t) => t.type === templateType && t.active,
       )
       const message = template
         ? whatsappService.interpolate(template.content, vars)
@@ -356,8 +364,11 @@ export default function GroomingPage() {
     const currentApt = appointments.find((a) => a.id === pendingWA.apt.id)
     if (pet && client && currentApt) {
       const aptDate = new Date(currentApt.date)
+      const waType =
+        currentApt.groomingStatus === deliveryStageId ? 'banho_tosa_entrega'
+        : 'banho_tosa_pronto'
       sendAutoNotification({
-        type: 'banho_tosa_pronto',
+        type: waType,
         clientId: client.id,
         clientName: client.name,
         petName: pet.name,
@@ -370,7 +381,13 @@ export default function GroomingPage() {
           service_type: 'Banho e Tosa',
         },
       })
-      updateAppointment({ ...currentApt, tutorNotified: true } as Appointment)
+      const notifiedAt = new Date().toLocaleString('sv').replace(' ', 'T')
+      updateAppointment({
+        ...currentApt,
+        tutorNotified: true,
+        tutorNotifiedAt: notifiedAt,
+        tutorNotifiedMessage: pendingWA.message,
+      } as Appointment)
     }
     setPendingWA(null)
   }
@@ -438,24 +455,33 @@ export default function GroomingPage() {
         </div>
         <div className="flex gap-2">
           {/* Filtro de data */}
-          <div className="flex items-center gap-1">
-            <Input
-              type="date"
-              className="h-8 text-sm w-36"
-              value={filterDate}
-              onChange={(e) => setFilterDate(e.target.value)}
-            />
-            {filterDate !== todayISO && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 text-muted-foreground"
-                onClick={() => setFilterDate(todayISO)}
-                title="Voltar para hoje"
-              >
-                <X className="h-3.5 w-3.5" />
-              </Button>
-            )}
+          <div className="flex items-center gap-1 rounded-xl border bg-white p-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 rounded-lg"
+              onClick={() => setFilterDate(format(subDays(new Date(filterDate + 'T12:00:00'), 1), 'yyyy-MM-dd'))}
+              title="Dia anterior"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              className="h-8 px-3 rounded-lg font-medium text-sm capitalize"
+              onClick={() => setFilterDate(todayISO)}
+              title="Ir para hoje"
+            >
+              {format(new Date(filterDate + 'T12:00:00'), "dd 'de' MMM", { locale: ptBR })}
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 rounded-lg"
+              onClick={() => setFilterDate(format(addDays(new Date(filterDate + 'T12:00:00'), 1), 'yyyy-MM-dd'))}
+              title="Próximo dia"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
           </div>
 
           <Popover>
@@ -504,10 +530,10 @@ export default function GroomingPage() {
 
       {/* Kanban board */}
       <ScrollArea className="flex-1 w-full whitespace-nowrap rounded-md border bg-muted/20">
-        <div className="flex space-x-4 p-4">
+        <div className="flex space-x-4 p-4 min-w-full">
 
           {/* ── Coluna fixa: Agendamentos do Dia ── */}
-          <div className="w-52 shrink-0 flex flex-col gap-3 bg-violet-50/60 p-3 rounded-xl border border-violet-200 h-full">
+          <div className="flex-1 min-w-[220px] flex flex-col gap-3 bg-violet-50/60 p-3 rounded-xl border border-violet-200 h-full">
             <div className="flex items-center justify-between p-3 rounded-lg font-semibold shadow-sm select-none bg-violet-100 text-violet-800">
               <div className="flex items-center gap-2 truncate">
                 <CalendarClock className="h-4 w-4 shrink-0" />
@@ -536,7 +562,8 @@ export default function GroomingPage() {
                     pet={pet}
                     client={client}
                     professional={professional}
-                    onCheckin={() => handleCheckin(apt)}
+                    onCheckin={(newDate) => handleCheckin(apt, newDate)}
+                    onNextStage={(e) => handleNextStage(e, apt)}
                     onEdit={() => { setEditingAppointment(apt); setViewMode(false) }}
                     onView={() => { setEditingAppointment(apt); setViewMode(true) }}
                   />
@@ -552,13 +579,19 @@ export default function GroomingPage() {
           </div>
 
           {displayColumns.map((stage) => {
-            const stageApts = activeAppointments.filter((a) => a.groomingStatus === stage.id)
+            const stageApts = activeAppointments
+              .filter((a) => a.groomingStatus === stage.id)
+              .sort((a, b) =>
+                stage.id === deliveryStageId
+                  ? new Date(b.date).getTime() - new Date(a.date).getTime()
+                  : new Date(a.date).getTime() - new Date(b.date).getTime()
+              )
 
             return (
               <div
                 key={stage.id}
                 className={cn(
-                  'w-72 shrink-0 flex flex-col gap-3 bg-muted/40 p-3 rounded-xl border border-dashed h-full transition-colors',
+                  'flex-1 min-w-[220px] flex flex-col gap-3 bg-muted/40 p-3 rounded-xl border border-dashed h-full transition-colors',
                   activeDragColumn === stage.id && 'bg-accent border-primary/50',
                 )}
                 onDragOver={(e) => handleDragOver(e, stage.id)}
@@ -593,6 +626,7 @@ export default function GroomingPage() {
                       !isDeliveryAvailable &&
                       displayColumns.findIndex((c) => c.id === apt.groomingStatus) <
                         displayColumns.length - 1
+                    const isInitialStage = apt.groomingStatus === initialStageId
 
                     return (
                       <GroomingKanbanCard
@@ -602,8 +636,11 @@ export default function GroomingPage() {
                         client={client}
                         professional={professional}
                         isFinal={isFinal}
+                        isDeliveryStage={apt.groomingStatus === deliveryStageId}
                         isDeliveryAvailable={isDeliveryAvailable}
                         isNextStageAvailable={isNextAvailable}
+                        isInitialStage={isInitialStage}
+                        notificationLogs={notificationLogs}
                         now={now}
                         onOpen={() => { setEditingAppointment(apt); setViewMode(false) }}
                         onView={() => { setEditingAppointment(apt); setViewMode(true) }}

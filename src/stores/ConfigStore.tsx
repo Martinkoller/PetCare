@@ -167,7 +167,7 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
 
   const loadInitialConfig = useCallback(async () => {
     try {
-      const [settings, loadedTemplates, loadedTasks, msgTemplates, conn, employees] =
+      const [settings, loadedTemplates, loadedTasks, msgTemplates, conn, employees, logs] =
         await Promise.all([
           organizationService.getSettings(),
           templateService.getTemplates(),
@@ -175,6 +175,7 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
           whatsappService.getTemplates(),
           whatsappService.getConnection(),
           employeeService.getAll(),
+          whatsappService.getLogs(),
         ])
 
       if (settings?.groomingStages?.length) {
@@ -196,6 +197,7 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
       setTemplates(loadedTemplates || [])
       setTasks(loadedTasks || [])
       setProfiles(employees || [])
+      setNotificationLogs(logs || [])
 
       const templates = msgTemplates || []
       setNotificationSettings((prev) => ({ ...prev, templates }))

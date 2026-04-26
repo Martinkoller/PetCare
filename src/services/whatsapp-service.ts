@@ -90,8 +90,9 @@ export const whatsappService = {
   },
 
   async getLogs(clientId?: string): Promise<NotificationLog[]> {
+    const today = new Date().toISOString().slice(0, 10)
     const { data } = await api.get('/whatsapp/logs', {
-      params: { clientId },
+      params: { clientId, date: today },
     })
     return data || []
   },

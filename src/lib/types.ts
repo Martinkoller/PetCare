@@ -238,6 +238,8 @@ export interface Appointment {
   clinicalMode?: 'routine' | 'return' | 'urgency'
   anamnesis?: string
   tutorNotified?: boolean
+  tutorNotifiedAt?: string
+  tutorNotifiedMessage?: string
   hospitalizationStay?: HospitalizationStay
   boardingStay?: BoardingStay
   boardingMode?: 'daily' | 'half_day' | 'overnight' | 'day_care'
