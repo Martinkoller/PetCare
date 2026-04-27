@@ -16,32 +16,25 @@ function normalizePhone(raw: string): string {
 function buildConfirmationMessage(apt: any, pet: any, client: any): string {
   const dateStr = format(new Date(apt.date), "dd/MM/yyyy", { locale: ptBR })
   const timeStr = format(new Date(apt.date), "HH:mm")
+  const options = `\nResponda:\n*1* - Confirmar ✅\n*2* - Cancelar ❌`
 
   if (apt.serviceType === 'grooming') {
     return (
       `Olá ${client.name}! 🐾\n\n` +
       `Confirmamos o agendamento de *Banho e Tosa* para *${pet.name}*:\n` +
       `📅 Data: ${dateStr}\n` +
-      `🕐 Horário: ${timeStr}\n\n` +
-      `Por favor, responda:\n` +
-      `*1* - Confirmar agendamento ✅\n` +
-      `*2* - Solicitar reagendamento 🔄\n` +
-      `*3* - Cancelar agendamento ❌`
+      `🕐 Horário: ${timeStr}\n` +
+      options
     )
   }
 
-  if (apt.serviceType === 'veterinary') {
-    const professional = apt.professionalId ? `\n👨‍⚕️ Profissional: será informado` : ''
+  if (apt.serviceType === 'consultation') {
     return (
       `Olá ${client.name}! 🏥\n\n` +
       `Confirmamos a *Consulta Médica* para *${pet.name}*:\n` +
       `📅 Data: ${dateStr}\n` +
-      `🕐 Horário: ${timeStr}` +
-      `${professional}\n\n` +
-      `Por favor, responda:\n` +
-      `*1* - Confirmar agendamento ✅\n` +
-      `*2* - Solicitar reagendamento 🔄\n` +
-      `*3* - Cancelar agendamento ❌`
+      `🕐 Horário: ${timeStr}\n` +
+      options
     )
   }
 
@@ -54,17 +47,25 @@ function buildConfirmationMessage(apt: any, pet: any, client: any): string {
       `Olá ${client.name}! 🏡\n\n` +
       `Confirmamos a *Hospedagem* para *${pet.name}*:\n` +
       `📥 Check-in: ${checkIn}\n` +
-      `📤 Check-out: ${checkOut}\n\n` +
-      `Por favor, responda:\n` +
-      `*1* - Confirmar agendamento ✅\n` +
-      `*2* - Solicitar reagendamento 🔄\n` +
-      `*3* - Cancelar agendamento ❌`
+      `📤 Check-out: ${checkOut}\n` +
+      options
+    )
+  }
+
+  if (apt.serviceType === 'vaccination') {
+    return (
+      `Olá ${client.name}! 💉\n\n` +
+      `Confirmamos a *Vacinação* para *${pet.name}*:\n` +
+      `📅 Data: ${dateStr}\n` +
+      `🕐 Horário: ${timeStr}\n` +
+      options
     )
   }
 
   return (
-    `Olá ${client.name}! Seu agendamento para ${pet.name} está marcado para ${dateStr} às ${timeStr}.\n\n` +
-    `Responda:\n*1* - Confirmar ✅\n*2* - Reagendar 🔄\n*3* - Cancelar ❌`
+    `Olá ${client.name}! 🐾\n\n` +
+    `Seu agendamento de *${pet.name}* está marcado para ${dateStr} às ${timeStr}.\n` +
+    options
   )
 }
 
@@ -140,11 +141,13 @@ export async function sendConfirmation(req: Request, res: Response) {
 
 // ── Webhook ───────────────────────────────────────────────────────────────────
 
-function extractPhoneAndText(body: any): { phone: string | null; text: string | null } {
+function extractPhoneAndText(body: any): { phone: string | null; text: string | null; fromMe: boolean } {
   try {
-    // Evolution API can send data as an object or as an array (v1.x standard)
     const rawData = body?.data || body
     const data = Array.isArray(rawData) ? rawData[0] : rawData
+
+    // Ignora mensagens enviadas pela própria instância (ACKs do bot)
+    const fromMe: boolean = data?.key?.fromMe === true || body?.key?.fromMe === true
 
     const remoteJid: string =
       data?.key?.remoteJid ||
@@ -164,42 +167,77 @@ function extractPhoneAndText(body: any): { phone: string | null; text: string | 
       body?.text ||
       ''
 
-    return { phone: phone || null, text: text.trim() || null }
+    return { phone: phone || null, text: text.trim() || null, fromMe }
   } catch (err) {
     console.error('[webhook] Erro ao extrair phone/text:', err)
-    return { phone: null, text: null }
+    return { phone: null, text: null, fromMe: false }
   }
+}
+
+// Busca o agendamento aguardando resposta a partir do telefone,
+// tolerando múltiplos clientes com mesmo número e variações de formato.
+async function findPendingAptByPhone(normalizedPhone: string) {
+  const suffix10 = normalizedPhone.slice(-10) // DDD + 9 dígitos ou DDD + 8
+  const suffix9  = normalizedPhone.slice(-9)  // 9 dígitos sem DDD
+  const suffix8  = normalizedPhone.slice(-8)  // 8 dígitos sem DDD
+
+  // Busca todos os clientes cujo telefone termina com os sufixos
+  const clients = await prisma.client.findMany({
+    where: {
+      OR: [
+        { phone: { endsWith: suffix10 } },
+        { phone: { endsWith: suffix9 } },
+        { phone: { endsWith: suffix8 } },
+        { phone: normalizedPhone },
+        { phone: normalizedPhone.replace(/^55/, '') },
+      ],
+    },
+    select: { id: true },
+  })
+  if (clients.length === 0) return null
+
+  const clientIds = clients.map(c => c.id)
+
+  return prisma.appointment.findFirst({
+    where: {
+      awaitingWhatsappReply: true,
+      status: { notIn: ['archived', 'cancelled', 'completed'] },
+      pet: { clientId: { in: clientIds } },
+    },
+    orderBy: { whatsappConfirmationSentAt: 'desc' },
+    include: { pet: { include: { client: true } } },
+  })
 }
 
 export async function webhook(req: Request, res: Response) {
   // Always ACK immediately so Evolution does not retry
   res.status(200).json({ ok: true })
 
-  const { phone, text } = extractPhoneAndText(req.body)
-  if (!phone || !text) return
+  console.log('[webhook] body recebido:', JSON.stringify(req.body, null, 2))
+
+  const { phone, text, fromMe } = extractPhoneAndText(req.body)
+
+  console.log('[webhook] extraído → phone:', phone, '| text:', text, '| fromMe:', fromMe)
+
+  // Ignora mensagens do próprio bot ou sem dados
+  if (fromMe || !phone || !text) {
+    console.log('[webhook] ignorado — fromMe:', fromMe, '| phone:', phone, '| text:', text)
+    return
+  }
 
   const normalizedPhone = normalizePhone(phone)
-  const phoneSuffixes = [normalizedPhone, normalizedPhone.replace(/^55/, '')]
+  console.log('[webhook] normalizedPhone:', normalizedPhone)
 
   try {
-    const client = await prisma.client.findFirst({
-      where: { phone: { in: phoneSuffixes } },
-    })
-    if (!client) return
-
-    const apt = await prisma.appointment.findFirst({
-      where: {
-        awaitingWhatsappReply: true,
-        status: { not: 'archived' },
-        pet: { clientId: client.id },
-      },
-      orderBy: { whatsappConfirmationSentAt: 'desc' },
-      include: { pet: { include: { client: true } } },
-    })
+    const apt = await findPendingAptByPhone(normalizedPhone)
+    console.log('[webhook] apt encontrado:', apt ? `${apt.id} — ${apt.pet.name} / ${apt.pet.client.name} (status: ${apt.status})` : 'NENHUM')
     if (!apt) return
+
+    const client = apt.pet.client
 
     const reply = text.trim()
 
+    // ── 1: Confirmar ─────────────────────────────────────────────────────────
     if (reply === '1') {
       await prisma.appointment.update({
         where: { id: apt.id },
@@ -213,7 +251,9 @@ export async function webhook(req: Request, res: Response) {
         },
       })
 
-      const confirmMsg = `Ótimo, ${client.name}! 🎉 Seu agendamento para ${apt.pet.name} está confirmado. Te esperamos! 🐾`
+      const confirmMsg =
+        `Ótimo, ${client.name}! 🎉\nSeu agendamento para *${apt.pet.name}* está confirmado.\nTe esperamos! 🐾`
+
       await evolutionService.sendMessage({
         clientId: client.id,
         clientName: client.name,
@@ -222,7 +262,7 @@ export async function webhook(req: Request, res: Response) {
         message: confirmMsg,
         phone: client.phone ?? undefined,
         manual: false,
-      }).catch(() => {/* silent */})
+      }).catch(() => {})
 
       whatsappLogService.addLog({
         id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -238,44 +278,8 @@ export async function webhook(req: Request, res: Response) {
       return
     }
 
+    // ── 2: Cancelar ──────────────────────────────────────────────────────────
     if (reply === '2') {
-      await prisma.appointment.update({
-        where: { id: apt.id },
-        data: {
-          whatsappConfirmationStatus: 'reschedule_requested',
-          awaitingWhatsappReply: false,
-          whatsappConfirmationReplyAt: new Date(),
-          whatsappReplyText: reply,
-        },
-      })
-
-      const rescheduleMsg =
-        `Entendido, ${client.name}! 📅 Vamos entrar em contato em breve para reagendar o atendimento de ${apt.pet.name}. Obrigado!`
-      await evolutionService.sendMessage({
-        clientId: client.id,
-        clientName: client.name,
-        petName: apt.pet.name,
-        type: 'whatsapp_reschedule_ack',
-        message: rescheduleMsg,
-        phone: client.phone ?? undefined,
-        manual: false,
-      }).catch(() => {/* silent */})
-
-      whatsappLogService.addLog({
-        id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-        clientId: client.id,
-        clientName: client.name,
-        petName: apt.pet.name,
-        type: 'whatsapp_reschedule_ack',
-        message: rescheduleMsg,
-        sentAt: new Date().toISOString(),
-        status: 'sent',
-        manual: false,
-      })
-      return
-    }
-
-    if (reply === '3') {
       await prisma.appointment.update({
         where: { id: apt.id },
         data: {
@@ -288,7 +292,8 @@ export async function webhook(req: Request, res: Response) {
       })
 
       const cancelMsg =
-        `Tudo bem, ${client.name}. O agendamento de ${apt.pet.name} foi cancelado conforme solicitado. ❌ Se precisar, estamos à disposição para um novo agendamento!`
+        `Tudo bem, ${client.name}. ❌\nO agendamento de *${apt.pet.name}* foi cancelado conforme solicitado.\nSe precisar, estamos à disposição para um novo horário!`
+
       await evolutionService.sendMessage({
         clientId: client.id,
         clientName: client.name,
@@ -297,7 +302,7 @@ export async function webhook(req: Request, res: Response) {
         message: cancelMsg,
         phone: client.phone ?? undefined,
         manual: false,
-      }).catch(() => {/* silent */})
+      }).catch(() => {})
 
       whatsappLogService.addLog({
         id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -313,7 +318,7 @@ export async function webhook(req: Request, res: Response) {
       return
     }
 
-    // Invalid reply: save text, keep awaitingWhatsappReply = true, send hint
+    // ── Resposta inválida: mantém awaitingWhatsappReply=true, pede reenvio ───
     await prisma.appointment.update({
       where: { id: apt.id },
       data: {
@@ -323,7 +328,8 @@ export async function webhook(req: Request, res: Response) {
     })
 
     const hintMsg =
-      `Não entendi sua resposta. Por favor, responda apenas:\n*1* - Confirmar ✅\n*2* - Reagendar 🔄\n*3* - Cancelar ❌`
+      `Não entendi sua resposta. 🤔\nPor favor, responda apenas:\n*1* - Confirmar ✅\n*2* - Cancelar ❌`
+
     await evolutionService.sendMessage({
       clientId: client.id,
       clientName: client.name,
@@ -332,7 +338,7 @@ export async function webhook(req: Request, res: Response) {
       message: hintMsg,
       phone: client.phone ?? undefined,
       manual: false,
-    }).catch(() => {/* silent */})
+    }).catch(() => {})
 
     whatsappLogService.addLog({
       id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,

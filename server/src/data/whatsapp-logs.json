@@ -1,5 +1,71 @@
 [
   {
+    "id": "1777320753169-gzm7os4b",
+    "clientId": "e3b19ff1-b127-440a-aecd-b01d4026bc0c",
+    "clientName": "Marcelo Stivanello",
+    "petName": "Chocolate",
+    "type": "agendamento_solicitacao",
+    "message": "Olá Marcelo Stivanello! 🐾💛\nRecebemos a solicitação de agendamento de Banho e Tosa para Chocolate no dia 28/04/2026 às 09:15. ✨\n\nNossa equipe já vai analisar sua solicitação e em breve confirmaremos tudo para você\n\nSerá um prazer receber Chocolate para mais um momento de cuidado, carinho e bem-estar! 😍\n\nQualquer dúvida, estamos à disposição.",
+    "sentAt": "2026-04-27T20:12:33.169Z",
+    "status": "sent",
+    "manual": false
+  },
+  {
+    "id": "1777320695788-t8bikfu7",
+    "clientId": "e3b19ff1-b127-440a-aecd-b01d4026bc0c",
+    "clientName": "Marcelo Stivanello",
+    "petName": "Chocolate",
+    "type": "agendamento_cancelamento",
+    "message": "Olá Marcelo Stivanello! 🐾💛\nO agendamento de Banho e Tosa para Chocolate, previsto para 28/04/2026 às 09:00, foi cancelado.\n\nEstamos à disposição para reagendarmos um novo horário e receber Chocolate com todo carinho, cuidado e atenção. ✨\n\nFale com a nossa equipe.",
+    "sentAt": "2026-04-27T20:11:35.788Z",
+    "status": "sent",
+    "manual": false
+  },
+  {
+    "id": "1777320480332-ogw849c",
+    "clientId": "e3b19ff1-b127-440a-aecd-b01d4026bc0c",
+    "clientName": "Marcelo Stivanello",
+    "petName": "Chocolate",
+    "type": "banho_tosa_entrega",
+    "message": "Olá Marcelo Stivanello! 🐾💛\nChocolate foi entregue com sucesso! ✨\n\nFoi um prazer cuidar dele(a) e fazer parte desse momento especial 🦋\nEsperamos que vocês tenham amado o resultado tanto quanto nós! 😍\n\nSempre que Chocolate precisar de carinho, cuidado e aquele toque especial, estaremos por aqui para receber vocês novamente.\nAté a próxima! 🛁✂️",
+    "sentAt": "2026-04-27T20:08:00.332Z",
+    "status": "sent",
+    "manual": false
+  },
+  {
+    "id": "1777320302663-2u2dvjy",
+    "clientId": "e3b19ff1-b127-440a-aecd-b01d4026bc0c",
+    "clientName": "Marcelo Stivanello",
+    "petName": "Chocolate",
+    "type": "agendamento_confirmacao_pendente",
+    "message": "Olá Marcelo Stivanello! 🐾\nDeseja confirmar o agendamento de Banho e Tosa para Chocolate no dia 28/04/2026 às 09:00?\n\nResponda:\n*1* - Confirmar ✅\n*2* - Cancelar ❌",
+    "sentAt": "2026-04-27T20:05:02.663Z",
+    "status": "sent",
+    "manual": false
+  },
+  {
+    "id": "1777320302632-0yaqf3p",
+    "clientId": "e3b19ff1-b127-440a-aecd-b01d4026bc0c",
+    "clientName": "Marcelo Stivanello",
+    "petName": "Chocolate",
+    "type": "agendamento_confirmacao_pendente",
+    "message": "Olá Marcelo Stivanello! 🐾\nDeseja confirmar o agendamento de Banho e Tosa para Chocolate no dia 28/04/2026 às 09:00?\n\nResponda:\n*1* - Confirmar ✅\n*2* - Cancelar ❌",
+    "sentAt": "2026-04-27T20:05:02.632Z",
+    "status": "sent",
+    "manual": false
+  },
+  {
+    "id": "1777320245611-aq2wwsx3",
+    "clientId": "e3b19ff1-b127-440a-aecd-b01d4026bc0c",
+    "clientName": "Marcelo Stivanello",
+    "petName": "Chocolate",
+    "type": "agendamento_solicitacao",
+    "message": "Olá Marcelo Stivanello! 🐾💛\nRecebemos a solicitação de agendamento de Banho e Tosa para Chocolate no dia 28/04/2026 às 09:00. ✨\n\nNossa equipe já vai analisar sua solicitação e em breve confirmaremos tudo para você\n\nSerá um prazer receber Chocolate para mais um momento de cuidado, carinho e bem-estar! 😍\n\nQualquer dúvida, estamos à disposição.",
+    "sentAt": "2026-04-27T20:04:05.611Z",
+    "status": "sent",
+    "manual": false
+  },
+  {
     "id": "1777319561050-c1cuz7nn",
     "clientId": "e3b19ff1-b127-440a-aecd-b01d4026bc0c",
     "clientName": "Marcelo Stivanello",
@@ -2141,72 +2207,6 @@
     "type": "agendamento_solicitacao",
     "message": "Olá Luciana Teixeira! Recebemos a solicitação de agendamento de Banho e Tosa para Marley no dia 20/04/2026 às 20:00. Em breve confirmaremos. Qualquer dúvida, entre em contato!",
     "sentAt": "2026-04-20T22:17:49.597Z",
-    "status": "sent",
-    "manual": false
-  },
-  {
-    "id": "1776721938627-7rhhbu18",
-    "clientId": "c8c2f66b-87c7-42e4-bdb6-73301b627a09",
-    "clientName": "Luciana Teixeira",
-    "petName": "Marley",
-    "type": "banho_tosa_pronto",
-    "message": "Olá Luciana Teixeira! Marley está pronto(a). Ele estará sempre bem cuidado. 🦋",
-    "sentAt": "2026-04-20T21:52:18.627Z",
-    "status": "sent",
-    "manual": false
-  },
-  {
-    "id": "1776721853674-w8vh0u0d",
-    "clientId": "c8c2f66b-87c7-42e4-bdb6-73301b627a09",
-    "clientName": "Luciana Teixeira",
-    "petName": "Marley",
-    "type": "banho_tosa_checkin",
-    "message": "Olá Luciana Teixeira! Marley acabou de dar entrada para o banho e tosa. Assim que estiver pronto(a), avisaremos!  ✈️",
-    "sentAt": "2026-04-20T21:50:53.674Z",
-    "status": "failed",
-    "manual": false
-  },
-  {
-    "id": "1776721814462-5vbh31hz",
-    "clientId": "c8c2f66b-87c7-42e4-bdb6-73301b627a09",
-    "clientName": "Luciana Teixeira",
-    "petName": "Marley",
-    "type": "agendamento_solicitacao",
-    "message": "Olá Luciana Teixeira! Recebemos a solicitação de agendamento de Banho e Tosa para Marley no dia 20/04/2026 às 19:50. Em breve confirmaremos. Qualquer dúvida, entre em contato!",
-    "sentAt": "2026-04-20T21:50:14.463Z",
-    "status": "failed",
-    "manual": false
-  },
-  {
-    "id": "1776716362013-94jt0lc3",
-    "clientId": "c8c2f66b-87c7-42e4-bdb6-73301b627a09",
-    "clientName": "Luciana Teixeira",
-    "petName": "Marley",
-    "type": "banho_tosa_entrega",
-    "message": "Olá Luciana Teixeira! 🐾 Marley foi entregue com sucesso! Foi um prazer cuidar do(a) Marley. Obrigado pela confiança! 😊\n\nSempre que precisar, estamos à disposição para agendar o próximo banho e tosa. Até a próxima! 🐶✨",
-    "sentAt": "2026-04-20T20:19:22.013Z",
-    "status": "sent",
-    "manual": false
-  },
-  {
-    "id": "1776716135614-qxtsf9j0",
-    "clientId": "c8c2f66b-87c7-42e4-bdb6-73301b627a09",
-    "clientName": "Luciana Teixeira",
-    "petName": "Marley",
-    "type": "banho_tosa_entrega",
-    "message": "Olá Luciana Teixeira!, oi um prazer cuidar do(a) Marley. Obrigado pela confiança! 😊\n\nSempre que precisar, estamos à disposição para agendar o próximo banho e tosa. Até a próxima! 🐶✨",
-    "sentAt": "2026-04-20T20:15:35.614Z",
-    "status": "sent",
-    "manual": false
-  },
-  {
-    "id": "1776715913468-lovasjtu",
-    "clientId": "c8c2f66b-87c7-42e4-bdb6-73301b627a09",
-    "clientName": "Luciana Teixeira",
-    "petName": "Marley",
-    "type": "banho_tosa_entrega",
-    "message": "Olá Luciana Teixeira! 🐾 Marley foi entregue com sucesso! Foi um prazer cuidar do(a) Marley. Obrigado pela confiança! 😊\n\nSempre que precisar, estamos à disposição para agendar o próximo banho e tosa. Até a próxima! 🐶✨",
-    "sentAt": "2026-04-20T20:11:53.468Z",
     "status": "sent",
     "manual": false
   }

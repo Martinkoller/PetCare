@@ -150,7 +150,7 @@
     "module": "agendamento",
     "trigger": "confirmacao_pendente",
     "title": "Pedido de Confirmação (Interativo)",
-    "content": "Olá {{client_name}}! 🐾\nDeseja confirmar o agendamento de {{service_type}} para {{pet_name}} no dia {{date}} às {{time}}?\n\nResponda:\n*1* - Para confirmar ✅\n*2* - Para remarcar 🔄\n*3* - Para cancelar ❌",
+    "content": "Olá {{client_name}}! 🐾\nDeseja confirmar o agendamento de {{service_type}} para {{pet_name}} no dia {{date}} às {{time}}?\n\nResponda:\n*1* - Confirmar ✅\n*2* - Cancelar ❌",
     "active": true,
     "sendMode": "auto",
     "sendDelay": 0,
