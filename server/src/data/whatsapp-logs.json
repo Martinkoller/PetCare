@@ -1,5 +1,27 @@
 [
   {
+    "id": "1777286272508-vmbuydyw",
+    "clientId": "8e10d862-8c60-4bb8-b908-bf2015637a19",
+    "clientName": "Luan Correia",
+    "petName": "Thor II",
+    "type": "agendamento_confirmacao",
+    "message": "Olá Luan Correia! 🐾💛\nSeu agendamento de Hospedagem para Thor II está confirmado para 27/04/2026 às 07:34! ✨\n\nAgora é só aguardar esse momento especial\nEm breve, Thor II vai receber todo o carinho, cuidado e aquele toque especial que faz a diferença! 😍\n\nEstamos ansiosos para receber vocês!",
+    "sentAt": "2026-04-27T10:37:52.508Z",
+    "status": "sent",
+    "manual": false
+  },
+  {
+    "id": "1777286076106-dwp2rylg",
+    "clientId": "8e10d862-8c60-4bb8-b908-bf2015637a19",
+    "clientName": "Luan Correia",
+    "petName": "Thor II",
+    "type": "agendamento_solicitacao",
+    "message": "Olá Luan Correia! 🐾💛\nRecebemos a solicitação de agendamento de Hospedagem para Thor II no dia 27/04/2026 às 07:34. ✨\n\nNossa equipe já vai analisar sua solicitação e em breve confirmaremos tudo para você\n\nSerá um prazer receber Thor II para mais um momento de cuidado, carinho e bem-estar! 😍\n\nQualquer dúvida, estamos à disposição.",
+    "sentAt": "2026-04-27T10:34:36.107Z",
+    "status": "sent",
+    "manual": false
+  },
+  {
     "id": "1777246824546-qp9hj55",
     "clientId": "a6aaa1fd-2c1b-408f-aa72-7cd3c5368c49",
     "clientName": "Fábio Ferreira",
@@ -2187,27 +2209,5 @@
     "sentAt": "2026-04-20T12:01:38.142Z",
     "status": "sent",
     "manual": true
-  },
-  {
-    "id": "1776686334173-l0et1itw",
-    "clientId": "c8c2f66b-87c7-42e4-bdb6-73301b627a09",
-    "clientName": "Luciana Teixeira",
-    "petName": "Marley",
-    "type": "session_finalized",
-    "message": "Olá Luciana Teixeira! A sessão de Banho e Tosa do(a) Marley foi finalizada. Obrigado pela confiança! Esperamos vê-los em breve.",
-    "sentAt": "2026-04-20T11:58:54.173Z",
-    "status": "sent",
-    "manual": false
-  },
-  {
-    "id": "1776686024842-zyqwgomw",
-    "clientId": "c8c2f66b-87c7-42e4-bdb6-73301b627a09",
-    "clientName": "Luciana Teixeira",
-    "petName": "Marley",
-    "type": "appointment_confirmation",
-    "message": "Olá Luciana Teixeira! Seu agendamento de Banho e Tosa para Marley foi confirmado para 20/04/2026 às 08:53. Qualquer dúvida, entre em contato!",
-    "sentAt": "2026-04-20T11:53:44.842Z",
-    "status": "sent",
-    "manual": false
   }
 ]

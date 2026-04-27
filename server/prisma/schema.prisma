@@ -471,13 +471,32 @@ model HospitalizationStay {
   petId                 String
   appointmentId         String?   @unique
   veterinarianId        String?
+  // Campos clínicos de admissão
+  origin                String?   // 'appointment' | 'emergency' | 'post_surgery' | 'return' | 'referral' | 'walk_in'
+  attendingVetName      String?
+  weightAtAdmission     Float?
+  triageLevel           String?   // 'low' | 'medium' | 'high' | 'critical'
   reasonForAdmission    String?   @db.Text
+  presumptiveDiagnosis  String?   @db.Text
+  initialNotes          String?   @db.Text
+  // Status e timestamps
   status                String    @default("admitted")
-  expectedDischargeDate DateTime?
+  admittedAt            DateTime  @default(now())
   checkIn               DateTime  @default(now())
   checkOut              DateTime?
+  dischargeAt           DateTime?
+  bedReleasedAt         DateTime?
+  // Campos de alta
+  dischargeType         String?   // 'discharge' | 'transfer' | 'death' | 'cancelled'
+  dischargeCondition    String?   // 'stable' | 'improved' | 'critical' | 'deceased'
+  finalDiagnosis        String?   @db.Text
+  dischargeSummary      String?   @db.Text
+  dischargeInstructions String?   @db.Text
+  dischargeMedications  String?   @db.Text
+  returnRecommendation  String?
+  administrativeNotes   String?   @db.Text
+  // Legado
   dailyRate             Float?
-  kennelNumber          String?
   notes                 String?   @db.Text
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
@@ -493,12 +512,26 @@ model HospitalizationStay {
 model HospitalizationLog {
   id                String   @id @default(uuid())
   hospitalizationId String
-  timestamp         DateTime @default(now())
-  type              String   @default("note")
+  type              String   @default("medical_evolution")
+  eventAt           DateTime?
+  // Vitais
   heartRate         Int?
+  respiratoryRate   Int?
   temperature       Float?
-  medicationGiven   String?
+  painScore         Int?
+  capillaryRefillTime String?
+  mucousMembranes   String?
+  hydrationLevel    String?
+  consciousness     String?
+  // Checks clínicos (JSON)
+  clinicalChecks    String?  @db.Text
+  // Texto
   doctorNotes       String?  @db.Text
+  conduct           String?  @db.Text
+  statusAfter       String?
+  // Legado
+  medicationGiven   String?
+  timestamp         DateTime @default(now())
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 

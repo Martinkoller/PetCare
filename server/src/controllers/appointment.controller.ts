@@ -223,9 +223,11 @@ const syncRelatedStays = async (appointment: any) => {
                   petId: appointment.petId,
                   appointmentId: appointment.id,
                   checkIn: appointment.date,
+                  admittedAt: appointment.date,
+                  kennelNumber: 'A definir',
                   status: hStatusMap[appointment.status] || 'admitted',
-                  reasonForAdmission: 'Sincronizado via Agenda',
-                }
+                  reasonForAdmission: appointment.notes?.replace(/\[.*?\]/g, '').trim() || 'Internação via agenda',
+                } as any
             });
         }
       } catch (err) {

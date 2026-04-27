@@ -10,5 +10,6 @@ router.get('/stays', hospitalizationController.getHospitalizationStays);
 router.post('/stays', hospitalizationController.createHospitalizationStay);
 router.post('/stays/:stayId/logs', hospitalizationController.addHospitalizationLog);
 router.patch('/stays/:id/discharge', hospitalizationController.dischargeHospitalizationStay);
+router.patch('/stays/:id/status', hospitalizationController.updateHospitalizationStayStatus);
 
 export default router;
