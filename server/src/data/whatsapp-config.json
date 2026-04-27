@@ -2,7 +2,7 @@
   "enabled": true,
   "phone": "",
   "apiUrl": "http://localhost:8081",
-  "apiKey": "petcare-secret-key",
+  "apiKey": "4033CCEB-7FD7-48F4-AE26-0D6BBDCC1E37",
   "instance": "petcare",
   "status": "CONNECTED",
   "qrCode": "",
