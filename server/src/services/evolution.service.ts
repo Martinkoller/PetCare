@@ -46,6 +46,13 @@ function normalizeQrCode(qrCode?: string) {
 
 export const evolutionService = {
   async createOrConnectInstance(config: WhatsAppConnection): Promise<WhatsAppConnection> {
+    if (!config.apiUrl || !config.apiKey || !config.instance) {
+      return whatsappConfigService.saveConfig({
+        status: 'ERROR',
+        errorMessage: 'Preencha a URL da API, API Key e nome da instância antes de conectar.',
+      })
+    }
+
     const baseURL = config.apiUrl.replace(/\/$/, '')
     const headers = buildHeaders(config.apiKey)
 
@@ -83,6 +90,10 @@ export const evolutionService = {
   },
 
   async getInstanceStatus(config: WhatsAppConnection): Promise<WhatsAppConnection> {
+    if (!config.apiUrl || !config.apiKey || !config.instance) {
+      return whatsappConfigService.saveConfig({ status: 'DISCONNECTED', errorMessage: '' })
+    }
+
     const baseURL = config.apiUrl.replace(/\/$/, '')
     const headers = buildHeaders(config.apiKey)
 
@@ -172,7 +183,9 @@ export const evolutionService = {
       const message =
         error?.response?.data?.message ||
         error?.response?.data?.error ||
-        'Erro ao consultar status da instância'
+        (error?.code === 'ECONNREFUSED' || error?.code === 'ENOTFOUND'
+          ? `Não foi possível conectar à Evolution API (${config.apiUrl}). Verifique se o servidor está acessível.`
+          : `Erro ao conectar à Evolution API: ${error?.message || 'verifique a URL e a API Key.'}`)
 
       return whatsappConfigService.saveConfig({
         status: 'ERROR',
@@ -182,6 +195,10 @@ export const evolutionService = {
   },
 
   async disconnectInstance(config: WhatsAppConnection): Promise<WhatsAppConnection> {
+    if (!config.apiUrl || !config.apiKey || !config.instance) {
+      return whatsappConfigService.saveConfig({ status: 'DISCONNECTED', errorMessage: '' })
+    }
+
     const baseURL = config.apiUrl.replace(/\/$/, '')
     const headers = buildHeaders(config.apiKey)
 

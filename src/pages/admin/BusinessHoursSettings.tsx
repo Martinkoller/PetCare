@@ -66,7 +66,14 @@ function TimeSelect({
 
 export function BusinessHoursSettings() {
   const { businessHours, updateBusinessHours } = useConfigStore()
-  const [hours, setHours] = useState<BusinessHours>(businessHours ?? DEFAULT_HOURS)
+  const [hours, setHours] = useState<BusinessHours>(() => {
+    if (!businessHours) return DEFAULT_HOURS
+    const merged = { ...DEFAULT_HOURS }
+    for (const day of WEEK_DAYS) {
+      if (businessHours[day]) merged[day] = businessHours[day]
+    }
+    return merged
+  })
   const [saving, setSaving] = useState(false)
 
   const update = (day: WeekDay, patch: Partial<DaySchedule>) => {

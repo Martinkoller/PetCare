@@ -212,23 +212,19 @@ export default function SalesPage() {
 
   const cartTotal = cart.reduce((acc, item) => acc + item.total, 0)
 
-  const handleCheckout = () => {
+  const handleCheckout = async () => {
     if (cart.length === 0) return toast.error('Carrinho vazio')
 
-    const newSale: Sale = {
-      id: Math.random().toString(36).substr(2, 9),
+    await addSale({
       date: new Date().toISOString(),
       clientId: selectedClientId || undefined,
       petId: selectedPetId === 'none' ? undefined : selectedPetId,
       items: cart,
       total: cartTotal,
       status: 'completed',
-    }
-
-    addSale(newSale)
+    })
     toast.success('Venda realizada com sucesso!')
 
-    // Reset
     setCart([])
     setSelectedClientId('')
     setSelectedPetId('none')

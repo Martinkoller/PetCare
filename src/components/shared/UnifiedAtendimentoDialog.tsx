@@ -36,8 +36,18 @@ import { usePetStore } from '@/stores/PetContext'
 import { useClientStore } from '@/stores/ClientContext'
 import { useAppointmentStore } from '@/stores/AppointmentStore'
 import { useProfessionals } from '@/hooks/useProfessionals'
-import { format, parseISO } from 'date-fns'
+import { format, parseISO, isValid } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+
+const safeParseISO = (dateStr?: string) => {
+  if (!dateStr) return null
+  try {
+    const d = parseISO(dateStr)
+    return isValid(d) ? d : null
+  } catch {
+    return null
+  }
+}
 
 // Sub-components
 import { ClinicFields } from '../atendimento/ClinicFields'
@@ -62,10 +72,24 @@ const SERVICE_CONFIGS: Record<ServiceType, { label: string; icon: any; color: st
   vaccination: { label: 'Vacinação', icon: Syringe, color: 'text-emerald-600 bg-emerald-50', dot: 'bg-emerald-400', defaultStatus: 'Agendado' },
 }
 
-export function UnifiedAtendimentoDialog({ 
-  open, 
-  onOpenChange, 
-  appointment, 
+class DialogErrorBoundary extends React.Component<{ children: React.ReactNode; onClose: () => void }, { hasError: boolean }> {
+  constructor(props: any) { super(props); this.state = { hasError: false } }
+  static getDerivedStateFromError() { return { hasError: true } }
+  render() {
+    if (this.state.hasError) return (
+      <div className="p-8 text-center space-y-4">
+        <p className="text-red-600 font-medium">Erro ao carregar o atendimento.</p>
+        <button className="rounded-lg bg-slate-100 px-4 py-2 text-sm" onClick={() => { this.setState({ hasError: false }); this.props.onClose() }}>Fechar</button>
+      </div>
+    )
+    return this.props.children
+  }
+}
+
+export function UnifiedAtendimentoDialog({
+  open,
+  onOpenChange,
+  appointment,
   onSave,
   readOnly
 }: UnifiedAtendimentoDialogProps) {
@@ -115,7 +139,7 @@ export function UnifiedAtendimentoDialog({
 
   const selectedPet = React.useMemo(() => pets.find(p => p.id === formData.petId), [pets, formData.petId])
   const selectedTutor = React.useMemo(() => clients.find(c => c.id === selectedTutorId), [clients, selectedTutorId])
-  const config = SERVICE_CONFIGS[formData.serviceType || 'consultation']
+  const config = SERVICE_CONFIGS[formData.serviceType as ServiceType] ?? SERVICE_CONFIGS['consultation']
 
   const handleUpdate = (patch: Partial<Appointment>) => {
     if (readOnly) return
@@ -153,13 +177,14 @@ export function UnifiedAtendimentoDialog({
       if (onSave) onSave(finalData)
       onOpenChange(false)
     } catch {
-      toast.error('Erro ao salvar o atendimento.')
+      // toast already shown by store with the specific error message
     }
   }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[1220px] h-[95vh] p-0 flex flex-col overflow-hidden bg-white rounded-3xl border-none shadow-2xl">
+      <DialogErrorBoundary onClose={() => onOpenChange(false)}>
         {/* Background gradient effect */}
         <div className="absolute inset-0 bg-gradient-to-br from-slate-100 via-slate-50 to-blue-50 -z-10" />
         
@@ -222,10 +247,10 @@ export function UnifiedAtendimentoDialog({
             <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
               <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Agendamento</div>
               <div className="mt-1 font-semibold text-sm">
-                {formData.date ? format(parseISO(formData.date), "dd 'de' MMMM", { locale: ptBR }) : '—'}
+                {safeParseISO(formData.date) ? format(safeParseISO(formData.date)!, "dd 'de' MMMM", { locale: ptBR }) : '—'}
               </div>
               <div className="text-[11px] text-slate-400">
-                {formData.date ? format(parseISO(formData.date), "HH:mm") : 'Defina data/hora'}
+                {safeParseISO(formData.date) ? format(safeParseISO(formData.date)!, "HH:mm") : 'Defina data/hora'}
               </div>
             </div>
           </div>
@@ -277,8 +302,8 @@ export function UnifiedAtendimentoDialog({
                 <div className="lg:col-span-5">
                   <Label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2 block">Pet</Label>
                   <div className="flex gap-2">
-                    <Select 
-                      value={formData.petId} 
+                    <Select
+                      value={formData.petId ?? ''}
                       onValueChange={(v) => handleUpdate({ petId: v })}
                       disabled={!selectedTutorId || readOnly}
                     >
@@ -301,7 +326,7 @@ export function UnifiedAtendimentoDialog({
                   <div className="lg:col-span-4">
                     <Label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2 block">Responsável</Label>
                     <Select
-                      value={formData.professionalId}
+                      value={formData.professionalId ?? ''}
                       onValueChange={(v) => handleUpdate({ professionalId: v })}
                       disabled={readOnly}
                     >
@@ -406,7 +431,7 @@ export function UnifiedAtendimentoDialog({
                         <Input
                           type="date"
                           className="h-11 rounded-2xl border-slate-300"
-                          value={formData.returnDate?.split('T')[0]}
+                          value={formData.returnDate?.split('T')[0] ?? ''}
                           disabled={readOnly}
                           onChange={(e) => {
                             const time = formData.returnDate?.split('T')[1] || '18:00:00'
@@ -416,7 +441,7 @@ export function UnifiedAtendimentoDialog({
                         <Input
                           type="time"
                           className="h-11 rounded-2xl border-slate-300 w-32"
-                          value={formData.returnDate?.split('T')[1]?.substring(0, 5)}
+                          value={formData.returnDate?.split('T')[1]?.substring(0, 5) ?? ''}
                           disabled={readOnly}
                           onChange={(e) => {
                             const date = formData.returnDate?.split('T')[0] || format(new Date(), 'yyyy-MM-dd')
@@ -504,6 +529,7 @@ export function UnifiedAtendimentoDialog({
             </Button>
           )}
         </footer>
+      </DialogErrorBoundary>
       </DialogContent>
     </Dialog>
   )

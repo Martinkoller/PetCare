@@ -13,6 +13,7 @@ import {
   StockTransaction,
 } from '@/lib/types'
 import { productService } from '@/services/product-service'
+import { saleService } from '@/services/sale-service'
 import { toast } from 'sonner'
 
 interface InventoryContextType {
@@ -33,7 +34,7 @@ interface InventoryContextType {
     referenceId?: string,
     batchId?: string,
   ) => void
-  addSale: (sale: Sale) => void
+  addSale: (sale: Omit<Sale, 'id'> & { id?: string }) => Promise<void>
 }
 
 const InventoryContext = createContext<InventoryContextType | undefined>(
@@ -51,14 +52,24 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
     try {
       const fetched = await productService.getProducts()
       setProducts(fetched)
-    } catch (error) {
+    } catch {
       toast.error('Erro ao carregar produtos')
+    }
+  }, [])
+
+  const loadSales = useCallback(async () => {
+    try {
+      const fetched = await saleService.getSales()
+      setSales(fetched)
+    } catch {
+      // silencia: vendas são não-críticas
     }
   }, [])
 
   useEffect(() => {
     loadProducts()
-  }, [loadProducts])
+    loadSales()
+  }, [loadProducts, loadSales])
 
   const registerStockMovement = useCallback(
     (
@@ -155,20 +166,18 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
   )
 
   const addSale = useCallback(
-    (sale: Sale) => {
-      sale.items.forEach((item) => {
-        registerStockMovement(
-          item.productId,
-          item.quantity,
-          'out',
-          'Venda PDV',
-          sale.id,
-          item.batchId,
-        )
-      })
-      setSales((prev) => [sale, ...prev])
+    async (sale: Omit<Sale, 'id'> & { id?: string }) => {
+      try {
+        const saved = await saleService.createSale(sale)
+        setSales((prev) => [saved, ...prev])
+        // Atualiza estoque local a partir do retorno do servidor
+        const updated = await productService.getProducts()
+        setProducts(updated)
+      } catch {
+        toast.error('Erro ao registrar venda')
+      }
     },
-    [registerStockMovement],
+    [],
   )
 
   const value = useMemo(

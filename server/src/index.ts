@@ -38,6 +38,7 @@ import clientInteractionRoutes from './routes/client-interaction.routes';
 import saasRoutes from './routes/saas.routes';
 import dashboardRoutes from './routes/dashboard.routes';
 import portalRoutes from './routes/portal.routes';
+import saleRoutes from './routes/sale.routes';
 import { notificationSchedulerService } from './services/notification-scheduler.service';
 
 app.use('/auth', authRoutes);
@@ -57,6 +58,7 @@ app.use('/api', clientInteractionRoutes);
 app.use('/saas', saasRoutes);
 app.use('/dashboard', dashboardRoutes);
 app.use('/portal', portalRoutes);
+app.use('/sales', saleRoutes);
 
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
     console.error('Unhandled error:', err)

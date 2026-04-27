@@ -36,8 +36,12 @@ export function GroomingFields({ formData, onChange, readOnly }: GroomingFieldsP
       .catch(() => {})
   }, [])
 
-  const selectedItems: ServiceItem[] = formData.serviceItems || []
-  const preferences: string[] = formData.groomingPreferences || []
+  const selectedItems: ServiceItem[] = Array.isArray(formData.serviceItems)
+    ? formData.serviceItems
+    : (typeof formData.serviceItems === 'string' ? JSON.parse(formData.serviceItems || '[]') : [])
+  const preferences: string[] = Array.isArray(formData.groomingPreferences)
+    ? formData.groomingPreferences
+    : (typeof formData.groomingPreferences === 'string' ? JSON.parse(formData.groomingPreferences || '[]') : [])
   const priceAdjustment = formData.priceAdjustment ?? 0
   const priceAdjustmentReason = formData.priceAdjustmentReason ?? ''
 

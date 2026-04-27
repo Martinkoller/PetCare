@@ -98,7 +98,7 @@
     "content": "Olá {{client_name}}! 🐾💛\n{{pet_name}} foi entregue com sucesso! ✨\n\nFoi um prazer cuidar dele(a) e fazer parte desse momento especial 🦋\nEsperamos que vocês tenham amado o resultado tanto quanto nós! 😍\n\nSempre que {{pet_name}} precisar de carinho, cuidado e aquele toque especial, estaremos por aqui para receber vocês novamente.\nAté a próxima! 🛁✂️",
     "active": true,
     "sendMode": "auto",
-    "sendDelay": 2
+    "sendDelay": 15
   },
   {
     "id": "hospedagem_checkin",

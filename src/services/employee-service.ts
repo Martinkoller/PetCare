@@ -18,7 +18,7 @@ export const employeeService = {
       email: u.email ?? '',
       role: u.role ?? 'attendant',
       phone: u.phone ?? undefined,
-      color: u.organizationId ?? undefined,
+      color: u.color ?? undefined,
     }))
   },
 
@@ -30,7 +30,7 @@ export const employeeService = {
       phone: payload.phone,
       color: payload.color,
     })
-    return { id: data.id, name: data.name, email: data.email, phone: data.phone, role: data.role, color: data.organizationId }
+    return { id: data.id, name: data.name, email: data.email, phone: data.phone, role: data.role, color: data.color ?? undefined }
   },
 
   async update(id: string, payload: Partial<EmployeePayload>): Promise<Profile> {
@@ -41,7 +41,7 @@ export const employeeService = {
       ...(payload.phone !== undefined ? { phone: payload.phone } : {}),
       ...(payload.color !== undefined ? { color: payload.color } : {}),
     })
-    return { id: data.id, name: data.name, email: data.email, phone: data.phone, role: data.role, color: data.organizationId }
+    return { id: data.id, name: data.name, email: data.email, phone: data.phone, role: data.role, color: data.color ?? undefined }
   },
 
   async remove(id: string): Promise<void> {
