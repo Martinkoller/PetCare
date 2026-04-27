@@ -18,26 +18,117 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { toast } from 'sonner'
 import { usePetStore } from '@/stores/PetContext'
 import { useClientStore } from '@/stores/ClientContext'
-import { useBoardingStore } from '@/stores/BoardingStore'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { formatCurrency, cn } from '@/lib/utils'
-import { format, parseISO } from 'date-fns'
-import { Dog, Cat, Bird, HelpCircle, Heart, AlertCircle, Info, ClipboardList, User } from 'lucide-react'
+import { format } from 'date-fns'
+import { ptBR } from 'date-fns/locale'
+import {
+  Dog, Cat, Bird, HelpCircle, Heart, AlertCircle, Info, User,
+  CalendarDays, Home, Activity, Stethoscope, Syringe, Loader2,
+} from 'lucide-react'
 import { Switch } from '@/components/ui/switch'
+import api from '@/lib/api'
+
+interface PetHistory {
+  appointments: Array<{
+    id: string; date: string; serviceType: string; status: string; notes?: string; price?: number
+  }>
+  boardings: Array<{
+    id: string; checkIn: string; checkOut?: string; status: string; kennelNumber?: string
+    totalPrice?: number; notes?: string; services: Array<{ name: string; totalPrice: number }>
+  }>
+  hospitalizations: Array<{
+    id: string; admittedAt: string; dischargeAt?: string; status: string; kennelNumber?: string
+    reasonForAdmission?: string; finalDiagnosis?: string; dischargeType?: string
+  }>
+  medicalRecords: Array<{
+    id: string; date: string; description?: string; diagnosis?: string; treatment?: string
+  }>
+  vaccinations: Array<{
+    id: string; name: string; date: string; nextDueDate?: string; batch?: string
+  }>
+}
+
+const SERVICE_TYPE_LABELS: Record<string, string> = {
+  consultation: 'Consulta',
+  grooming: 'Banho e Tosa',
+  boarding: 'Hospedagem',
+  hospitalization: 'Internação',
+  surgery: 'Cirurgia',
+  exam: 'Exame',
+  vaccine: 'Vacinação',
+  return: 'Retorno',
+}
+
+const STATUS_COLORS: Record<string, string> = {
+  completed: 'bg-emerald-100 text-emerald-700',
+  cancelled: 'bg-red-100 text-red-700',
+  scheduled: 'bg-blue-100 text-blue-700',
+  confirmed: 'bg-blue-100 text-blue-700',
+  checked_in: 'bg-cyan-100 text-cyan-700',
+  in_progress: 'bg-violet-100 text-violet-700',
+  active: 'bg-violet-100 text-violet-700',
+  reserved: 'bg-slate-100 text-slate-700',
+  admitted: 'bg-slate-100 text-slate-700',
+  treatment: 'bg-blue-100 text-blue-700',
+  critical: 'bg-red-100 text-red-700',
+  discharged: 'bg-emerald-100 text-emerald-700',
+  transferred: 'bg-violet-100 text-violet-700',
+  deceased: 'bg-zinc-200 text-zinc-700',
+}
+
+const STATUS_LABELS: Record<string, string> = {
+  completed: 'Finalizado', cancelled: 'Cancelado', scheduled: 'Agendado',
+  confirmed: 'Confirmado', checked_in: 'Em atendimento', in_progress: 'Em andamento',
+  active: 'Ativo', reserved: 'Reservado', admitted: 'Internado',
+  treatment: 'Em tratamento', critical: 'Crítico', discharged: 'Alta',
+  transferred: 'Transferido', deceased: 'Óbito',
+}
+
+function fmtDate(val?: string | null) {
+  if (!val) return '--'
+  try { return format(new Date(val), 'dd/MM/yyyy', { locale: ptBR }) } catch { return '--' }
+}
+
+function fmtDateTime(val?: string | null) {
+  if (!val) return '--'
+  try { return format(new Date(val), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR }) } catch { return '--' }
+}
+
+function StatusBadge({ status }: { status: string }) {
+  return (
+    <Badge className={cn('text-[10px] font-bold border-none shrink-0', STATUS_COLORS[status] ?? 'bg-slate-100 text-slate-600')}>
+      {STATUS_LABELS[status] ?? status}
+    </Badge>
+  )
+}
+
+function EmptyRow() {
+  return <p className="py-6 text-center text-sm text-muted-foreground italic">Nenhum registro encontrado.</p>
+}
+
+function HistorySection({
+  icon, title, count, children,
+}: {
+  icon: React.ReactNode; title: string; count: number; children: React.ReactNode
+}) {
+  return (
+    <div className="rounded-xl border bg-white overflow-hidden">
+      <div className="flex items-center gap-2 px-4 py-3 bg-slate-50 border-b">
+        {icon}
+        <span className="text-sm font-semibold text-slate-700">{title}</span>
+        <Badge variant="outline" className="ml-auto text-xs">{count}</Badge>
+      </div>
+      <div>{children}</div>
+    </div>
+  )
+}
 
 interface PetDialogProps {
   open: boolean
@@ -56,7 +147,6 @@ export function PetDialog({
 }: PetDialogProps) {
   const { addPet, updatePet } = usePetStore()
   const { clients } = useClientStore()
-  const { boardingStays } = useBoardingStore()
   const [formData, setFormData] = useState<Partial<Pet>>({
     name: '',
     species: 'dog',
@@ -71,6 +161,8 @@ export function PetDialog({
   })
   const [isSaving, setIsSaving] = useState(false)
   const [activeTab, setActiveTab] = useState('details')
+  const [history, setHistory] = useState<PetHistory | null>(null)
+  const [historyLoading, setHistoryLoading] = useState(false)
 
   useEffect(() => {
     if (pet) {
@@ -92,8 +184,19 @@ export function PetDialog({
         isCastrated: false,
         clinicalAlert: '',
       })
+      setHistory(null)
     }
   }, [pet, open, initialClientId])
+
+  useEffect(() => {
+    if (activeTab === 'history' && pet?.id && !history && !historyLoading) {
+      setHistoryLoading(true)
+      api.get<PetHistory>(`/pets/${pet.id}/history`)
+        .then((r) => setHistory(r.data))
+        .catch(() => toast.error('Erro ao carregar histórico.'))
+        .finally(() => setHistoryLoading(false))
+    }
+  }, [activeTab, pet?.id])
 
   const handleSave = async () => {
     if (
@@ -149,12 +252,6 @@ export function PetDialog({
     }
   }
 
-  const history = boardingStays
-    .filter((s) => s.petId === pet?.id)
-    .sort(
-      (a, b) => new Date(b.checkIn).getTime() - new Date(a.checkIn).getTime(),
-    )
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col p-0 overflow-hidden border-none shadow-2xl">
@@ -178,12 +275,12 @@ export function PetDialog({
               >
                 Dados Cadastrais
               </TabsTrigger>
-              <TabsTrigger 
-                value="history" 
+              <TabsTrigger
+                value="history"
                 disabled={!pet}
                 className="bg-transparent border-b-2 border-transparent data-[state=active]:border-blue-600 data-[state=active]:bg-transparent rounded-none px-0 h-full font-bold text-slate-500 data-[state=active]:text-blue-600 transition-all"
               >
-                Histórico de Serviços
+                Histórico Completo
               </TabsTrigger>
             </TabsList>
           </div>
@@ -367,72 +464,140 @@ export function PetDialog({
               </div>
             </TabsContent>
 
-            <TabsContent value="history" className="focus-visible:outline-none">
-              <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden my-4">
-                <Table>
-                  <TableHeader className="bg-slate-50/50 hover:bg-slate-50/50">
-                    <TableRow className="hover:bg-transparent">
-                      <TableHead className="font-bold text-slate-500 uppercase text-[10px] tracking-widest px-6 h-12">Data</TableHead>
-                      <TableHead className="font-bold text-slate-500 uppercase text-[10px] tracking-widest px-6 h-12">Serviços</TableHead>
-                      <TableHead className="font-bold text-slate-500 uppercase text-[10px] tracking-widest px-6 h-12">Obs.</TableHead>
-                      <TableHead className="font-bold text-slate-500 uppercase text-[10px] tracking-widest px-6 h-12">Valor</TableHead>
-                      <TableHead className="font-bold text-slate-500 uppercase text-[10px] tracking-widest px-6 h-12 text-right">Status</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {history.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={5} className="text-center py-20 text-slate-400 font-medium italic">
-                          Nenhum histórico operacional encontrado.
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      history.map((stay) => (
-                        <TableRow key={stay.id} className="hover:bg-slate-50/30 transition-colors">
-                          <TableCell className="px-6 py-4 font-bold text-slate-800 text-sm">
-                            {format(parseISO(stay.checkIn), 'dd/MM/yyyy')}
-                          </TableCell>
-                          <TableCell className="px-6 py-4">
-                            <div className="flex flex-wrap gap-1">
-                              {stay.services?.map((s, idx) => (
-                                <Badge key={idx} variant="secondary" className="bg-slate-100 text-slate-600 border-none font-bold text-[9px] uppercase">
-                                  {s.name}
-                                </Badge>
-                              ))}
-                              {!stay.services?.length && (
-                                <span className="text-xs text-slate-400 font-medium italic">Somente Estadia</span>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell className="px-6 py-4">
-                            <p className="text-xs text-slate-500 line-clamp-1 max-w-[150px]">
-                              {stay.observations || stay.specialInstructions || '---'}
-                            </p>
-                          </TableCell>
-                          <TableCell className="px-6 py-4 font-black text-slate-900 text-sm">
-                            {formatCurrency(stay.totalPrice || 0)}
-                          </TableCell>
-                          <TableCell className="px-6 py-4 text-right">
-                            <Badge
-                              className={cn(
-                                "text-[10px] font-black uppercase tracking-wider h-6 px-3",
-                                stay.status === 'completed' ? "bg-emerald-100 text-emerald-700" : 
-                                stay.status === 'cancelled' ? "bg-red-100 text-red-700" : "bg-blue-100 text-blue-700"
-                              )}
-                            >
-                              {stay.status === 'scheduled' ? 'Agendado' : 
-                               stay.status === 'confirmed' ? 'Confirmado' : 
-                               stay.status === 'in_progress' ? 'Em atendimento' : 
-                               stay.status === 'completed' ? 'Finalizado' : 
-                               stay.status === 'cancelled' ? 'Cancelado' : 'Reservado'}
-                            </Badge>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
+            <TabsContent value="history" className="focus-visible:outline-none pt-6 space-y-6">
+              {historyLoading ? (
+                <div className="flex items-center justify-center py-20 text-muted-foreground gap-2">
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                  Carregando histórico...
+                </div>
+              ) : !history ? null : (
+                <>
+                  {/* Agendamentos */}
+                  <HistorySection
+                    icon={<CalendarDays className="h-4 w-4 text-blue-600" />}
+                    title="Agendamentos"
+                    count={history.appointments.length}
+                  >
+                    {history.appointments.length === 0 ? (
+                      <EmptyRow />
+                    ) : history.appointments.map((a) => (
+                      <div key={a.id} className="flex items-center justify-between gap-4 py-3 px-4 rounded-lg hover:bg-slate-50 border-b last:border-0">
+                        <div className="space-y-0.5">
+                          <p className="text-sm font-semibold text-slate-800">
+                            {SERVICE_TYPE_LABELS[a.serviceType] ?? a.serviceType}
+                          </p>
+                          <p className="text-xs text-muted-foreground">{fmtDateTime(a.date)}</p>
+                          {a.notes && <p className="text-xs text-slate-500 line-clamp-1">{a.notes}</p>}
+                        </div>
+                        <div className="flex items-center gap-3 shrink-0">
+                          {a.price ? <span className="text-sm font-bold text-slate-700">{formatCurrency(a.price)}</span> : null}
+                          <StatusBadge status={a.status} />
+                        </div>
+                      </div>
+                    ))}
+                  </HistorySection>
+
+                  {/* Hospedagem */}
+                  <HistorySection
+                    icon={<Home className="h-4 w-4 text-amber-600" />}
+                    title="Hospedagem"
+                    count={history.boardings.length}
+                  >
+                    {history.boardings.length === 0 ? (
+                      <EmptyRow />
+                    ) : history.boardings.map((b) => (
+                      <div key={b.id} className="flex items-center justify-between gap-4 py-3 px-4 rounded-lg hover:bg-slate-50 border-b last:border-0">
+                        <div className="space-y-0.5">
+                          <p className="text-sm font-semibold text-slate-800">
+                            {fmtDate(b.checkIn)} → {fmtDate(b.checkOut)}
+                            {b.kennelNumber && <span className="ml-2 text-xs text-muted-foreground">Canil {b.kennelNumber}</span>}
+                          </p>
+                          <div className="flex flex-wrap gap-1">
+                            {b.services.map((s, i) => (
+                              <Badge key={i} variant="secondary" className="text-[9px] uppercase">{s.name}</Badge>
+                            ))}
+                            {b.services.length === 0 && <span className="text-xs text-slate-400 italic">Somente estadia</span>}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3 shrink-0">
+                          {b.totalPrice ? <span className="text-sm font-bold text-slate-700">{formatCurrency(b.totalPrice)}</span> : null}
+                          <StatusBadge status={b.status} />
+                        </div>
+                      </div>
+                    ))}
+                  </HistorySection>
+
+                  {/* Internação */}
+                  <HistorySection
+                    icon={<Activity className="h-4 w-4 text-red-600" />}
+                    title="Internação"
+                    count={history.hospitalizations.length}
+                  >
+                    {history.hospitalizations.length === 0 ? (
+                      <EmptyRow />
+                    ) : history.hospitalizations.map((h) => (
+                      <div key={h.id} className="flex items-center justify-between gap-4 py-3 px-4 rounded-lg hover:bg-slate-50 border-b last:border-0">
+                        <div className="space-y-0.5">
+                          <p className="text-sm font-semibold text-slate-800">
+                            Admissão: {fmtDateTime(h.admittedAt)}
+                            {h.dischargeAt && <span className="text-muted-foreground"> → {fmtDate(h.dischargeAt)}</span>}
+                          </p>
+                          {h.reasonForAdmission && (
+                            <p className="text-xs text-slate-600 line-clamp-1">{h.reasonForAdmission}</p>
+                          )}
+                          {h.finalDiagnosis && (
+                            <p className="text-xs text-slate-500">Dx: {h.finalDiagnosis}</p>
+                          )}
+                        </div>
+                        <StatusBadge status={h.status} />
+                      </div>
+                    ))}
+                  </HistorySection>
+
+                  {/* Prontuários médicos */}
+                  <HistorySection
+                    icon={<Stethoscope className="h-4 w-4 text-violet-600" />}
+                    title="Registros Médicos"
+                    count={history.medicalRecords.length}
+                  >
+                    {history.medicalRecords.length === 0 ? (
+                      <EmptyRow />
+                    ) : history.medicalRecords.map((m) => (
+                      <div key={m.id} className="py-3 px-4 rounded-lg hover:bg-slate-50 border-b last:border-0 space-y-1">
+                        <p className="text-xs text-muted-foreground">{fmtDate(m.date)}</p>
+                        {m.description && <p className="text-sm text-slate-700 line-clamp-2">{m.description}</p>}
+                        {m.diagnosis && <p className="text-xs text-slate-500">Dx: {m.diagnosis}</p>}
+                      </div>
+                    ))}
+                  </HistorySection>
+
+                  {/* Vacinas */}
+                  <HistorySection
+                    icon={<Syringe className="h-4 w-4 text-emerald-600" />}
+                    title="Vacinação"
+                    count={history.vaccinations.length}
+                  >
+                    {history.vaccinations.length === 0 ? (
+                      <EmptyRow />
+                    ) : history.vaccinations.map((v) => (
+                      <div key={v.id} className="flex items-center justify-between gap-4 py-3 px-4 rounded-lg hover:bg-slate-50 border-b last:border-0">
+                        <div className="space-y-0.5">
+                          <p className="text-sm font-semibold text-slate-800">{v.name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            Aplicada em {fmtDate(v.date)}
+                            {v.batch && ` · Lote ${v.batch}`}
+                          </p>
+                        </div>
+                        {v.nextDueDate && (
+                          <span className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-0.5 shrink-0">
+                            Reforço: {fmtDate(v.nextDueDate)}
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                  </HistorySection>
+                </>
+              )}
             </TabsContent>
           </ScrollArea>
         </Tabs>

@@ -6,6 +6,7 @@ import {
   deletePet,
   addMedicalRecord,
   addVaccination,
+  getPetHistory,
 } from '../controllers/pet.controller';
 import { authenticate } from '../middlewares/auth.middleware';
 
@@ -17,6 +18,7 @@ router.get('/', getPets);
 router.post('/', createPet);
 router.put('/:id', updatePet);
 router.delete('/:id', deletePet);
+router.get('/:id/history', getPetHistory);
 router.post('/:id/medical-records', addMedicalRecord);
 router.post('/:id/vaccinations', addVaccination);
 

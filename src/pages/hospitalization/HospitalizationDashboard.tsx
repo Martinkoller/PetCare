@@ -21,7 +21,7 @@ import { useHospitalizationStore } from '@/stores/HospitalizationContext'
 import { AdmissionModal } from './components/AdmissionModal'
 import { EvolutionModal } from './components/EvolutionModal'
 import { DischargeModal } from './components/DischargeModal'
-import { HospitalizationDetailModal } from './components/HospitalizationDetailModal.tsx'
+import { HospitalizationDetailModal } from './components/HospitalizationDetailModal'
 import { PrescriptionModal } from './components/PrescriptionModal'
 import { HospitalizationCarePanel } from './components/HospitalizationCarePanel'
 import { HospitalizationStay, HospitalizationStatus } from '@/lib/types'
@@ -367,7 +367,7 @@ export default function HospitalizationDashboard() {
       {selectedStay && (
         <EvolutionModal
           open={!!selectedStay}
-          onOpenChange={(open) => !open && setSelectedStay(null)}
+          onOpenChange={(open: boolean) => !open && setSelectedStay(null)}
           stay={selectedStay}
         />
       )}
@@ -375,7 +375,7 @@ export default function HospitalizationDashboard() {
       {selectedDischargeStay && (
         <DischargeModal
           open={!!selectedDischargeStay}
-          onOpenChange={(open) => !open && setSelectedDischargeStay(null)}
+          onOpenChange={(open: boolean) => !open && setSelectedDischargeStay(null)}
           stay={selectedDischargeStay}
         />
       )}
@@ -383,7 +383,7 @@ export default function HospitalizationDashboard() {
       {selectedDetailStay && (
         <HospitalizationDetailModal
           open={!!selectedDetailStay}
-          onOpenChange={(open) => !open && setSelectedDetailStay(null)}
+          onOpenChange={(open: boolean) => !open && setSelectedDetailStay(null)}
           stay={selectedDetailStay}
         />
       )}
@@ -391,7 +391,7 @@ export default function HospitalizationDashboard() {
       {selectedPrescriptionStay && (
         <PrescriptionModal
           open={!!selectedPrescriptionStay}
-          onOpenChange={(open) => !open && setSelectedPrescriptionStay(null)}
+          onOpenChange={(open: boolean) => !open && setSelectedPrescriptionStay(null)}
           stay={selectedPrescriptionStay}
         />
       )}

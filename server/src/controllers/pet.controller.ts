@@ -168,6 +168,83 @@ export const addMedicalRecord = async (req: AuthRequest, res: Response) => {
     }
 };
 
+export const getPetHistory = async (req: AuthRequest, res: Response) => {
+    const petId = req.params.id as string;
+    try {
+        const [appointments, boardings, hospitalizations, medicalRecords, vaccinations] = await Promise.all([
+            prisma.appointment.findMany({
+                where: { petId, status: { not: 'archived' } },
+                orderBy: { date: 'desc' },
+            }),
+            prisma.boardingStay.findMany({
+                where: { petId },
+                include: { services: true },
+                orderBy: { checkIn: 'desc' },
+            }),
+            prisma.hospitalizationStay.findMany({
+                where: { petId },
+                orderBy: { checkIn: 'desc' },
+            }),
+            prisma.medicalRecord.findMany({
+                where: { petId },
+                orderBy: { date: 'desc' },
+            }),
+            prisma.vaccination.findMany({
+                where: { petId },
+                orderBy: { date: 'desc' },
+            }),
+        ]);
+
+        res.json({
+            appointments: appointments.map((a) => ({
+                id: a.id,
+                date: a.date,
+                serviceType: a.serviceType,
+                status: a.status,
+                notes: a.notes,
+                price: a.price,
+            })),
+            boardings: boardings.map((b) => ({
+                id: b.id,
+                checkIn: b.checkIn,
+                checkOut: b.checkOut,
+                status: b.status,
+                kennelNumber: b.kennelNumber,
+                totalPrice: b.totalPrice,
+                notes: b.notes,
+                services: (b.services || []).map((s: any) => ({ name: s.name, totalPrice: s.totalPrice })),
+            })),
+            hospitalizations: hospitalizations.map((h) => ({
+                id: h.id,
+                admittedAt: (h as any).admittedAt ?? h.checkIn,
+                dischargeAt: (h as any).dischargeAt ?? h.checkOut,
+                status: h.status,
+                kennelNumber: h.kennelNumber,
+                reasonForAdmission: h.reasonForAdmission,
+                finalDiagnosis: (h as any).finalDiagnosis,
+                dischargeType: (h as any).dischargeType,
+            })),
+            medicalRecords: medicalRecords.map((m) => ({
+                id: m.id,
+                date: m.date,
+                description: m.description,
+                diagnosis: m.diagnosis,
+                treatment: m.treatment,
+            })),
+            vaccinations: vaccinations.map((v) => ({
+                id: v.id,
+                name: v.name,
+                date: v.date,
+                nextDueDate: v.nextDueDate,
+                batch: v.batch,
+            })),
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Failed to fetch pet history' });
+    }
+};
+
 export const addVaccination = async (req: AuthRequest, res: Response) => {
     const petId = req.params.id as string;
 
