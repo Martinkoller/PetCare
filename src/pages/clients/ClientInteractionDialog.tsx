@@ -65,7 +65,7 @@ export function ClientInteractionDialog({
         status: 'done',
         responsible: '',
       })
-    } catch (error) {
+    } catch (_error) {
       toast.error('Erro ao registrar interação.')
     } finally {
       setIsSaving(false)

@@ -1,37 +1,24 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import {
-  ChevronLeft,
   Mail,
   Phone,
-  MapPin,
-  Calendar,
   Plus,
   Save,
-  Trash2,
   MessageSquare,
   Dog,
   Stethoscope,
   Scissors,
   Home,
   Package,
-  Clock,
-  ExternalLink,
   Edit2,
-  DollarSign,
   AlertCircle,
-  FileText,
   User,
-  Heart,
-  TrendingUp,
-  CreditCard,
-  Syringe,
-  ClipboardList
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { useClientStore } from '@/stores/ClientContext'
 import { usePetStore } from '@/stores/PetContext'
@@ -40,14 +27,11 @@ import { useBoardingStore } from '@/stores/BoardingStore'
 import { useInventoryStore } from '@/stores/InventoryStore'
 import { clientInteractionService } from '@/services/client-interaction-service'
 import { whatsappService } from '@/services/whatsapp-service'
-import { Client, Pet, ClientInteraction, Appointment, Sale, NotificationLog } from '@/lib/types'
-import { format, differenceInYears } from 'date-fns'
-import { ptBR } from 'date-fns/locale'
+import { Client, ClientInteraction, NotificationLog } from '@/lib/types'
+import { format } from 'date-fns'
 import { toast } from 'sonner'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
 import {
   Select,
   SelectContent,
@@ -55,7 +39,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Checkbox } from '@/components/ui/checkbox'
 import { Separator } from '@/components/ui/separator'
 import { ClientInteractionDialog } from './ClientInteractionDialog'
 import {
@@ -71,7 +54,7 @@ import { cn } from '@/lib/utils'
 export default function ClientProfilePage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const { clients, updateClient, deleteClient } = useClientStore()
+  const { clients, updateClient } = useClientStore()
   const { pets } = usePetStore()
   const { appointments } = useAppointmentStore()
   const { boardingStays } = useBoardingStore()
@@ -145,28 +128,6 @@ export default function ClientProfilePage() {
       toast.error('Erro ao salvar alterações.')
     }
   }
-
-  const handleDelete = async () => {
-    if (!id || clientPets.length > 0) {
-      toast.error('Não é possível excluir clientes com pets vinculados.')
-      return
-    }
-    if (confirm('Tem certeza que deseja excluir este cliente? Esta ação é irreversível.')) {
-      await deleteClient(id)
-      navigate('/clients')
-    }
-  }
-
-  const unpaidTotal = useMemo(() => {
-    // Simulate unpaid logic if not explicitly in Sale
-    return clientSales.filter(s => s.status !== 'completed').reduce((acc, s) => acc + s.total, 0)
-  }, [clientSales])
-
-  const lastVisit = useMemo(() => {
-    const completed = clientAppointments.filter(a => a.status === 'completed' || a.status === 'checked_out')
-    if (completed.length === 0) return null
-    return new Date(Math.max(...completed.map(a => new Date(a.date).getTime())))
-  }, [clientAppointments])
 
   const allCommunications = useMemo(() => {
     const combined = [

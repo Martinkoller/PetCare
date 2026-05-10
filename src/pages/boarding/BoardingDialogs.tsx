@@ -22,7 +22,6 @@ import { toast } from 'sonner'
 import { differenceInDays, addDays, parseISO, format } from 'date-fns'
 import { RichTextEditor } from '@/components/ui/rich-text-editor'
 import { useBoardingStore } from '@/stores/BoardingStore'
-import { usePetStore } from '@/stores/PetContext'
 import { useClientStore } from '@/stores/ClientContext'
 import { useAppointmentStore } from '@/stores/AppointmentStore'
 import { useInventoryStore } from '@/stores/InventoryStore'
@@ -100,7 +99,6 @@ const CHECKIN_EMPTY = {
 
 export function CheckInDialog({ open, onOpenChange, pets, existingStays, kennels }: CheckInDialogProps) {
   const { addBoardingService, addBoardingStay } = useBoardingStore()
-  const { addPet } = usePetStore()
   const { addClient } = useClientStore()
   const { services, refreshAppointments } = useAppointmentStore()
   const { templates } = useConfigStore()

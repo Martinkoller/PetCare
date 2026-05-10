@@ -39,7 +39,7 @@ export function ClientDetailsSheet({
   onOpenChange,
   client,
 }: ClientDetailsSheetProps) {
-  const { pets, addPet, updatePet, deletePet } = usePetStore()
+  const { pets, deletePet } = usePetStore()
   const { sales } = useInventoryStore()
   const [isPetDialogOpen, setIsPetDialogOpen] = useState(false)
   const [editingPet, setEditingPet] = useState<Pet | null>(null)

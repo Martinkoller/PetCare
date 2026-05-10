@@ -139,17 +139,15 @@ export function ChecklistSection({ items, onChange, catalogItems, readOnly }: Pr
 
               {!readOnly && (
                 <div className="flex items-center gap-1 shrink-0">
-                  {item.additionalPrice != null || true ? (
-                    <Input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      placeholder="R$"
-                      className="h-6 w-16 text-xs px-1"
-                      value={item.additionalPrice ?? ''}
-                      onChange={(e) => updatePrice(item.id, e.target.value)}
-                    />
-                  ) : null}
+                  <Input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="R$"
+                    className="h-6 w-16 text-xs px-1"
+                    value={item.additionalPrice ?? ''}
+                    onChange={(e) => updatePrice(item.id, e.target.value)}
+                  />
                   <Button
                     variant={item.mandatory ? 'destructive' : 'outline'}
                     size="sm"
