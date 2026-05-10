@@ -37,6 +37,7 @@ import { BoardingDayView } from './components/BoardingDayView'
 import { BoardingWeekView } from './components/BoardingWeekView'
 import { BoardingMonthView } from './components/BoardingMonthView'
 import { UnifiedAtendimentoDialog } from '@/components/shared/UnifiedAtendimentoDialog'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 
 import { useAppointmentStore } from '@/stores/AppointmentStore'
 import { usePetStore } from '@/stores/PetContext'
@@ -84,7 +85,7 @@ const viewButtonClass = (active: boolean) =>
   cn(
     'h-10 px-4 rounded-xl border text-sm font-medium transition-all',
     active
-      ? 'bg-orange-500 text-white border-orange-500 shadow-sm hover:bg-orange-600'
+      ? 'bg-primary text-primary-foreground border-primary shadow-sm hover:bg-primary/90'
       : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
   )
 
@@ -123,6 +124,7 @@ export default function SchedulePage() {
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null)
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
   const [isReadOnly, setIsReadOnly] = useState(false)
+  const [pendingDrop, setPendingDrop] = useState<{ event: Appointment; newDate: Date } | null>(null)
 
   useEffect(() => {
     let start, end;
@@ -254,14 +256,22 @@ export default function SchedulePage() {
 
   const handleEventDrop = async (event: Appointment, newDate: Date) => {
     if (event.status === 'completed') {
-      if (!window.confirm('Este agendamento está FINALIZADO. Deseja alterar o horário?')) {
-        return
-      }
+      setPendingDrop({ event, newDate })
+      return
     }
     await updateAppointment({
       ...event,
       date: newDate.toLocaleString('sv').replace(' ', 'T'),
     })
+  }
+
+  const handleDropConfirm = async () => {
+    if (!pendingDrop) return
+    await updateAppointment({
+      ...pendingDrop.event,
+      date: pendingDrop.newDate.toLocaleString('sv').replace(' ', 'T'),
+    })
+    setPendingDrop(null)
   }
 
   const handleCancelAppointment = async (event: Appointment) => {
@@ -498,7 +508,7 @@ export default function SchedulePage() {
                   <Users className="mr-2 h-4 w-4" />
                   Profissionais
                   {activeProfiles.length > 0 && (
-                    <Badge className="ml-2 h-5 px-1.5 text-[10px] bg-orange-500 hover:bg-orange-500">
+                    <Badge className="ml-2 h-5 px-1.5 text-[10px] bg-primary hover:bg-primary">
                       {activeProfiles.length}
                     </Badge>
                   )}
@@ -549,7 +559,7 @@ export default function SchedulePage() {
                   <Filter className="mr-2 h-4 w-4" />
                   Status
                   {activeStatuses.length > 0 && (
-                    <Badge className="ml-2 h-5 px-1.5 text-[10px] bg-orange-500 hover:bg-orange-500">
+                    <Badge className="ml-2 h-5 px-1.5 text-[10px] bg-primary hover:bg-primary">
                       {activeStatuses.length}
                     </Badge>
                   )}
@@ -611,7 +621,7 @@ export default function SchedulePage() {
                   <Badge
                     key={profileId}
                     variant="secondary"
-                    className="rounded-full px-3 py-1 bg-orange-50 text-orange-700 border border-orange-200"
+                    className="rounded-full px-3 py-1 bg-primary/10 text-primary border border-primary/20"
                   >
                     Prof.: Sem responsável
                   </Badge>
@@ -624,7 +634,7 @@ export default function SchedulePage() {
                 <Badge
                   key={profileId}
                   variant="secondary"
-                  className="rounded-full px-3 py-1 bg-orange-50 text-orange-700 border border-orange-200"
+                  className="rounded-full px-3 py-1 bg-primary/10 text-primary border border-primary/20"
                 >
                   Prof.: {profile?.name || 'Sem nome'}
                 </Badge>
@@ -663,15 +673,25 @@ export default function SchedulePage() {
         }}
       />
 
+      <ConfirmDialog
+        open={!!pendingDrop}
+        onOpenChange={(open) => { if (!open) setPendingDrop(null) }}
+        title="Alterar agendamento finalizado"
+        description="Este agendamento está FINALIZADO. Deseja alterar o horário mesmo assim?"
+        confirmLabel="Alterar"
+        variant="default"
+        onConfirm={handleDropConfirm}
+      />
+
       {/* FAB — Novo Agendamento */}
-      <button
-        type="button"
+      <Button
         onClick={handleNewAppointment}
-        title="Novo Agendamento"
-        className="fixed bottom-6 right-6 z-50 flex items-center gap-2 rounded-full bg-orange-500 px-5 py-3 text-sm font-semibold text-white shadow-lg transition-all hover:bg-orange-600 hover:shadow-xl active:scale-95"
+        className="fixed bottom-6 right-6 z-50 flex items-center gap-2 rounded-full px-5 py-3 shadow-lg hover:shadow-xl"
+        size="lg"
       >
         <Plus className="h-5 w-5" />
-      </button>
+        Novo Agendamento
+      </Button>
     </div>
   )
 }

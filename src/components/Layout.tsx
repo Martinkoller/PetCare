@@ -67,7 +67,7 @@ export default function Layout() {
     { title: 'Clientes', url: '/clients', icon: Users },
     { title: 'Pets', url: '/pets', icon: Dog },
     { title: 'Banho e Tosa', url: '/grooming', icon: Scissors },
-    { title: 'Clinica', url: '/clinic', icon: Stethoscope },
+    { title: 'Clínica', url: '/clinic', icon: Stethoscope },
     { title: 'Hospedagem', url: '/boarding', icon: BedDouble },
     { title: 'Internação', url: '/hospitalization', icon: Activity },
   ]
@@ -81,10 +81,10 @@ export default function Layout() {
 
   if (user?.role === 'admin') {
     navItems.push(
-      { title: 'Relatorios Financeiros', url: '/financials', icon: TrendingUp },
-      { title: 'Catalogo de Servicos', url: '/services', icon: List },
+      { title: 'Relatórios Financeiros', url: '/financials', icon: TrendingUp },
+      { title: 'Catálogo de Serviços', url: '/services', icon: List },
       { title: 'Meus Dados', url: '/my-data', icon: Building2 },
-      { title: 'Administracao', url: '/admin', icon: Settings },
+      { title: 'Administração', url: '/admin', icon: Settings },
     )
   }
 
@@ -98,15 +98,15 @@ export default function Layout() {
     clients: 'Clientes',
     pets: 'Pets',
     grooming: 'Banho e Tosa',
-    clinic: 'Clinica',
+    clinic: 'Clínica',
     boarding: 'Hospedagem',
     hospitalization: 'Internação',
-    admin: 'Administracao',
+    admin: 'Administração',
     'my-data': 'Meus Dados',
-    services: 'Catalogo de Servicos',
+    services: 'Catálogo de Serviços',
     inventory: 'Estoque',
     sales: 'Vendas',
-    financials: 'Relatorios Financeiros',
+    financials: 'Relatórios Financeiros',
     knowledge: 'Base de Conhecimento',
   }
 
@@ -122,7 +122,7 @@ export default function Layout() {
               <div className="grid flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden">
                 <span className="truncate font-semibold">AgiliPet</span>
                 <span className="truncate text-xs text-muted-foreground">
-                  Sistema Clinico
+                  Sistema Clínico
                 </span>
               </div>
             </div>
@@ -255,10 +255,7 @@ export default function Layout() {
                   className="w-64 pl-9 h-9"
                 />
               </div>
-              <div className="relative cursor-pointer">
-                <Bell className="h-5 w-5 text-muted-foreground hover:text-foreground transition-colors" />
-                <span className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-red-500 animate-pulse" />
-              </div>
+              <Bell className="h-5 w-5 text-muted-foreground hover:text-foreground transition-colors cursor-pointer" />
             </div>
           </header>
           <main className="flex-1 overflow-auto p-4 md:p-6 lg:p-8 flex flex-col">

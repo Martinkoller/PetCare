@@ -19,11 +19,19 @@ import {
   Settings2,
   PlusCircle,
   Clock,
+  ClipboardList,
 } from 'lucide-react'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { format } from 'date-fns'
 import { CheckInDialog, CheckOutDialog, ConfirmCheckInDialog } from './BoardingDialogs'
 import { KennelManagerDialog } from './KennelManagerDialog'
 import { BoardingServiceDialog } from './BoardingServiceDialog'
+import { BoardingDailyLogDialog } from './BoardingDailyLogDialog'
 import { BoardingStay } from '@/lib/types'
 import { toast } from 'sonner'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -48,6 +56,7 @@ export default function BoardingPage() {
   const [confirmCheckInStay, setConfirmCheckInStay] = useState<BoardingStay | null>(null)
   const [serviceDialogStay, setServiceDialogStay] =
     useState<BoardingStay | null>(null)
+  const [dailyLogStay, setDailyLogStay] = useState<BoardingStay | null>(null)
 
   const activeStays = boardingStays.filter((b) => b.status === 'active')
   const pendingStays = boardingStays.filter((b) => b.status === 'reserved')
@@ -150,8 +159,8 @@ export default function BoardingPage() {
     isMaintenance?: boolean,
   ) => {
     if (isMaintenance) return 'bg-gray-200 border-gray-300 opacity-70'
-    if (stay) return 'bg-orange-50 border-orange-200'
-    return 'bg-background border-dashed border-gray-200 hover:border-orange-200 hover:bg-orange-50/50'
+    if (stay) return 'bg-primary/5 border-primary/30'
+    return 'bg-background border-dashed border-muted-foreground/20 hover:border-primary/40 hover:bg-primary/5'
   }
 
   return (
@@ -172,9 +181,9 @@ export default function BoardingPage() {
         <TabsContent value="map" className="space-y-6">
           {/* Pets aguardando check-in */}
           {pendingStays.length > 0 && (
-            <Card className="border-orange-200 bg-orange-50/40">
+            <Card className="border-primary/30 bg-primary/5">
               <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-orange-800 text-base">
+                <CardTitle className="flex items-center gap-2 text-foreground text-base">
                   <Clock className="h-4 w-4" />
                   Aguardando Check-in ({pendingStays.length})
                 </CardTitle>
@@ -187,7 +196,7 @@ export default function BoardingPage() {
                     return (
                       <div
                         key={stay.id}
-                        className="flex items-center justify-between bg-white rounded-lg border border-orange-100 px-4 py-3"
+                        className="flex items-center justify-between bg-white rounded-lg border border-primary/20 px-4 py-3"
                       >
                         <div className="flex items-center gap-3">
                           <Avatar className="h-8 w-8">
@@ -203,7 +212,6 @@ export default function BoardingPage() {
                         </div>
                         <Button
                           size="sm"
-                          className="bg-orange-600 hover:bg-orange-700 text-white"
                           onClick={() => setConfirmCheckInStay(stay)}
                         >
                           <LogIn className="h-3.5 w-3.5 mr-1.5" /> Fazer Check-in
@@ -261,20 +269,27 @@ export default function BoardingPage() {
                               <p className="font-bold text-sm truncate w-full">
                                 {pet.name}
                               </p>
-                              <p className="text-[10px] text-orange-700 font-medium">
+                              <p className="text-[10px] text-primary font-medium">
                                 Até {format(new Date(stay.checkOut), 'dd/MM')}
                               </p>
-                              <Button
-                                size="icon"
-                                variant="secondary"
-                                className="absolute bottom-2 right-2 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity bg-green-100 text-green-700 hover:bg-green-200"
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  handleWhatsApp(pet.id)
-                                }}
-                              >
-                                <MessageCircle className="h-3 w-3" />
-                              </Button>
+                              <TooltipProvider delayDuration={300}>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      size="icon"
+                                      variant="ghost"
+                                      className="absolute bottom-1 right-1 h-6 w-6 text-green-600 hover:text-green-700 hover:bg-green-50"
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        handleWhatsApp(pet.id)
+                                      }}
+                                    >
+                                      <MessageCircle className="h-3 w-3" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>Enviar WhatsApp</TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
                             </>
                           ) : (
                             <div className="text-gray-300">
@@ -327,19 +342,40 @@ export default function BoardingPage() {
                             </div>
                           </div>
                           <div className="flex gap-1">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                              onClick={() => setServiceDialogStay(stay)}
-                              title="Adicionar Serviço"
-                            >
-                              <PlusCircle className="h-4 w-4" />
-                            </Button>
+                            <TooltipProvider delayDuration={300}>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8"
+                                    onClick={() => setDailyLogStay(stay)}
+                                  >
+                                    <ClipboardList className="h-4 w-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Diário do dia</TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                            <TooltipProvider delayDuration={300}>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8"
+                                    onClick={() => setServiceDialogStay(stay)}
+                                  >
+                                    <PlusCircle className="h-4 w-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Adicionar serviço</TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
                             <Button
                               variant="outline"
                               size="sm"
-                              className="h-8 text-orange-600 border-orange-200 hover:bg-orange-50"
+                              className="h-8"
                               onClick={() => setCheckOutStay(stay)}
                             >
                               Check-out
@@ -375,31 +411,31 @@ export default function BoardingPage() {
                 </CardContent>
               </Card>
 
-              <Card className="bg-orange-50 border-orange-100">
+              <Card className="bg-primary/5 border-primary/20">
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-orange-900 text-lg">
+                  <CardTitle className="text-foreground text-lg">
                     Resumo
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-white/50 p-3 rounded-lg text-center">
-                      <span className="block text-2xl font-bold text-orange-700">
+                    <div className="bg-white/70 p-3 rounded-lg text-center">
+                      <span className="block text-2xl font-bold text-primary">
                         {activeStays.length}
                       </span>
-                      <span className="text-xs text-orange-900/60 font-medium">
+                      <span className="text-xs text-muted-foreground font-medium">
                         Ocupados
                       </span>
                     </div>
-                    <div className="bg-white/50 p-3 rounded-lg text-center">
-                      <span className="block text-2xl font-bold text-gray-600">
+                    <div className="bg-white/70 p-3 rounded-lg text-center">
+                      <span className="block text-2xl font-bold text-muted-foreground">
                         {Math.max(
                           0,
                           kennels.filter((k) => k.status === 'available')
                             .length - activeStays.length,
                         )}
                       </span>
-                      <span className="text-xs text-gray-500 font-medium">
+                      <span className="text-xs text-muted-foreground font-medium">
                         Livres
                       </span>
                     </div>
@@ -422,7 +458,6 @@ export default function BoardingPage() {
       <CheckInDialog
         open={isCheckInOpen}
         onOpenChange={setIsCheckInOpen}
-        onSave={handleCheckIn}
         pets={pets}
         existingStays={boardingStays}
         kennels={kennels}
@@ -461,6 +496,15 @@ export default function BoardingPage() {
         />
       )}
 
+      {dailyLogStay && (
+        <BoardingDailyLogDialog
+          open={!!dailyLogStay}
+          onOpenChange={(open) => { if (!open) setDailyLogStay(null) }}
+          boardingId={dailyLogStay.id}
+          petName={getPet(dailyLogStay.petId)?.name || 'Pet'}
+        />
+      )}
+
       <WhatsAppConfirmDialog
         open={!!pendingWA}
         onOpenChange={(open) => { if (!open) setPendingWA(null) }}
@@ -470,14 +514,14 @@ export default function BoardingPage() {
         onConfirm={handleConfirmWA}
       />
 
-      <button
-        type="button"
+      <Button
         onClick={() => setIsCheckInOpen(true)}
-        title="Novo Check-in"
-        className="fixed bottom-6 right-6 z-50 flex items-center gap-2 rounded-full bg-orange-500 px-5 py-3 text-sm font-semibold text-white shadow-lg transition-all hover:bg-orange-600 hover:shadow-xl active:scale-95"
+        className="fixed bottom-6 right-6 z-50 flex items-center gap-2 rounded-full px-5 py-3 shadow-lg hover:shadow-xl"
+        size="lg"
       >
         <Plus className="h-5 w-5" />
-      </button>
+        Check-in
+      </Button>
     </div>
   )
 }

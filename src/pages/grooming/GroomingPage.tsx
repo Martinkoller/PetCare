@@ -713,14 +713,14 @@ export default function GroomingPage() {
         onConfirm={handleConfirmWA}
       />
 
-      <button
-        type="button"
+      <Button
         onClick={() => setIsCreating(true)}
-        title="Novo Atendimento"
-        className="fixed bottom-6 right-6 z-50 flex items-center gap-2 rounded-full bg-orange-500 px-5 py-3 text-sm font-semibold text-white shadow-lg transition-all hover:bg-orange-600 hover:shadow-xl active:scale-95"
+        className="fixed bottom-6 right-6 z-50 flex items-center gap-2 rounded-full px-5 py-3 shadow-lg hover:shadow-xl"
+        size="lg"
       >
         <Plus className="h-5 w-5" />
-      </button>
+        Novo Atendimento
+      </Button>
     </div>
   )
 }

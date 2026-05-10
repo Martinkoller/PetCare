@@ -12,18 +12,16 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Card, CardContent } from '@/components/ui/card'
-import { Search, Plus, Phone, MapPin, Eye, Trash, Dog, Pencil } from 'lucide-react'
+import { Search, Plus, Phone, MapPin, MessageCircle, Dog } from 'lucide-react'
 import { toast } from 'sonner'
 import { Client } from '@/lib/types'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { Badge } from '@/components/ui/badge'
 import { ClientDialog } from './ClientDialog'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { useNavigate } from 'react-router-dom'
+import { ViewButton, EditButton, DeleteButton } from '@/components/ui/action-buttons'
 
 function displayPhone(phone: string): string {
   let d = phone.replace(/\D/g, '')
@@ -40,11 +38,11 @@ export default function ClientsPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [isAddOpen, setIsAddOpen] = useState(false)
   const [editingClient, setEditingClient] = useState<Client | null>(null)
+  const [deletingClientId, setDeletingClientId] = useState<string | null>(null)
 
   const filteredClients = clients.filter((c) => {
     const searchLow = searchTerm.toLowerCase()
     const rawSearch = searchTerm.replace(/\D/g, '')
-
     return (
       c.name.toLowerCase().includes(searchLow) ||
       c.email.toLowerCase().includes(searchLow) ||
@@ -53,36 +51,40 @@ export default function ClientsPage() {
     )
   })
 
-  const handleOpenDetails = (client: Client) => {
-    navigate(`/clients/${client.id}`)
-  }
+  const handleOpenDetails = (client: Client) => navigate(`/clients/${client.id}`)
 
-  const handleDeleteClient = (id: string) => {
+  const handleDeleteRequest = (id: string) => {
     const hasPets = pets.some((p) => p.clientId === id)
     if (hasPets) {
-      toast.error(
-        'Não é possível excluir clientes com pets vinculados. Remova os pets primeiro.',
-      )
+      toast.error('Não é possível excluir clientes com pets vinculados. Remova os pets primeiro.')
       return
     }
-    if (confirm('Tem certeza que deseja excluir este cliente?')) {
-      deleteClient(id)
+    setDeletingClientId(id)
+  }
+
+  const handleDeleteConfirm = async () => {
+    if (!deletingClientId) return
+    try {
+      await deleteClient(deletingClientId)
       toast.success('Cliente removido com sucesso.')
+    } catch {
+      // error handled in store
+    } finally {
+      setDeletingClientId(null)
     }
   }
 
-  const getPetCount = (clientId: string) => {
-    return pets.filter((p) => p.clientId === clientId).length
-  }
+  const getPetCount = (clientId: string) => pets.filter((p) => p.clientId === clientId).length
+
+  const deletingClient = clients.find((c) => c.id === deletingClientId)
 
   return (
     <div className="space-y-4 animate-fade-in">
-
       <div className="flex items-center gap-2">
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Buscar por nome ou email..."
+            placeholder="Buscar por nome, email, telefone ou CPF..."
             className="pl-9"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -105,10 +107,7 @@ export default function ClientsPage() {
             <TableBody>
               {filteredClients.length === 0 && (
                 <TableRow>
-                  <TableCell
-                    colSpan={5}
-                    className="text-center py-8 text-muted-foreground"
-                  >
+                  <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
                     Nenhum cliente encontrado.
                   </TableCell>
                 </TableRow>
@@ -121,19 +120,17 @@ export default function ClientsPage() {
                       <div className="flex items-center gap-3">
                         <Avatar>
                           <AvatarFallback>
-                            {client.name.charAt(0)}
+                            {client.name.split(' ').map((n) => n[0]).slice(0, 2).join('').toUpperCase()}
                           </AvatarFallback>
                         </Avatar>
                         <div>
-                          <div 
-                            className="cursor-pointer hover:text-primary transition-colors"
+                          <div
+                            className="cursor-pointer hover:text-primary transition-colors font-medium"
                             onClick={() => handleOpenDetails(client)}
                           >
                             {client.name}
                           </div>
-                          <div className="text-xs text-muted-foreground">
-                            {client.email}
-                          </div>
+                          <div className="text-xs text-muted-foreground">{client.email}</div>
                         </div>
                       </div>
                     </TableCell>
@@ -141,22 +138,21 @@ export default function ClientsPage() {
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <Phone className="h-3 w-3" /> {displayPhone(client.phone)}
                         {client.whatsappEnabled && (
-                          <Tooltip>
-                            <TooltipTrigger>
-                              <img
-                                src="https://img.usecurling.com/i?q=whatsapp&color=green"
-                                className="h-3 w-3"
-                                alt="WhatsApp Enabled"
-                              />
-                            </TooltipTrigger>
-                            <TooltipContent>Recebe Notificações</TooltipContent>
-                          </Tooltip>
+                          <TooltipProvider delayDuration={300}>
+                            <Tooltip>
+                              <TooltipTrigger>
+                                <MessageCircle className="h-3.5 w-3.5 text-green-500" />
+                              </TooltipTrigger>
+                              <TooltipContent>Recebe notificações via WhatsApp</TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
                         )}
                       </div>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <MapPin className="h-3 w-3" /> {client.address}
+                        <MapPin className="h-3 w-3" />
+                        <span className="truncate max-w-[180px]">{client.city ? `${client.city}${client.state ? ' - ' + client.state : ''}` : client.address || '—'}</span>
                       </div>
                     </TableCell>
                     <TableCell>
@@ -165,32 +161,10 @@ export default function ClientsPage() {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleOpenDetails(client)}
-                        >
-                          <Eye className="h-4 w-4 mr-2" /> Detalhes
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => {
-                            setEditingClient(client)
-                            setIsAddOpen(true)
-                          }}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="text-red-500 hover:text-red-600 hover:bg-red-50"
-                          onClick={() => handleDeleteClient(client.id)}
-                        >
-                          <Trash className="h-4 w-4" />
-                        </Button>
+                      <div className="flex justify-end gap-1">
+                        <ViewButton onClick={() => handleOpenDetails(client)} />
+                        <EditButton onClick={() => { setEditingClient(client); setIsAddOpen(true) }} />
+                        <DeleteButton onClick={() => handleDeleteRequest(client.id)} />
                       </div>
                     </TableCell>
                   </TableRow>
@@ -203,18 +177,27 @@ export default function ClientsPage() {
 
       <ClientDialog
         open={isAddOpen}
-        onOpenChange={setIsAddOpen}
+        onOpenChange={(open) => { setIsAddOpen(open); if (!open) setEditingClient(null) }}
         client={editingClient}
       />
 
-      <button
-        type="button"
+      <ConfirmDialog
+        open={!!deletingClientId}
+        onOpenChange={(open) => { if (!open) setDeletingClientId(null) }}
+        title="Excluir cliente"
+        description={`Tem certeza que deseja excluir "${deletingClient?.name}"? Esta ação não pode ser desfeita.`}
+        confirmLabel="Excluir"
+        onConfirm={handleDeleteConfirm}
+      />
+
+      <Button
         onClick={() => { setEditingClient(null); setIsAddOpen(true) }}
-        title="Novo Cliente"
-        className="fixed bottom-6 right-6 z-50 flex items-center gap-2 rounded-full bg-orange-500 px-5 py-3 text-sm font-semibold text-white shadow-lg transition-all hover:bg-orange-600 hover:shadow-xl active:scale-95"
+        className="fixed bottom-6 right-6 z-50 flex items-center gap-2 rounded-full px-5 py-3 shadow-lg hover:shadow-xl"
+        size="lg"
       >
         <Plus className="h-5 w-5" />
-      </button>
+        Novo Cliente
+      </Button>
     </div>
   )
 }

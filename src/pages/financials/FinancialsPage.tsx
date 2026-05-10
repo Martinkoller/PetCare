@@ -49,7 +49,7 @@ import {
   Calendar,
   Filter,
 } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { cn, formatCurrency } from '@/lib/utils'
 
 const chartConfig = {
   total: {
@@ -301,7 +301,7 @@ export default function FinancialsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              R$ {totalCurrent.toFixed(2)}
+              {formatCurrency(totalCurrent)}
             </div>
             <p className="text-xs text-muted-foreground flex items-center mt-1">
               {growth >= 0 ? (
@@ -328,10 +328,7 @@ export default function FinancialsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              R${' '}
-              {(currentRevenue.serviceRev + currentRevenue.boardingRev).toFixed(
-                2,
-              )}
+              {formatCurrency(currentRevenue.serviceRev + currentRevenue.boardingRev)}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
               Consultas, Banhos, Hospedagem
@@ -345,7 +342,7 @@ export default function FinancialsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              R$ {currentRevenue.productRev.toFixed(2)}
+              {formatCurrency(currentRevenue.productRev)}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
               Produtos e Itens de Loja

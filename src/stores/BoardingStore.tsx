@@ -22,29 +22,23 @@ interface BoardingContextType {
   kennels: Kennel[]
   setKennels: React.Dispatch<React.SetStateAction<Kennel[]>>
   refreshBoardings: () => Promise<void>
+  refreshKennels: () => Promise<void>
   addBoardingStay: (stay: BoardingStay) => Promise<BoardingStay>
   updateBoardingStay: (stay: BoardingStay) => Promise<void>
   deleteBoardingStay: (id: string) => Promise<void>
   addBoardingService: (
     item: Omit<BoardingServiceItem, 'id' | 'createdAt'>,
   ) => Promise<void>
-  addKennel: (kennel: Kennel) => void
-  updateKennel: (kennel: Kennel) => void
-  deleteKennel: (id: string) => void
+  addKennel: (kennel: Omit<Kennel, 'id' | 'organizationId' | 'createdAt' | 'updatedAt'>) => Promise<void>
+  updateKennel: (kennel: Kennel) => Promise<void>
+  deleteKennel: (id: string) => Promise<void>
 }
 
 const BoardingContext = createContext<BoardingContextType | undefined>(undefined)
 
-const INITIAL_KENNELS: Kennel[] = Array.from({ length: 15 }, (_, i) => ({
-  id: (101 + i).toString(),
-  name: (101 + i).toString(),
-  size: 'medium',
-  status: 'available',
-}))
-
 export function BoardingProvider({ children }: { children: ReactNode }) {
   const [boardingStays, setBoardingStays] = useState<BoardingStay[]>([])
-  const [kennels, setKennels] = useState<Kennel[]>(INITIAL_KENNELS)
+  const [kennels, setKennels] = useState<Kennel[]>([])
 
   const { registerStockMovement } = useInventoryStore()
 
@@ -52,15 +46,24 @@ export function BoardingProvider({ children }: { children: ReactNode }) {
     try {
       const fetched = await boardingService.getBoardings()
       setBoardingStays(fetched)
-    } catch (error) {
-      
+    } catch {
       toast.error('Erro ao carregar hospedagens')
+    }
+  }, [])
+
+  const loadKennels = useCallback(async () => {
+    try {
+      const fetched = await boardingService.getKennels()
+      setKennels(fetched)
+    } catch {
+      toast.error('Erro ao carregar canis')
     }
   }, [])
 
   useEffect(() => {
     loadBoardings()
-  }, [loadBoardings])
+    loadKennels()
+  }, [loadBoardings, loadKennels])
 
   const addBoardingStay = useCallback(
     async (stay: BoardingStay) => {
@@ -141,16 +144,35 @@ export function BoardingProvider({ children }: { children: ReactNode }) {
     [registerStockMovement],
   )
 
-  const addKennel = useCallback((kennel: Kennel) => {
-    setKennels((prev) => [...prev, kennel])
+  const addKennel = useCallback(
+    async (kennel: Omit<Kennel, 'id' | 'organizationId' | 'createdAt' | 'updatedAt'>) => {
+      try {
+        const created = await boardingService.createKennel(kennel)
+        setKennels((prev) => [...prev, created])
+        toast.success('Canil adicionado')
+      } catch {
+        toast.error('Erro ao adicionar canil')
+      }
+    },
+    [],
+  )
+
+  const updateKennel = useCallback(async (kennel: Kennel) => {
+    try {
+      const updated = await boardingService.updateKennel(kennel)
+      setKennels((prev) => prev.map((k) => (k.id === kennel.id ? updated : k)))
+    } catch {
+      toast.error('Erro ao atualizar canil')
+    }
   }, [])
 
-  const updateKennel = useCallback((kennel: Kennel) => {
-    setKennels((prev) => prev.map((k) => (k.id === kennel.id ? kennel : k)))
-  }, [])
-
-  const deleteKennel = useCallback((id: string) => {
-    setKennels((prev) => prev.filter((k) => k.id !== id))
+  const deleteKennel = useCallback(async (id: string) => {
+    try {
+      await boardingService.deleteKennel(id)
+      setKennels((prev) => prev.filter((k) => k.id !== id))
+    } catch {
+      toast.error('Erro ao remover canil')
+    }
   }, [])
 
   const value = useMemo(
@@ -160,6 +182,7 @@ export function BoardingProvider({ children }: { children: ReactNode }) {
       kennels,
       setKennels,
       refreshBoardings: loadBoardings,
+      refreshKennels: loadKennels,
       addBoardingStay,
       updateBoardingStay,
       deleteBoardingStay,
@@ -172,6 +195,7 @@ export function BoardingProvider({ children }: { children: ReactNode }) {
       boardingStays,
       kennels,
       loadBoardings,
+      loadKennels,
       addBoardingStay,
       updateBoardingStay,
       deleteBoardingStay,

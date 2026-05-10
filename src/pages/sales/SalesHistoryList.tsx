@@ -40,6 +40,7 @@ export function SalesHistoryList({
             <TableHead>Data</TableHead>
             {!hideClientColumn && <TableHead>Cliente / Pet</TableHead>}
             <TableHead>Itens</TableHead>
+            <TableHead>Pagamento</TableHead>
             <TableHead>Total</TableHead>
             <TableHead className="text-right">Status</TableHead>
           </TableRow>
@@ -48,7 +49,7 @@ export function SalesHistoryList({
           {sales.length === 0 && (
             <TableRow>
               <TableCell
-                colSpan={hideClientColumn ? 4 : 5}
+                colSpan={hideClientColumn ? 5 : 6}
                 className="text-center py-8 text-muted-foreground"
               >
                 Nenhuma venda registrada.
@@ -83,6 +84,11 @@ export function SalesHistoryList({
                     </div>
                   ))}
                 </div>
+              </TableCell>
+              <TableCell className="text-sm text-muted-foreground capitalize">
+                {sale.paymentMethod
+                  ? sale.paymentMethod.replace('_', ' ').replace('cartao ', 'Cartão ')
+                  : '—'}
               </TableCell>
               <TableCell className="font-bold text-green-600">
                 R$ {sale.total.toFixed(2)}

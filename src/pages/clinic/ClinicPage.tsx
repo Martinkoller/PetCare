@@ -58,6 +58,8 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import WhatsAppConfirmDialog from '@/components/shared/WhatsAppConfirmDialog'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
+import { formatCurrency } from '@/lib/utils'
 
 type ClinicStage =
   | 'scheduled'
@@ -101,6 +103,7 @@ export default function ClinicPage() {
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [professionalFilter, setProfessionalFilter] = useState<string>('all')
   const [pendingWA, setPendingWA] = useState<{ clientId: string; clientName: string; petName: string; phone?: string; message: string } | null>(null)
+  const [deletingConsultaId, setDeletingConsultaId] = useState<string | null>(null)
 
   const consultations = useMemo(
     () =>
@@ -286,10 +289,17 @@ export default function ClinicPage() {
     })
   }
 
-  const handleDelete = async (id: string) => {
-    if (confirm('Tem certeza que deseja excluir esta consulta?')) {
-      await deleteAppointment(id)
-      toast.success('Consulta excluida com sucesso.')
+  const handleDeleteRequest = (id: string) => setDeletingConsultaId(id)
+
+  const handleDeleteConfirm = async () => {
+    if (!deletingConsultaId) return
+    try {
+      await deleteAppointment(deletingConsultaId)
+      toast.success('Consulta excluída com sucesso.')
+    } catch {
+      // error handled in store
+    } finally {
+      setDeletingConsultaId(null)
     }
   }
 
@@ -782,7 +792,7 @@ export default function ClinicPage() {
                             {getStatusLabel(stage)}
                           </Badge>
                         </TableCell>
-                        <TableCell>R$ {apt.price.toFixed(2)}</TableCell>
+                        <TableCell>{formatCurrency(apt.price ?? 0)}</TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-2">
                             {apt.status !== 'completed' && apt.status !== 'cancelled' && (
@@ -809,8 +819,8 @@ export default function ClinicPage() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="text-red-500 hover:text-red-600 hover:bg-red-50"
-                              onClick={() => handleDelete(apt.id)}
+                              className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                              onClick={() => handleDeleteRequest(apt.id)}
                             >
                               <Trash className="h-4 w-4" />
                             </Button>
@@ -869,14 +879,23 @@ export default function ClinicPage() {
         onConfirm={handleConfirmWA}
       />
 
-      <button
-        type="button"
+      <ConfirmDialog
+        open={!!deletingConsultaId}
+        onOpenChange={(open) => { if (!open) setDeletingConsultaId(null) }}
+        title="Excluir consulta"
+        description="Tem certeza que deseja excluir esta consulta? Esta ação não pode ser desfeita."
+        confirmLabel="Excluir"
+        onConfirm={handleDeleteConfirm}
+      />
+
+      <Button
         onClick={() => { setEditingAppointment(null); setIsNewConsultationOpen(true) }}
-        title="Nova Consulta"
-        className="fixed bottom-6 right-6 z-50 flex items-center gap-2 rounded-full bg-orange-500 px-5 py-3 text-sm font-semibold text-white shadow-lg transition-all hover:bg-orange-600 hover:shadow-xl active:scale-95"
+        className="fixed bottom-6 right-6 z-50 flex items-center gap-2 rounded-full px-5 py-3 shadow-lg hover:shadow-xl"
+        size="lg"
       >
         <Plus className="h-5 w-5" />
-      </button>
+        Nova Consulta
+      </Button>
     </div>
   )
 }

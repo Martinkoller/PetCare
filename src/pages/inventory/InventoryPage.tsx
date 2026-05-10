@@ -15,10 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Search,
   Plus,
-  Edit,
-  Trash,
   AlertTriangle,
-  ArrowRightLeft,
   CalendarClock,
   AlertOctagon,
   Layers,
@@ -26,7 +23,10 @@ import {
 import { toast } from 'sonner'
 import { ProductDialog } from './ProductDialog'
 import { StockAdjustmentDialog } from './StockAdjustmentDialog'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { Product } from '@/lib/types'
+import { AdjustButton, EditButton, DeleteButton } from '@/components/ui/action-buttons'
+import { formatCurrency } from '@/lib/utils'
 import {
   Select,
   SelectContent,
@@ -57,6 +57,7 @@ export default function InventoryPage() {
   const [isAdjustmentOpen, setIsAdjustmentOpen] = useState(false)
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
   const [adjustingProduct, setAdjustingProduct] = useState<Product | null>(null)
+  const [deletingProductId, setDeletingProductId] = useState<string | null>(null)
 
   const today = startOfDay(new Date())
 
@@ -108,19 +109,26 @@ export default function InventoryPage() {
     setIsAdjustmentOpen(true)
   }
 
-  const handleDelete = (id: string) => {
-    if (confirm('Tem certeza que deseja excluir este produto?')) {
-      deleteProduct(id)
+  const handleDelete = (id: string) => setDeletingProductId(id)
+
+  const handleDeleteConfirm = async () => {
+    if (!deletingProductId) return
+    try {
+      await deleteProduct(deletingProductId)
       toast.success('Produto excluído com sucesso.')
+    } catch {
+      // error handled in store
+    } finally {
+      setDeletingProductId(null)
     }
   }
 
-  const handleSave = (product: Product) => {
+  const handleSave = async (product: Product) => {
     if (editingProduct) {
-      updateProduct(product)
+      await updateProduct(product)
       toast.success('Produto atualizado!')
     } else {
-      addProduct(product)
+      await addProduct(product)
       toast.success('Produto cadastrado!')
     }
   }
@@ -154,17 +162,17 @@ export default function InventoryPage() {
 
       <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
         <Card
-          className={lowStockCount > 0 ? 'border-orange-200 bg-orange-50' : ''}
+          className={lowStockCount > 0 ? 'border-primary/30 bg-primary/5' : ''}
         >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Baixo Estoque</CardTitle>
             <AlertTriangle
-              className={`h-4 w-4 ${lowStockCount > 0 ? 'text-orange-600' : 'text-muted-foreground'}`}
+              className={`h-4 w-4 ${lowStockCount > 0 ? 'text-primary' : 'text-muted-foreground'}`}
             />
           </CardHeader>
           <CardContent>
             <div
-              className={`text-2xl font-bold ${lowStockCount > 0 ? 'text-orange-700' : ''}`}
+              className={`text-2xl font-bold ${lowStockCount > 0 ? 'text-primary' : ''}`}
             >
               {lowStockCount}
             </div>
@@ -218,11 +226,8 @@ export default function InventoryPage() {
             <span className="text-muted-foreground font-mono">$</span>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">
-              R${' '}
-              {products
-                .reduce((acc, p) => acc + p.price * p.stock, 0)
-                .toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+            <div className="text-2xl font-bold">
+              {formatCurrency(products.reduce((acc, p) => acc + p.price * p.stock, 0))}
             </div>
             <p className="text-xs text-muted-foreground">Em mercadorias</p>
           </CardContent>
@@ -328,16 +333,16 @@ export default function InventoryPage() {
                       <span className="text-muted-foreground text-xs">-</span>
                     )}
                   </TableCell>
-                  <TableCell>R$ {product.price.toFixed(2)}</TableCell>
+                  <TableCell>{formatCurrency(product.price)}</TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
                       {product.stock <= product.minStock && (
-                        <AlertTriangle className="h-4 w-4 text-orange-500 animate-pulse" />
+                        <AlertTriangle className="h-4 w-4 text-primary animate-pulse" />
                       )}
                       <span
                         className={
                           product.stock <= product.minStock
-                            ? 'text-orange-600 font-bold'
+                            ? 'text-primary font-bold'
                             : ''
                         }
                       >
@@ -350,33 +355,9 @@ export default function InventoryPage() {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={() => handleAdjustment(product)}
-                        title="Ajustar Estoque"
-                      >
-                        <ArrowRightLeft className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={() => handleEdit(product)}
-                        title="Editar"
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50"
-                        onClick={() => handleDelete(product.id)}
-                        title="Excluir"
-                      >
-                        <Trash className="h-4 w-4" />
-                      </Button>
+                      <AdjustButton onClick={() => handleAdjustment(product)} />
+                      <EditButton onClick={() => handleEdit(product)} />
+                      <DeleteButton onClick={() => handleDelete(product.id)} />
                     </div>
                   </TableCell>
                 </TableRow>
@@ -416,14 +397,23 @@ export default function InventoryPage() {
         onSave={handleStockAdjustment}
       />
 
-      <button
-        type="button"
+      <ConfirmDialog
+        open={!!deletingProductId}
+        onOpenChange={(open) => { if (!open) setDeletingProductId(null) }}
+        title="Excluir produto"
+        description={`Tem certeza que deseja excluir "${products.find(p => p.id === deletingProductId)?.name}"? Esta ação não pode ser desfeita.`}
+        confirmLabel="Excluir"
+        onConfirm={handleDeleteConfirm}
+      />
+
+      <Button
         onClick={() => { setEditingProduct(null); setIsDialogOpen(true) }}
-        title="Novo Item"
-        className="fixed bottom-6 right-6 z-50 flex items-center gap-2 rounded-full bg-orange-500 px-5 py-3 text-sm font-semibold text-white shadow-lg transition-all hover:bg-orange-600 hover:shadow-xl active:scale-95"
+        className="fixed bottom-6 right-6 z-50 flex items-center gap-2 rounded-full px-5 py-3 shadow-lg hover:shadow-xl"
+        size="lg"
       >
         <Plus className="h-5 w-5" />
-      </button>
+        Novo Produto
+      </Button>
     </div>
   )
 }

@@ -24,7 +24,7 @@ import {
 import { formatCurrency } from '@/lib/utils'
 
 export function BoardingHistory() {
-  const { boardingStays } = useBoardingStore()
+  const { boardingStays, kennels } = useBoardingStore()
   const { pets } = usePetStore()
   const { clients } = useClientStore()
   const [searchTerm, setSearchTerm] = useState('')
@@ -141,7 +141,7 @@ export function BoardingHistory() {
                     {getPetName(stay.petId)}
                   </TableCell>
                   <TableCell>{getClientName(stay.petId)}</TableCell>
-                  <TableCell>{stay.kennelNumber}</TableCell>
+                  <TableCell>{kennels.find((k) => k.id === stay.kennelNumber)?.name ?? stay.kennelNumber}</TableCell>
                   <TableCell className="max-w-[200px]">
                     <div className="space-y-1">
                       {stay.specialInstructions && (

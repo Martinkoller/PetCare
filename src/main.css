@@ -6,13 +6,13 @@
 
 @layer base {
   :root {
-    /* Teal/Green Primary - Friendly & Professional */
-    --primary: 152 60% 40%; /* #27AE60 equivalent approx */
+    /* Orange Primary — AgiliPet brand */
+    --primary: 24 95% 53%; /* #f97316 */
     --primary-foreground: 0 0% 100%;
 
-    /* Warm Orange/Yellow - Secondary/Accents */
-    --secondary: 32 85% 55%; /* #F2994A equivalent approx */
-    --secondary-foreground: 0 0% 100%;
+    /* Neutral Secondary */
+    --secondary: 220 14% 96%;
+    --secondary-foreground: 220 9% 46%;
 
     --background: 210 20% 98%; /* Light Grey #F8F9FA */
     --foreground: 222 47% 11%;
@@ -26,31 +26,31 @@
     --muted: 210 40% 96%;
     --muted-foreground: 215 16% 47%;
 
-    --accent: 152 60% 95%; /* Light green tint */
-    --accent-foreground: 152 60% 40%;
+    --accent: 24 95% 96%; /* Light orange tint */
+    --accent-foreground: 24 95% 40%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 98%;
 
     --border: 214 32% 91%;
     --input: 214 32% 91%;
-    --ring: 152 60% 40%;
+    --ring: 24 95% 53%;
 
     --radius: 0.75rem;
 
     /* Sidebar specific */
     --sidebar-background: 0 0% 100%;
     --sidebar-foreground: 222 47% 11%;
-    --sidebar-primary: 152 60% 40%;
+    --sidebar-primary: 24 95% 53%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 152 60% 95%;
-    --sidebar-accent-foreground: 152 60% 40%;
+    --sidebar-accent: 24 95% 96%;
+    --sidebar-accent-foreground: 24 95% 40%;
     --sidebar-border: 214 32% 91%;
-    --sidebar-ring: 152 60% 40%;
+    --sidebar-ring: 24 95% 53%;
 
     /* Chart colors */
-    --chart-1: 152 60% 40%; /* Green */
-    --chart-2: 32 85% 55%; /* Orange */
+    --chart-1: 24 95% 53%; /* Orange */
+    --chart-2: 152 60% 40%; /* Green */
     --chart-3: 200 80% 50%; /* Blue */
     --chart-4: 280 60% 60%; /* Purple */
     --chart-5: 0 70% 60%; /* Red */

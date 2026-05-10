@@ -13,6 +13,7 @@ export const notificationSchedulerService = {
       await this.processConfirmacoesPendentes()
       await this.processFollowUps()
       await this.processTaskAlerts()
+      await this.processBoardingCheckoutReminders()
     } catch (error) {
       console.error('[NotificationScheduler] Critical error in cycle:', error)
     }
@@ -443,6 +444,87 @@ export const notificationSchedulerService = {
       content = content.replace(regex, value ?? '')
     })
     return content
+  },
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // LEMBRETE DE CHECKOUT — 1 dia antes da saída prevista
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  async processBoardingCheckoutReminders() {
+    const now = new Date()
+    const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000)
+    const dayAfter  = new Date(now.getTime() + 48 * 60 * 60 * 1000)
+
+    try {
+      const stays = await prisma.boardingStay.findMany({
+        where: {
+          status: 'active',
+          checkOut: { gte: tomorrow, lte: dayAfter },
+        },
+      })
+
+      for (const stay of stays) {
+        // Evitar reenvio via appointment.reminderSentAt
+        if (stay.appointmentId) {
+          const apt = await prisma.appointment.findUnique({ where: { id: stay.appointmentId } })
+          if (apt?.reminderSentAt) continue
+        }
+
+        const pet = await prisma.pet.findUnique({
+          where: { id: stay.petId },
+          include: { client: true },
+        })
+        const client = (pet as any)?.client
+        if (!client?.phone) continue
+
+        const checkOutFormatted = format(new Date(stay.checkOut), 'dd/MM/yyyy', { locale: ptBR })
+        const msg =
+          `🐾 *Lembrete de Check-out — ${pet?.name}*\n\n` +
+          `Olá ${client.name}! Passando para lembrar que a hospedagem de ` +
+          `*${pet?.name}* termina amanhã, *${checkOutFormatted}*.\n\n` +
+          `Venha buscá-lo(a) no horário combinado. Qualquer dúvida, estamos à disposição! 🏡`
+
+        console.log(`[NotificationScheduler] [CHECKOUT REMINDER] → ${client.name} (${pet?.name})`)
+
+        try {
+          await evolutionService.sendMessage({
+            clientId: client.id,
+            clientName: client.name,
+            petName: pet?.name,
+            type: 'hospedagem_lembrete_checkout',
+            message: msg,
+            phone: client.phone,
+            manual: false,
+          })
+
+          if (stay.appointmentId) {
+            await prisma.appointment.update({
+              where: { id: stay.appointmentId },
+              data: { reminderSentAt: new Date() },
+            })
+          }
+
+          whatsappLogService.addLog({
+            id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+            clientId: client.id,
+            clientName: client.name,
+            petName: pet?.name,
+            type: 'hospedagem_lembrete_checkout',
+            message: msg,
+            sentAt: new Date().toISOString(),
+            status: 'sent',
+            manual: false,
+          })
+        } catch (err: any) {
+          const isOffline = err?.code === 'ECONNREFUSED' || err?.message?.includes('não está conectado')
+          if (!isOffline) {
+            console.error(`[NotificationScheduler] [CHECKOUT REMINDER] Erro para stay ${stay.id}:`, err.message ?? err)
+          }
+        }
+      }
+    } catch (err: any) {
+      console.error('[NotificationScheduler] [CHECKOUT REMINDER] Erro geral:', err.message ?? err)
+    }
   },
 
   extractWorkflowMeta(notes?: string | null) {

@@ -147,9 +147,8 @@ export function AppointmentProvider({ children }: { children: ReactNode }) {
       try {
         const result = await appointmentService.updateAppointment(updatedApt)
         const pet = getPet(updatedApt.petId)
-        
-        // Find the old appointment to see if status changed
-        const oldApt = appointments.find(a => a.id === result.id)
+
+        const oldApt = updatedApt
         if (oldApt && oldApt.status !== result.status) {
           const statusLabels: Record<string, string> = {
             scheduled: 'Agendado',
@@ -213,26 +212,24 @@ export function AppointmentProvider({ children }: { children: ReactNode }) {
         throw e
       }
     },
-    [getClient, getPet, appointments],
+    [getClient, getPet],
   )
 
   const deleteAppointment = useCallback(
     async (id: string) => {
       try {
-        const apt = appointments.find((a) => a.id === id)
         await appointmentService.deleteAppointment(id)
-        setAppointments((prev) => prev.filter((a) => a.id !== id))
-
-        if (apt) {
-          integrationService.syncEvent(apt, 'delete')
-        }
-
+        setAppointments((prev) => {
+          const apt = prev.find((a) => a.id === id)
+          if (apt) integrationService.syncEvent(apt, 'delete')
+          return prev.filter((a) => a.id !== id)
+        })
         toast.success('Agendamento excluído com sucesso.')
       } catch (_e) {
         toast.error('Erro ao excluir agendamento')
       }
     },
-    [appointments],
+    [],
   )
 
   const updateAppointmentStatus = useCallback(

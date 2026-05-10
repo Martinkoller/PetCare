@@ -35,15 +35,16 @@ import {
   differenceInDays,
   parseISO,
 } from 'date-fns'
-import { Users, Clock, TrendingUp } from 'lucide-react'
+import { Users, Clock, TrendingUp, DollarSign } from 'lucide-react'
+import { formatCurrency } from '@/lib/utils'
 
 const chartConfig = {
-  occupancy: {
-    label: 'Ocupação (Check-ins)',
+  ocupacao: {
+    label: 'Canis Ocupados',
     color: '#f97316',
   },
-  stays: {
-    label: 'Total de Estadias',
+  checkIns: {
+    label: 'Check-ins',
     color: '#8b5cf6',
   },
 }
@@ -81,10 +82,13 @@ export function BoardingAnalytics() {
   }, [boardingStays, dateRange])
 
   const stats = useMemo(() => {
-    const totalCapacity = kennels.length
-    const activeStays = filteredStays.filter(
-      (s) => s.status === 'active' || s.status === 'completed',
-    )
+    const totalCapacity = kennels.filter((k) => k.status === 'available').length || kennels.length
+    const relevantStays = boardingStays.filter((s) => {
+      if (s.status === 'cancelled') return false
+      const sStart = parseISO(s.actualCheckIn || s.checkIn)
+      const sEnd = parseISO(s.actualCheckOut || s.checkOut)
+      return sStart <= dateRange.end && sEnd >= dateRange.start
+    })
 
     // Average Stay Duration
     const completedStays = filteredStays.filter((s) => s.status === 'completed')
@@ -96,19 +100,17 @@ export function BoardingAnalytics() {
     const avgDuration =
       completedStays.length > 0 ? totalDays / completedStays.length : 0
 
-    // Occupancy Rate (Simplification: Total Stays vs Total Potential Capacity over Period)
-    // A better metric would be "Bed Nights" / "Available Bed Nights"
-    const periodDays = Math.max(
-      1,
-      differenceInDays(dateRange.end, dateRange.start) + 1,
-    )
+    // Occupancy Rate real: bed-nights ocupados / bed-nights disponíveis no período
+    const periodDays = Math.max(1, differenceInDays(dateRange.end, dateRange.start) + 1)
     const totalBedNightsAvailable = totalCapacity * periodDays
-    const actualBedNights = activeStays.reduce((acc, stay) => {
-      // Ideally calculate overlap with period, simplification:
-      // Just count total days of stays starting in period
-      const end = parseISO(stay.actualCheckOut || stay.checkOut)
-      const start = parseISO(stay.actualCheckIn || stay.checkIn)
-      return acc + Math.max(1, differenceInDays(end, start))
+
+    const actualBedNights = relevantStays.reduce((acc, stay) => {
+      const sStart = parseISO(stay.actualCheckIn || stay.checkIn)
+      const sEnd = parseISO(stay.actualCheckOut || stay.checkOut)
+      const overlapStart = sStart < dateRange.start ? dateRange.start : sStart
+      const overlapEnd = sEnd > dateRange.end ? dateRange.end : sEnd
+      const nights = Math.max(0, differenceInDays(overlapEnd, overlapStart))
+      return acc + nights
     }, 0)
 
     const occupancyRate =
@@ -116,12 +118,16 @@ export function BoardingAnalytics() {
         ? (actualBedNights / totalBedNightsAvailable) * 100
         : 0
 
+    // Faturamento do período (estadias concluídas com checkOut no período)
+    const revenue = completedStays.reduce((acc, s) => acc + (s.totalPrice || 0), 0)
+
     return {
-      totalStays: activeStays.length,
+      totalStays: filteredStays.filter((s) => s.status !== 'cancelled').length,
       avgDuration: avgDuration.toFixed(1),
       occupancyRate: Math.min(100, occupancyRate).toFixed(1),
+      revenue,
     }
-  }, [filteredStays, kennels, dateRange])
+  }, [filteredStays, boardingStays, kennels, dateRange])
 
   const chartData = useMemo(() => {
     const days = eachDayOfInterval({
@@ -129,18 +135,30 @@ export function BoardingAnalytics() {
       end: dateRange.end,
     })
 
+    const allActive = boardingStays.filter((s) => s.status !== 'cancelled')
+
     return days.map((day) => {
-      const dayStr = format(day, 'yyyy-MM-dd')
-      const dailyCheckIns = filteredStays.filter((s) =>
-        s.checkIn.startsWith(dayStr),
+      const dayStart = day
+      const dayEnd = new Date(day.getTime() + 24 * 60 * 60 * 1000)
+
+      // Quantos canis estavam ocupados neste dia
+      const occupied = allActive.filter((s) => {
+        const sStart = parseISO(s.actualCheckIn || s.checkIn)
+        const sEnd = parseISO(s.actualCheckOut || s.checkOut)
+        return sStart < dayEnd && sEnd > dayStart
+      }).length
+
+      const dailyCheckIns = allActive.filter((s) =>
+        (s.actualCheckIn || s.checkIn).startsWith(format(day, 'yyyy-MM-dd')),
       ).length
 
       return {
         date: format(day, 'dd/MM'),
+        ocupacao: occupied,
         checkIns: dailyCheckIns,
       }
     })
-  }, [dateRange, filteredStays])
+  }, [dateRange, boardingStays])
 
   return (
     <div className="space-y-6">
@@ -159,7 +177,7 @@ export function BoardingAnalytics() {
         </Select>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
@@ -169,7 +187,7 @@ export function BoardingAnalytics() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.occupancyRate}%</div>
-            <p className="text-xs text-muted-foreground">Média do período</p>
+            <p className="text-xs text-muted-foreground">Bed-nights / capacidade</p>
           </CardContent>
         </Card>
         <Card>
@@ -179,13 +197,13 @@ export function BoardingAnalytics() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.avgDuration} dias</div>
-            <p className="text-xs text-muted-foreground">Tempo por estadia</p>
+            <p className="text-xs text-muted-foreground">Por estadia concluída</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              Total Check-ins
+              Total Estadias
             </CardTitle>
             <TrendingUp className="h-4 w-4 text-green-500" />
           </CardHeader>
@@ -196,13 +214,23 @@ export function BoardingAnalytics() {
             </p>
           </CardContent>
         </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Faturamento</CardTitle>
+            <DollarSign className="h-4 w-4 text-emerald-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-emerald-600">{formatCurrency(stats.revenue)}</div>
+            <p className="text-xs text-muted-foreground">Estadias concluídas</p>
+          </CardContent>
+        </Card>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Demanda Diária</CardTitle>
+          <CardTitle>Ocupação e Check-ins Diários</CardTitle>
           <CardDescription>
-            Fluxo de check-ins ao longo do tempo.
+            Canis ocupados por dia (laranja) e check-ins realizados (roxo).
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -221,8 +249,14 @@ export function BoardingAnalytics() {
                 content={<ChartTooltipContent indicator="dashed" />}
               />
               <Bar
+                dataKey="ocupacao"
+                fill="var(--color-ocupacao)"
+                radius={[4, 4, 0, 0]}
+                name="Canis Ocupados"
+              />
+              <Bar
                 dataKey="checkIns"
-                fill="var(--color-occupancy)"
+                fill="var(--color-checkIns)"
                 radius={[4, 4, 0, 0]}
                 name="Check-ins"
               />

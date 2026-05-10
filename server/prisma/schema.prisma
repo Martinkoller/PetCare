@@ -323,27 +323,34 @@ model Kennel {
 }
 
 model BoardingStay {
-  id                  String    @id @default(uuid())
-  organizationId      String
-  petId               String
-  appointmentId       String?   @unique
-  checkIn             DateTime
-  checkOut            DateTime
-  actualCheckIn       DateTime?
-  actualCheckOut      DateTime?
-  kennelNumber        String
-  status              String
-  notes               String?   @db.Text
-  dailyRate           Float
-  totalPrice          Float?
-  specialInstructions String?   @db.Text
-  belongings          String?   @db.Text
-  createdAt           DateTime  @default(now())
-  updatedAt           DateTime  @updatedAt
+  id                   String    @id @default(uuid())
+  organizationId       String
+  petId                String
+  appointmentId        String?   @unique
+  checkIn              DateTime
+  checkOut             DateTime
+  actualCheckIn        DateTime?
+  actualCheckOut       DateTime?
+  kennelNumber         String
+  status               String
+  notes                String?   @db.Text
+  dailyRate            Float
+  totalPrice           Float?
+  specialInstructions  String?   @db.Text
+  belongings           String?   @db.Text
+  observations         String?   @db.Text
+  vaccinationStatus    String?   @db.Text
+  feedingInstructions  String?   @db.Text
+  behaviorNotes        String?   @db.Text
+  emergencyVetContact  String?
+  paymentMethod        String?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
 
-  organization Organization      @relation(fields: [organizationId], references: [id])
-  appointment  Appointment?      @relation(fields: [appointmentId], references: [id])
+  organization Organization       @relation(fields: [organizationId], references: [id])
+  appointment  Appointment?       @relation(fields: [appointmentId], references: [id])
   services     BoardingService[]
+  dailyLogs    BoardingDailyLog[]
 
   @@map("boarding_stays")
 }
@@ -366,6 +373,24 @@ model BoardingService {
   @@map("boarding_services")
 }
 
+model BoardingDailyLog {
+  id          String   @id @default(uuid())
+  boardingId  String
+  logDate     DateTime @default(now())
+  fedAt       String?
+  walkedAt    String?
+  medication  String?  @db.Text
+  behavior    String?
+  stoolNotes  String?
+  staffNotes  String?  @db.Text
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  boarding BoardingStay @relation(fields: [boardingId], references: [id], onDelete: Cascade)
+
+  @@map("boarding_daily_logs")
+}
+
 model Sale {
   id             String   @id @default(uuid())
   organizationId String
@@ -374,6 +399,8 @@ model Sale {
   petId          String?
   total          Float
   status         String
+  paymentMethod  String?
+  notes          String?  @db.Text
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
@@ -386,7 +413,8 @@ model Sale {
 model SaleItem {
   id          String  @id @default(uuid())
   saleId      String
-  productId   String
+  productId   String?
+  serviceId   String?
   productName String
   quantity    Int
   unitPrice   Float
