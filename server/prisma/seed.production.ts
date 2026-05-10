@@ -3,15 +3,11 @@ import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
-async function main() {
-    console.log('🚀 Production seed starting...');
-
+export async function seedSaasAdmin(client: PrismaClient = prisma) {
     const passwordHash = await bcrypt.hash('admin123', 10);
-
-    // SAAS Admin — sem organizationId
-    const existing = await prisma.user.findUnique({ where: { email: 'marcelokoller@gmail.com' } });
+    const existing = await client.user.findUnique({ where: { email: 'marcelokoller@gmail.com' } });
     if (!existing) {
-        await prisma.user.create({
+        await client.user.create({
             data: {
                 email: 'marcelokoller@gmail.com',
                 passwordHash,
@@ -20,11 +16,13 @@ async function main() {
                 organizationId: null,
             },
         });
-        console.log('✅ SAAS admin criado: marcelokoller@gmail.com / admin123');
-    } else {
-        console.log('ℹ️  SAAS admin já existe.');
+        console.log('   marcelokoller@gmail.com / admin123  (saas_admin)');
     }
+}
 
+async function main() {
+    console.log('🚀 Production seed starting...');
+    await seedSaasAdmin();
     console.log('✅ Production seed concluído.');
 }
 

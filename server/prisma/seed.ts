@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
+import { seedSaasAdmin } from './seed.production';
 
 const prisma = new PrismaClient();
 
@@ -927,19 +928,23 @@ async function main() {
     });
   }
 
+  // ── SAAS Admin ────────────────────────────────────────────────────────────
+  await seedSaasAdmin(prisma);
+
   // ── Resumo ────────────────────────────────────────────────────────────────
   console.log('');
   console.log('✅ Seed concluído com sucesso!');
   console.log(`   Clientes: ${clients.length}  |  Pets: ${pets.length}`);
   console.log('');
   console.log('🔑 Credenciais de acesso:');
-  console.log('   admin@agilipet.local     / admin123');
+  console.log('   admin@agilipet.local     / admin123  (admin)');
   console.log('   marcelo@agilipet.local   / admin123  (veterinário)');
   console.log('   beatriz@agilipet.local   / admin123  (veterinária)');
   console.log('   andre@agilipet.local     / admin123  (veterinário)');
   console.log('   carla@agilipet.local     / admin123  (groomer)');
   console.log('   juliano@agilipet.local   / admin123  (groomer)');
   console.log('   fernanda@agilipet.local  / admin123  (atendente)');
+  console.log('   marcelokoller@gmail.com  / admin123  (saas_admin)');
   console.log('');
   console.log('🐾 Portal do Tutor: <email do cliente> / portal123');
   console.log('   approved (3) | pending (3) | rejected (2)');
