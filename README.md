@@ -58,6 +58,116 @@ Cliente → Login → JWT { userId, role, organizationId }
 
 ---
 
+## Páginas e Fluxos de Acesso
+
+> Frontend em `http://localhost:8080` · Backend em `http://localhost:3000`
+
+### Acesso público (sem autenticação)
+
+| Rota | Descrição |
+|------|-----------|
+| `/login` | Login com e-mail e senha |
+| `/register` | Cadastro de nova clínica (CNPJ + ViaCEP) |
+| `/confirm-email` | Confirmação de e-mail pós-registro |
+| `/booking` | **Landing Page / Agendamento online** — página pública para tutores solicitarem agendamentos sem criar conta |
+
+### Portal do Tutor (acesso do cliente final)
+
+| Rota | Descrição |
+|------|-----------|
+| `/portal/login` | Login do tutor no portal |
+| `/portal/cadastro` | Cadastro do tutor |
+| `/portal/loja` | Loja de produtos online |
+| `/portal/checkout` | Checkout do pedido |
+| `/portal/pedidos` | Histórico de pedidos do tutor |
+
+### Painel Operacional (requer login — roles: `admin`, `veterinarian`, `groomer`, `attendant`)
+
+| Rota | Módulo | Descrição |
+|------|--------|-----------|
+| `/dashboard` | Dashboard | Métricas do dia, agenda resumida, KPIs |
+| `/schedule` | Agenda | Visões dia / semana / mês — agendamentos de todos os tipos |
+| `/grooming` | Banho & Tosa | Kanban de etapas + notificação WhatsApp ao tutor |
+| `/clinic` | Clínica | Consultas, prontuário SOAP, prescrições, vacinas |
+| `/boarding` | Hospedagem | Mapa de canis, check-in/out, serviços extras |
+| `/hospitalization` | Internação | Monitoramento de pacientes internados com logs e medicação |
+| `/clients` | Clientes | Lista de clientes/tutores |
+| `/clients/:id` | Ficha do Cliente | Histórico completo, pets, comunicação e financeiro por cliente |
+| `/pets` | Pets | Cadastro e prontuário dos pets |
+| `/inventory` | Estoque | Produtos, lotes, movimentações |
+| `/sales` | Vendas | PDV e histórico de vendas |
+| `/financials` | Financeiro | Visão consolidada de receitas |
+| `/tasks` | Tarefas | Gestão de tarefas internas da equipe |
+| `/services` | Serviços | Catálogo de serviços e preços |
+| `/admin` | Configurações | Equipe, horários, WhatsApp, templates de mensagem |
+| `/my-data` | Meus Dados | Dados do usuário logado |
+| `/knowledge` | Base de Conhecimento | Documentação e tutoriais internos |
+
+### Painel SAAS (exclusivo `saas_admin`)
+
+| Rota | Descrição |
+|------|-----------|
+| `/saas` | Gestão de organizações — criar, bloquear, ver métricas de cada clínica |
+
+---
+
+## Fluxo Completo — Agendamento Online (tutor)
+
+```
+Tutor acessa /booking
+  → Seleciona serviço, data e horário disponível
+  → Preenche dados (nome, telefone, pet)
+  → Agendamento criado com status "scheduled"
+  → WhatsApp automático de confirmação (se template configurado)
+  → Clínica vê o agendamento em /schedule
+```
+
+## Fluxo Completo — Banho & Tosa
+
+```
+/schedule  →  Agendamento confirmado (status "confirmed")
+     ↓
+/grooming  →  Card aparece em "Agenda Hoje"
+     ↓         Botão "Iniciar" → move para Kanban (groomingStatus = estágio inicial)
+               WhatsApp automático de check-in enviado ao tutor
+     ↓
+           →  Avança etapas pelo Kanban (ex: Lavando → Secando → Tosa → Pronto)
+               Checklist de finalização obrigatório antes de "Pronto"
+               WhatsApp automático "Pronto para retirada" enviado ao tutor
+     ↓
+           →  Botão "Entregar" → status "Entregue"
+               WhatsApp de entrega enviado (opcional)
+```
+
+## Fluxo Completo — Hospedagem
+
+```
+/boarding  →  Check-in de hospedagem
+     ↓         Seleção de canil, período, serviços extras
+               WhatsApp automático de check-in ao tutor
+     ↓
+           →  Durante hospedagem: serviços extras podem ser adicionados
+     ↓
+           →  Check-out → WhatsApp automático de saída
+               Fatura gerada com todos os serviços consumidos
+```
+
+## Fluxo Completo — Registro de Nova Clínica
+
+```
+/register  →  CNPJ + dados da empresa (endereço via ViaCEP)
+     ↓
+           →  E-mail de confirmação enviado (válido 24h)
+     ↓
+/confirm-email → Conta ativada com trial de 15 dias
+     ↓
+/login     →  Redirecionamento por role:
+               saas_admin → /saas
+               demais     → /dashboard
+```
+
+---
+
 ## Pré-requisitos
 
 - Node.js 18+
@@ -121,11 +231,11 @@ npm run seed:prod
 # Terminal 1 — Backend (porta 3000)
 cd server && npm run dev
 
-# Terminal 2 — Frontend (porta 5173)
+# Terminal 2 — Frontend (porta 8080)
 npm run dev
 ```
 
-Acesse: [http://localhost:5173](http://localhost:5173)
+Acesse: [http://localhost:8080](http://localhost:8080)
 
 ---
 
