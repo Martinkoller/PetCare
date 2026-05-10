@@ -58,6 +58,42 @@ Cliente → Login → JWT { userId, role, organizationId }
 
 ---
 
+## Credenciais de Teste
+
+> Todos os logins abaixo funcionam após executar `npm run seed` no backend.
+
+### Painel Operacional — `http://localhost:8080/login`
+
+| E-mail | Senha | Role | Acesso |
+|--------|-------|------|--------|
+| `admin@agilipet.local` | `admin123` | `admin` | Acesso completo ao sistema |
+| `marcelo@agilipet.local` | `admin123` | `veterinarian` | Clínica, prontuário, internação |
+| `beatriz@agilipet.local` | `admin123` | `veterinarian` | Clínica, prontuário, internação |
+| `andre@agilipet.local` | `admin123` | `veterinarian` | Clínica, prontuário, internação |
+| `carla@agilipet.local` | `admin123` | `groomer` | Banho & Tosa, agenda |
+| `juliano@agilipet.local` | `admin123` | `groomer` | Banho & Tosa, agenda |
+| `fernanda@agilipet.local` | `admin123` | `attendant` | Agenda, clientes, recepção |
+
+### Painel SAAS — `http://localhost:8080/login`
+
+| E-mail | Senha | Role | Acesso |
+|--------|-------|------|--------|
+| `marcelokoller@gmail.com` | `admin123` | `saas_admin` | Gestão de organizações (`/saas`) |
+
+> Criado via `npm run seed:prod` (não apaga dados existentes).
+
+### Portal do Tutor — `http://localhost:8080/portal/login`
+
+Use o e-mail de qualquer cliente do seed. A senha é `portal123`.
+
+| Status no seed | Quantidade | Comportamento |
+|----------------|------------|---------------|
+| `approved` | 3 clientes | Login liberado normalmente |
+| `pending` | 3 clientes | Aguarda aprovação do admin |
+| `rejected` | 2 clientes | Login bloqueado |
+
+---
+
 ## Páginas e Fluxos de Acesso
 
 > Frontend em `http://localhost:8080` · Backend em `http://localhost:3000`
