@@ -61,3 +61,11 @@ yarn-error.log*
 # =========================
 Model-Vue-Site-main/
 vue-typescript-admin-template-master/
+SDD-Claude-agents-main/
+
+# =========================
+# Arquivos de contexto / configuração local
+# =========================
+CLAUDE.md
+.github/
+docs/
