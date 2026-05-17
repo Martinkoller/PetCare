@@ -45,6 +45,8 @@ const FinancialsPage      = lazy(() => import('./pages/financials/FinancialsPage
 const MyDataPage          = lazy(() => import('./pages/mydata/MyDataPage'))
 const KnowledgePage       = lazy(() => import('./pages/knowledge/KnowledgePage'))
 const SaasDashboard       = lazy(() => import('./pages/saas/SaasDashboard'))
+const PrivacyPage         = lazy(() => import('./pages/legal/PrivacyPage'))
+const TermsPage           = lazy(() => import('./pages/legal/TermsPage'))
 
 const PageLoader = () => (
   <div className="flex items-center justify-center min-h-screen bg-background">
@@ -60,6 +62,8 @@ function AppRoutes() {
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/confirm-email" element={<ConfirmEmailPage />} />
       <Route path="/booking" element={<BookingPage />} />
+      <Route path="/privacidade" element={<PrivacyPage />} />
+      <Route path="/termos" element={<TermsPage />} />
 
       {/* Portal do Tutor */}
       <Route path="/portal/login" element={<PortalLoginPage />} />
