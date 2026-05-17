@@ -9,7 +9,7 @@ export const getProfessionals = async (req: AuthRequest, res: Response) => {
     const organizationId = req.user!.organizationId!
     const users = await prisma.user.findMany({
       where: { organizationId },
-      select: { id: true, name: true, email: true, phone: true, role: true, color: true },
+      select: { id: true, name: true, email: true, phone: true, role: true, color: true, commissionRate: true },
       orderBy: { name: 'asc' },
     })
     res.json(users)
@@ -20,12 +20,15 @@ export const getProfessionals = async (req: AuthRequest, res: Response) => {
 
 export const createProfessional = async (req: AuthRequest, res: Response) => {
   try {
-    const { name, email, role, phone, color } = req.body
+    const { name, email, role, phone, color, commissionRate } = req.body
     if (!name || !email) {
       return res.status(400).json({ error: 'Nome e e-mail são obrigatórios' })
     }
     if (role && !ROLE_LABELS.includes(role)) {
       return res.status(400).json({ error: 'Função inválida' })
+    }
+    if (commissionRate !== undefined && (Number(commissionRate) < 0 || Number(commissionRate) > 100)) {
+      return res.status(400).json({ error: 'commissionRate deve ser entre 0 e 100' })
     }
     const existing = await prisma.user.findUnique({ where: { email } })
     if (existing) {
@@ -40,8 +43,9 @@ export const createProfessional = async (req: AuthRequest, res: Response) => {
         organizationId: req.user!.organizationId!,
         phone: phone ?? null,
         color: color ?? null,
+        commissionRate: commissionRate !== undefined ? Number(commissionRate) : null,
       },
-      select: { id: true, name: true, email: true, phone: true, role: true, color: true },
+      select: { id: true, name: true, email: true, phone: true, role: true, color: true, commissionRate: true },
     })
     res.status(201).json(user)
   } catch (error: any) {
@@ -52,9 +56,12 @@ export const createProfessional = async (req: AuthRequest, res: Response) => {
 export const updateProfessional = async (req: AuthRequest, res: Response) => {
   const id = String(req.params.id)
   try {
-    const { name, email, role, phone, color } = req.body
+    const { name, email, role, phone, color, commissionRate } = req.body
     if (role && !ROLE_LABELS.includes(role)) {
       return res.status(400).json({ error: 'Função inválida' })
+    }
+    if (commissionRate !== undefined && commissionRate !== null && (Number(commissionRate) < 0 || Number(commissionRate) > 100)) {
+      return res.status(400).json({ error: 'commissionRate deve ser entre 0 e 100' })
     }
     const user = await prisma.user.update({
       where: { id },
@@ -64,8 +71,9 @@ export const updateProfessional = async (req: AuthRequest, res: Response) => {
         ...(role !== undefined ? { role } : {}),
         ...(phone !== undefined ? { phone } : {}),
         ...(color !== undefined ? { color } : {}),
+        ...(commissionRate !== undefined ? { commissionRate: commissionRate === null ? null : Number(commissionRate) } : {}),
       },
-      select: { id: true, name: true, email: true, phone: true, role: true, color: true },
+      select: { id: true, name: true, email: true, phone: true, role: true, color: true, commissionRate: true },
     })
     res.json(user)
   } catch (error: any) {

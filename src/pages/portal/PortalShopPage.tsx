@@ -54,6 +54,7 @@ export default function PortalShopPage() {
           </div>
           <div className="flex items-center gap-3">
             <span className="text-sm text-slate-500">Olá, {user?.name?.split(' ')[0]}</span>
+            <Button variant="ghost" size="sm" onClick={() => navigate('/portal/agendamentos')}>Agendamentos</Button>
             <Button variant="ghost" size="sm" onClick={() => navigate('/portal/pedidos')}>Meus Pedidos</Button>
             <Button variant="ghost" size="icon" onClick={() => { signOut(); navigate('/portal/login') }}>
               <LogOut className="h-4 w-4" />

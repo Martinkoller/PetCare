@@ -8,6 +8,9 @@ import {
   listMyOrders,
   listAllClientOrders,
   updateOrderStatus,
+  portalCreateAppointment,
+  portalListAppointments,
+  portalCancelAppointment,
 } from '../controllers/portal.controller';
 import { authenticate } from '../middlewares/auth.middleware';
 
@@ -17,9 +20,14 @@ const router = Router();
 router.post('/register', portalRegister);
 router.post('/login', portalLogin);
 
-// Tutor logado
+// Tutor logado — pedidos
 router.post('/orders', authenticate, createClientOrder);
 router.get('/orders/my', authenticate, listMyOrders);
+
+// Tutor logado — agendamentos
+router.get('/appointments', authenticate, portalListAppointments);
+router.post('/appointments', authenticate, portalCreateAppointment);
+router.patch('/appointments/:id/cancel', authenticate, portalCancelAppointment);
 
 // Admin (funcionários da clínica)
 router.get('/access-requests', authenticate, listPortalRequests);

@@ -25,6 +25,7 @@ import PortalRegisterPage from './pages/portal/PortalRegisterPage'
 import PortalShopPage from './pages/portal/PortalShopPage'
 import PortalCheckoutPage from './pages/portal/PortalCheckoutPage'
 import PortalOrdersPage from './pages/portal/PortalOrdersPage'
+import PortalBookingPage from './pages/portal/PortalBookingPage'
 
 const DashboardPage       = lazy(() => import('./pages/dashboard/DashboardPage'))
 const ClientsPage         = lazy(() => import('./pages/clients/ClientsPage'))
@@ -71,6 +72,7 @@ function AppRoutes() {
       <Route path="/portal/loja" element={<PortalShopPage />} />
       <Route path="/portal/checkout" element={<PortalCheckoutPage />} />
       <Route path="/portal/pedidos" element={<PortalOrdersPage />} />
+      <Route path="/portal/agendamentos" element={<PortalBookingPage />} />
 
       {/* SAAS Admin */}
       <Route element={<SaasAdminRoute />}>

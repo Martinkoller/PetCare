@@ -3,6 +3,7 @@ import { prisma } from '../index'
 import { whatsappTemplatesService } from './whatsapp-templates.service'
 import { evolutionService } from './evolution.service'
 import { whatsappLogService } from './whatsapp-log.service'
+import { zenviaSmsService } from './zenvia-sms.service'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
@@ -107,10 +108,37 @@ export const notificationSchedulerService = {
     } catch (err: any) {
       const isOffline = err?.code === 'ECONNREFUSED' || err?.message?.includes('não está conectado')
       if (isOffline) {
-        console.warn(`[NotificationScheduler] [LEMBRETE] WhatsApp offline — apt ${apt.id} será reprocessado no próximo ciclo`)
+        console.warn(`[NotificationScheduler] [LEMBRETE] WhatsApp offline — tentando SMS fallback para apt ${apt.id}`)
+        await this.trySmsLembreteFallback(apt, message)
       } else {
         console.error(`[NotificationScheduler] [LEMBRETE] Erro para apt ${apt.id}:`, err.message ?? err)
       }
+    }
+  },
+
+  async trySmsLembreteFallback(apt: any, message: string) {
+    const client = apt.pet?.client
+    if (!client?.phone) return
+    if (!zenviaSmsService.isConfigured()) {
+      console.warn('[NotificationScheduler] [SMS-FALLBACK] Zenvia não configurado; pulando SMS.')
+      return
+    }
+    try {
+      await zenviaSmsService.sendSms({ phone: client.phone, message, clientName: client.name })
+      await prisma.appointment.update({ where: { id: apt.id }, data: { reminderSentAt: new Date() } })
+      whatsappLogService.addLog({
+        id: `sms-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+        clientId: client.id,
+        clientName: client.name,
+        petName: apt.pet.name,
+        type: 'sms_fallback',
+        message,
+        sentAt: new Date().toISOString(),
+        status: 'sent',
+        manual: false,
+      })
+    } catch (smsErr: any) {
+      console.error(`[NotificationScheduler] [SMS-FALLBACK] Falha ao enviar SMS para apt ${apt.id}:`, smsErr.message ?? smsErr)
     }
   },
 

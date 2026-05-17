@@ -48,8 +48,12 @@ import {
   TrendingDown,
   Calendar,
   Filter,
+  Download,
 } from 'lucide-react'
 import { cn, formatCurrency } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { toast } from 'sonner'
+import { downloadCsvReport } from '@/lib/exportReport'
 
 const chartConfig = {
   total: {
@@ -76,6 +80,21 @@ export default function FinancialsPage() {
   const [customStart, setCustomStart] = useState('')
   const [customEnd, setCustomEnd] = useState('')
   const [categoryFilter, setCategoryFilter] = useState<string>('all')
+  const [exporting, setExporting] = useState(false)
+
+  const handleExport = async (type: 'financial-summary' | 'sales') => {
+    setExporting(true)
+    try {
+      const params: Record<string, string> = {}
+      if (period === 'custom' && customStart) params.from = customStart
+      if (period === 'custom' && customEnd) params.to = customEnd
+      await downloadCsvReport(`/reports/${type}.csv`, `${type}.csv`, Object.keys(params).length ? params : undefined)
+    } catch {
+      toast.error('Erro ao exportar relatório.')
+    } finally {
+      setExporting(false)
+    }
+  }
 
   // Date Range Calculation
   const dateRange = useMemo(() => {
@@ -233,6 +252,15 @@ export default function FinancialsPage() {
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={exporting}
+              onClick={() => handleExport('financial-summary')}
+            >
+              <Download className="mr-2 h-4 w-4" />
+              {exporting ? 'Exportando...' : 'Exportar Excel'}
+            </Button>
             <Select value={categoryFilter} onValueChange={setCategoryFilter}>
               <SelectTrigger className="w-[160px]">
                 <Filter className="mr-2 h-4 w-4" />

@@ -12,8 +12,9 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Card, CardContent } from '@/components/ui/card'
-import { Search, Plus, Phone, MapPin, MessageCircle, Dog } from 'lucide-react'
+import { Search, Plus, Phone, MapPin, MessageCircle, Dog, Download } from 'lucide-react'
 import { toast } from 'sonner'
+import { downloadCsvReport } from '@/lib/exportReport'
 import { Client } from '@/lib/types'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
@@ -39,6 +40,18 @@ export default function ClientsPage() {
   const [isAddOpen, setIsAddOpen] = useState(false)
   const [editingClient, setEditingClient] = useState<Client | null>(null)
   const [deletingClientId, setDeletingClientId] = useState<string | null>(null)
+  const [exporting, setExporting] = useState(false)
+
+  const handleExportClients = async () => {
+    setExporting(true)
+    try {
+      await downloadCsvReport('/reports/clients.csv', 'lista-clientes.csv')
+    } catch {
+      toast.error('Erro ao exportar lista de clientes.')
+    } finally {
+      setExporting(false)
+    }
+  }
 
   const filteredClients = clients.filter((c) => {
     const searchLow = searchTerm.toLowerCase()
@@ -90,6 +103,10 @@ export default function ClientsPage() {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
+        <Button variant="outline" size="sm" disabled={exporting} onClick={handleExportClients}>
+          <Download className="mr-2 h-4 w-4" />
+          {exporting ? 'Exportando...' : 'Exportar Excel'}
+        </Button>
       </div>
 
       <Card>
