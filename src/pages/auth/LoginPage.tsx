@@ -5,7 +5,21 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { toast } from 'sonner'
-import { Eye, EyeOff, PawPrint } from 'lucide-react'
+import { Eye, EyeOff, PawPrint, ChevronDown } from 'lucide-react'
+
+const DEV_USERS = [
+  { label: 'Admin',        email: 'admin@agilipet.local',    role: 'admin' },
+  { label: 'Veterinário',  email: 'marcelo@agilipet.local',  role: 'veterinarian' },
+  { label: 'Groomer',      email: 'carla@agilipet.local',    role: 'groomer' },
+  { label: 'Atendente',    email: 'fernanda@agilipet.local', role: 'attendant' },
+] as const
+
+const ROLE_COLOR: Record<string, string> = {
+  admin:        'bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100',
+  veterinarian: 'bg-sky-50 text-sky-700 border-sky-200 hover:bg-sky-100',
+  groomer:      'bg-pink-50 text-pink-700 border-pink-200 hover:bg-pink-100',
+  attendant:    'bg-teal-50 text-teal-700 border-teal-200 hover:bg-teal-100',
+}
 
 export default function LoginPage() {
   const { signIn } = useAuthStore()
@@ -15,6 +29,12 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [showDevPanel, setShowDevPanel] = useState(false)
+
+  const fillUser = (userEmail: string) => {
+    setEmail(userEmail)
+    setPassword('admin123')
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -105,6 +125,34 @@ export default function LoginPage() {
               <Link to="/register" className="text-orange-500 font-semibold hover:underline">Cadastre-se grátis</Link>
             </p>
           </form>
+
+          {/* Acesso rápido dev */}
+          <div className="border-t border-slate-100 pt-4">
+            <button
+              type="button"
+              onClick={() => setShowDevPanel(v => !v)}
+              className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-600 transition-colors mx-auto"
+            >
+              <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showDevPanel ? 'rotate-180' : ''}`} />
+              Acesso rápido
+            </button>
+
+            {showDevPanel && (
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                {DEV_USERS.map(u => (
+                  <button
+                    key={u.email}
+                    type="button"
+                    onClick={() => fillUser(u.email)}
+                    className={`rounded-xl border px-3 py-2 text-left text-xs font-medium transition-colors ${ROLE_COLOR[u.role]}`}
+                  >
+                    <span className="block font-semibold">{u.label}</span>
+                    <span className="block text-[10px] opacity-70 truncate">{u.email}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

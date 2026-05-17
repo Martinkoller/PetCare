@@ -185,6 +185,7 @@ model Appointment {
   checkinBehavior             String?
   checkinExtraAuthorized      Boolean?
   checkinNotes                String?   @db.Text
+  checkinWeight               Float?
   // Grooming — histórico de etapas
   stageHistory                String?   @db.Text
   whatsappConfirmationStatus  String?

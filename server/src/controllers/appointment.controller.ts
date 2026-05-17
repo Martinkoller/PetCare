@@ -88,6 +88,7 @@ const normalizeAppointmentResponse = (appointment: any) => {
     checkinBehavior: appointment.checkinBehavior ?? undefined,
     checkinExtraAuthorized: appointment.checkinExtraAuthorized ?? undefined,
     checkinNotes: appointment.checkinNotes ?? undefined,
+    checkinWeight: appointment.checkinWeight ?? undefined,
     stageHistory: appointment.stageHistory ? JSON.parse(appointment.stageHistory) : [],
   };
 };
@@ -139,6 +140,7 @@ const pickAppointmentData = (body: any, currentNotes?: string | null) => {
     ...(body.checkinBehavior !== undefined ? { checkinBehavior: body.checkinBehavior || null } : {}),
     ...(body.checkinExtraAuthorized !== undefined ? { checkinExtraAuthorized: Boolean(body.checkinExtraAuthorized) } : {}),
     ...(body.checkinNotes !== undefined ? { checkinNotes: body.checkinNotes || null } : {}),
+    ...(body.checkinWeight !== undefined ? { checkinWeight: body.checkinWeight !== null ? Number(body.checkinWeight) : null } : {}),
     ...(body.stageHistory !== undefined ? { stageHistory: JSON.stringify(body.stageHistory) } : {}),
     notes: buildNotesWithMeta(noteText, meta),
   };
@@ -427,6 +429,10 @@ export const updateAppointment = async (req: AuthRequest, res: Response) => {
     if (!existing) return res.status(404).json({ error: 'Appointment not found' });
 
     const data = pickAppointmentData(req.body, existing.notes);
+
+    if (data.checkinWeight !== undefined && data.checkinWeight !== null && data.checkinWeight < 0) {
+      return res.status(400).json({ error: 'Peso nao pode ser negativo' });
+    }
 
     // Only validate scheduling conflicts when date, duration or professional actually differ from existing
     const newDate = data.date ? new Date(data.date) : null;

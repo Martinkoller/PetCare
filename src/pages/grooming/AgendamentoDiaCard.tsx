@@ -194,7 +194,9 @@ export function AgendamentoDiaCard({
       <CheckinDialog
         open={checkinOpen}
         apt={apt}
-        petName={pet?.name}
+        pet={pet}
+        client={client}
+        professional={professional}
         isDifferentDay={isDifferentDay}
         onConfirm={(data) => {
           setCheckinOpen(false)

@@ -161,7 +161,14 @@ export function GroomingKanbanCard({
 
                 <div className="overflow-hidden flex-1 min-w-0">
                   <div className="flex items-center gap-1.5 min-w-0">
-                    <p className="font-bold text-sm truncate leading-tight">{pet?.name}</p>
+                    <p className="font-bold text-sm truncate leading-tight">
+                      {pet?.name}
+                      {apt.checkinWeight != null && (
+                        <span className="font-normal text-muted-foreground ml-1 shrink-0">
+                          - {apt.checkinWeight.toFixed(1)}kg
+                        </span>
+                      )}
+                    </p>
                     {apt.priority === 'urgent' && (
                       <Badge className="text-[9px] px-1 py-0 h-4 bg-red-100 text-red-700 border-red-200 shrink-0">
                         Urgente
