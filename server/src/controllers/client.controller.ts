@@ -78,3 +78,74 @@ export const deleteClient = async (req: AuthRequest, res: Response) => {
         res.status(500).json({ error: 'Failed to delete client' });
     }
 };
+
+function translateServiceType(type: string): string {
+    switch (type) {
+        case 'grooming':   return 'Banho e Tosa';
+        case 'veterinary': return 'Consulta Veterinária';
+        case 'boarding':   return 'Hospedagem';
+        case 'vaccination': return 'Vacinação';
+        default:           return type;
+    }
+}
+
+export const getClientFinancialSummary = async (req: AuthRequest, res: Response) => {
+    const { id } = req.params;
+    try {
+        const organizationId = req.user!.organizationId!;
+
+        const client = await prisma.client.findFirst({ where: { id, organizationId } });
+        if (!client) return res.status(404).json({ error: 'Cliente não encontrado' });
+
+        const [sales, pets] = await Promise.all([
+            prisma.sale.findMany({
+                where: { clientId: id, organizationId },
+                include: { items: true },
+                orderBy: { date: 'desc' },
+            }),
+            prisma.pet.findMany({ where: { clientId: id } }),
+        ]);
+
+        const petIds = pets.map((p) => p.id);
+        const appointments = petIds.length
+            ? await prisma.appointment.findMany({
+                  where: {
+                      petId: { in: petIds },
+                      organizationId,
+                      status: { in: ['completed', 'in_progress'] },
+                  },
+                  include: { pet: true },
+                  orderBy: { date: 'desc' },
+              })
+            : [];
+
+        const totalSales = sales.reduce((acc, s) => acc + s.total, 0);
+        const totalServices = appointments.reduce((acc, a) => acc + (a.price || 0), 0);
+        const totalSpent = totalSales + totalServices;
+
+        const transactions = [
+            ...sales.map((s) => ({
+                id: s.id,
+                date: s.date,
+                type: 'product' as const,
+                description: `Venda — ${s.items.map((i) => i.productName).join(', ')}`,
+                amount: s.total,
+                status: s.status,
+                paymentMethod: s.paymentMethod,
+            })),
+            ...appointments.map((a) => ({
+                id: a.id,
+                date: a.date,
+                type: 'service' as const,
+                description: `${translateServiceType(a.serviceType)} — ${(a.pet as any).name}`,
+                amount: a.price || 0,
+                status: a.status,
+                paymentMethod: null,
+            })),
+        ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+        res.json({ totalSales, totalServices, totalSpent, transactions });
+    } catch (_error) {
+        res.status(500).json({ error: 'Failed to fetch financial summary' });
+    }
+};

@@ -1,0 +1,48 @@
+# AgiliPet — Caddyfile
+# Replace {$DOMAIN} with your domain or set the DOMAIN env var.
+# For local testing use: localhost or an IP address.
+# Caddy provisions TLS certificates automatically via Let's Encrypt.
+
+{$DOMAIN:localhost} {
+    # Frontend (Vite / built static)
+    # Adjust the port to wherever your frontend is served (e.g. after `npm run build && serve`)
+    # If you serve from Caddy itself, use `root * /srv/public` + `file_server`.
+    # Here we assume the frontend is a separate container on port 5173.
+    @frontend {
+        not path /api/* /auth/* /clients/* /pets/* /appointments/* /services/* /products/*
+        not path /boardings/* /kennels/* /organization/* /templates/* /professionals/*
+        not path /tasks/* /whatsapp/* /hospitalization/* /sales/* /dashboard/* /portal/* /saas/*
+    }
+    reverse_proxy @frontend localhost:5173
+
+    # Backend (Node.js Express on port 3000)
+    reverse_proxy /auth/* localhost:3000
+    reverse_proxy /clients/* localhost:3000
+    reverse_proxy /pets/* localhost:3000
+    reverse_proxy /appointments/* localhost:3000
+    reverse_proxy /services/* localhost:3000
+    reverse_proxy /products/* localhost:3000
+    reverse_proxy /boardings/* localhost:3000
+    reverse_proxy /kennels/* localhost:3000
+    reverse_proxy /organization/* localhost:3000
+    reverse_proxy /templates/* localhost:3000
+    reverse_proxy /professionals/* localhost:3000
+    reverse_proxy /tasks/* localhost:3000
+    reverse_proxy /whatsapp/* localhost:3000
+    reverse_proxy /hospitalization/* localhost:3000
+    reverse_proxy /api/* localhost:3000
+    reverse_proxy /sales/* localhost:3000
+    reverse_proxy /dashboard/* localhost:3000
+    reverse_proxy /portal/* localhost:3000
+    reverse_proxy /saas/* localhost:3000
+
+    # WhatsApp Evolution API (port 8081)
+    reverse_proxy /whatsapp-api/* localhost:8081
+
+    encode gzip
+    header {
+        X-Frame-Options DENY
+        X-Content-Type-Options nosniff
+        Referrer-Policy strict-origin-when-cross-origin
+    }
+}

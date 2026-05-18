@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import {
   Mail,
@@ -14,6 +14,10 @@ import {
   Edit2,
   AlertCircle,
   User,
+  DollarSign,
+  TrendingUp,
+  ShoppingCart,
+  Loader2,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -28,6 +32,7 @@ import { useInventoryStore } from '@/stores/InventoryStore'
 import { clientInteractionService } from '@/services/client-interaction-service'
 import { whatsappService } from '@/services/whatsapp-service'
 import { Client, ClientInteraction, NotificationLog } from '@/lib/types'
+import api from '@/lib/api'
 import { format } from 'date-fns'
 import { toast } from 'sonner'
 import { Input } from '@/components/ui/input'
@@ -69,6 +74,8 @@ export default function ClientProfilePage() {
   const [isLoadingInteractions, setIsLoadingInteractions] = useState(false)
   const [isLoadingWhatsappLogs, setIsLoadingWhatsappLogs] = useState(false)
   const [isInteractionDialogOpen, setIsInteractionDialogOpen] = useState(false)
+  const [financialSummary, setFinancialSummary] = useState<any>(null)
+  const [isLoadingFinancial, setIsLoadingFinancial] = useState(false)
 
   // Data mapping
   const clientPets = useMemo(() => pets.filter(p => p.clientId === id), [pets, id])
@@ -93,6 +100,7 @@ export default function ClientProfilePage() {
       setFormData(found)
       loadInteractions(found.id)
       loadWhatsappLogs(found.id)
+      loadFinancialSummary(found.id)
     }
   }, [id, clients])
 
@@ -104,6 +112,17 @@ export default function ClientProfilePage() {
     } catch {
     } finally {
       setIsLoadingWhatsappLogs(false)
+    }
+  }
+
+  const loadFinancialSummary = async (clientId: string) => {
+    setIsLoadingFinancial(true)
+    try {
+      const { data } = await api.get(`/clients/${clientId}/financial-summary`)
+      setFinancialSummary(data)
+    } catch {
+    } finally {
+      setIsLoadingFinancial(false)
     }
   }
 
@@ -698,12 +717,80 @@ export default function ClientProfilePage() {
           </div>
         </TabsContent>
 
-        <TabsContent value="financial" className="bg-white rounded-2xl border border-slate-100 p-8">
-          <div className="text-center py-20 text-slate-400 italic">
-            Aba Financeira Refinada (Extrato Consolidado + Pendências)
-          </div>
+        <TabsContent value="financial" className="space-y-6">
+          {isLoadingFinancial ? (
+            <div className="flex items-center justify-center py-20">
+              <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
+            </div>
+          ) : !financialSummary ? (
+            <div className="text-center py-20 text-slate-400">Nenhum dado financeiro encontrado.</div>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-white rounded-2xl border border-slate-100 p-6 flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-emerald-50 flex items-center justify-center">
+                    <DollarSign className="h-6 w-6 text-emerald-600" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-500 font-medium">Total gasto</p>
+                    <p className="text-2xl font-bold text-slate-900">
+                      {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(financialSummary.totalSpent)}
+                    </p>
+                  </div>
+                </div>
+                <div className="bg-white rounded-2xl border border-slate-100 p-6 flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center">
+                    <TrendingUp className="h-6 w-6 text-blue-600" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-500 font-medium">Servicos</p>
+                    <p className="text-2xl font-bold text-slate-900">
+                      {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(financialSummary.totalServices)}
+                    </p>
+                  </div>
+                </div>
+                <div className="bg-white rounded-2xl border border-slate-100 p-6 flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-orange-50 flex items-center justify-center">
+                    <ShoppingCart className="h-6 w-6 text-orange-500" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-500 font-medium">Produtos</p>
+                    <p className="text-2xl font-bold text-slate-900">
+                      {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(financialSummary.totalSales)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
+                <div className="px-6 py-4 border-b border-slate-100">
+                  <h3 className="font-semibold text-slate-800">Extrato de transacoes</h3>
+                </div>
+                {financialSummary.transactions.length === 0 ? (
+                  <div className="text-center py-12 text-slate-400 text-sm">Nenhuma transacao registrada.</div>
+                ) : (
+                  <div className="divide-y divide-slate-50">
+                    {financialSummary.transactions.map((tx: any) => (
+                      <div key={tx.id} className="flex items-center justify-between px-6 py-4 hover:bg-slate-50 transition-colors">
+                        <div className="flex items-center gap-3">
+                          <div className={"w-9 h-9 rounded-xl flex items-center justify-center " + (tx.type === "service" ? "bg-blue-50" : "bg-orange-50")}>
+                            {tx.type === "service" ? <TrendingUp className="h-4 w-4 text-blue-600" /> : <ShoppingCart className="h-4 w-4 text-orange-500" />}
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-slate-800">{tx.description}</p>
+                            <p className="text-xs text-slate-400">{new Date(tx.date).toLocaleDateString("pt-BR")}</p>
+                          </div>
+                        </div>
+                        <p className="text-sm font-semibold text-slate-800">
+                          {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(tx.amount)}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </>
+          )}
         </TabsContent>
-      </Tabs>
 
       <ClientInteractionDialog
         open={isInteractionDialogOpen}

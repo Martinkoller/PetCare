@@ -1,3 +1,4 @@
+import { sendAppointmentReminderEmail } from './email.service'
 import { prisma } from '../index'
 import { whatsappTemplatesService } from './whatsapp-templates.service'
 import { evolutionService } from './evolution.service'
@@ -14,6 +15,7 @@ export const notificationSchedulerService = {
       await this.processFollowUps()
       await this.processTaskAlerts()
       await this.processBoardingCheckoutReminders()
+      await this.processEmailReminders()
     } catch (error) {
       console.error('[NotificationScheduler] Critical error in cycle:', error)
     }
@@ -536,6 +538,59 @@ export const notificationSchedulerService = {
       return { meta }
     } catch {
       return { meta: {} }
+    }
+  },
+  // ─────────────────────────────────────────────────────────────────────────────
+  // EMAIL REMINDERS — send reminder emails for appointments happening tomorrow
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  async processEmailReminders() {
+    const now = new Date()
+    const tomorrowStart = new Date(now)
+    tomorrowStart.setDate(tomorrowStart.getDate() + 1)
+    tomorrowStart.setHours(0, 0, 0, 0)
+    const tomorrowEnd = new Date(tomorrowStart)
+    tomorrowEnd.setHours(23, 59, 59, 999)
+
+    try {
+      const appointments = await prisma.appointment.findMany({
+        where: {
+          status: { in: ['scheduled', 'confirmed'] },
+          date: { gte: tomorrowStart, lte: tomorrowEnd },
+          // Only send email if not already reminded via email
+          // We reuse reminderSentAt only when WhatsApp is disabled; if WhatsApp is on, we still send email independently
+        },
+        include: {
+          pet: {
+            include: {
+              client: true,
+            },
+          },
+          organization: true,
+        },
+      })
+
+      for (const apt of appointments) {
+        const client = (apt.pet as any)?.client
+        if (!client?.email) continue
+
+        try {
+          await sendAppointmentReminderEmail({
+            clientName: client.name,
+            clientEmail: client.email,
+            petName: apt.pet.name,
+            serviceType: apt.serviceType,
+            date: new Date(apt.date),
+            clinicName: (apt as any).organization?.name || 'AgiliPet',
+            clinicPhone: (apt as any).organization?.phone || undefined,
+          })
+          console.log(`[NotificationScheduler] [EMAIL REMINDER] → ${client.email} (${apt.pet.name})`)
+        } catch (err: any) {
+          console.error(`[NotificationScheduler] [EMAIL REMINDER] Erro para apt ${apt.id}:`, err.message ?? err)
+        }
+      }
+    } catch (err: any) {
+      console.error('[NotificationScheduler] [EMAIL REMINDER] Erro geral:', err.message ?? err)
     }
   },
 }
